@@ -10,6 +10,11 @@ Copyright 2026 hogawish, for this fork's modifications. These modifications are
 provided under the Apache License, Version 2.0; see [LICENSE](LICENSE). Existing
 upstream copyright and attribution notices remain in effect.
 
+Report fork-specific problems to this repository's Issues. These changes are not
+included in the official app, cloud service, or released desktop binaries.
+This source fork does not publish releases, tags, or container images; inherited
+GitHub Actions are disabled and feature updates push only the main branch.
+
 ## Changes
 
 - Derive record activity from the later of node-attribute and body-document
@@ -34,6 +39,8 @@ and an update-user filter can match the creator. Initialization of a body docume
 can also supply its later creation timestamp. Non-record metadata is unchanged.
 The projection assumes the application's canonical UTC ISO timestamp strings;
 performance at very large workspace sizes has not been benchmarked here.
+The live activity projection retains the latest observed body timestamp until
+reload; body-document deletion or a timestamp rollback is not recomputed live.
 
 ## External requests and shared references
 
@@ -77,7 +84,8 @@ creation/source immutability, SQL filtering/sorting, URL/provider boundaries,
 Yjs roundtrip and old-editor link retention, and direct-image error fallback.
 Real Tiptap editor tests in JSDOM also check native paragraph/task/list/table DOM,
 widget update/removal/destruction, retained surrounding text and links, and dialog
-insertion after an intervening edit or cancellation. JSDOM does not verify native
+insertion after an intervening edit or cancellation. Paragraph splits at the end
+and middle of a reference preserve one preview. JSDOM does not verify native
 browser layout or input-method behavior.
 Real account permissions and provider playback require a separate browser check.
 Iframe load alone is not evidence of media access or playback.

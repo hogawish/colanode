@@ -131,6 +131,52 @@ describe('external reference editor integration', () => {
     expect(widget).toBeEmptyDOMElement();
   });
 
+  it('retains deliberately inserted references to the same source', async () => {
+    const { editor } = mountEditor([paragraph('reference', source, parseExternalReference(source))]);
+    await waitFor(() => expect(screen.getAllByTitle('Google Drive media preview')).toHaveLength(1));
+    act(() => { editor.commands.insertContentAt(0, paragraph('copy', source, parseExternalReference(source))); });
+    await waitFor(() => expect(screen.getAllByTitle('Google Drive media preview')).toHaveLength(2));
+    expect(editor.state.doc.nodeAt(positionOf(editor, 'reference'))?.attrs.externalRef.sourceUrl).toBe(source);
+    expect(editor.state.doc.nodeAt(positionOf(editor, 'copy'))?.attrs.externalRef.sourceUrl).toBe(source);
+  });
+
+  it('preserves the next reference if a new split paragraph is deleted in the same transaction', async () => {
+    const { editor } = mountEditor([
+      paragraph('reference', source, parseExternalReference(source)),
+      paragraph('next', source, parseExternalReference(source)),
+    ]);
+    await waitFor(() => expect(screen.getAllByTitle('Google Drive media preview')).toHaveLength(2));
+    act(() => {
+      editor.chain().setTextSelection(positionOf(editor, 'reference') + 5).splitBlock().command(({ tr }) => {
+        const position = tr.selection.$from.before();
+        const node = tr.doc.nodeAt(position)!;
+        tr.delete(position, position + node.nodeSize);
+        return true;
+      }).run();
+    });
+    expect(editor.state.doc.nodeAt(positionOf(editor, 'next'))?.attrs.externalRef.sourceUrl).toBe(source);
+    await waitFor(() => expect(screen.getAllByTitle('Google Drive media preview')).toHaveLength(2));
+  });
+
+  it.each(['end', 'middle'] as const)('keeps one preview when splitting a reference paragraph at the %s', async (where) => {
+    const { editor } = mountEditor([
+      paragraph('reference', source, parseExternalReference(source)),
+      paragraph('after', 'After'),
+    ]);
+    await waitFor(() => expect(screen.getAllByTitle('Google Drive media preview')).toHaveLength(1));
+    act(() => {
+      const offset = where === 'end' ? source.length : Math.floor(source.length / 2);
+      editor.commands.setTextSelection(positionOf(editor, 'reference') + 1 + offset);
+      expect(editor.commands.splitBlock()).toBe(true);
+    });
+    await waitFor(() => expect(screen.getAllByTitle('Google Drive media preview')).toHaveLength(1));
+    const content = editor.getJSON().content!;
+    expect(content[0]?.attrs?.externalRef?.sourceUrl).toBe(source);
+    expect(content[1]?.attrs?.externalRef).toBeNull();
+    expect(content[0]?.content?.map((node) => node.text).join('') + (content[1]?.content?.map((node) => node.text).join('') ?? '')).toBe(source);
+    expect(editor.state.doc.nodeAt(positionOf(editor, 'after'))?.textContent).toBe('After');
+  });
+
   it('consumes the slash token immediately and inserts at the mapped current selection after a remote edit', () => {
     const { editor } = mountEditor([paragraph('before', 'Before'), paragraph('command', '/embed'), paragraph('after', 'After')]);
     let request: ExternalReferenceRequest | undefined;
