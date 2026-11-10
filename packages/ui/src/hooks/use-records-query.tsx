@@ -1,3 +1,4 @@
+// Modified: sort built-in update fields by record metadata.
 import {
   Ref,
   and,
@@ -204,6 +205,13 @@ const createSortDefinition = (
       direction: sort.direction,
       selector: (record) => record.createdBy,
     };
+  }
+
+  if (field.type === 'updated_at') {
+    return { direction: sort.direction, selector: (record) => record.updatedAt };
+  }
+  if (field.type === 'updated_by') {
+    return { direction: sort.direction, selector: (record) => record.updatedBy };
   }
 
   return {

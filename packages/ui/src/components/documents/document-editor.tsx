@@ -1,3 +1,4 @@
+// Modified: add URL-based external-reference insertion.
 import '@colanode/ui/styles/editor.css';
 
 import {
@@ -7,7 +8,7 @@ import {
   useEditor,
 } from '@tiptap/react';
 import { debounce, isEqual } from 'lodash-es';
-import { Fragment, useEffect, useMemo, useRef } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
@@ -87,6 +88,7 @@ import {
   Markdown,
 } from '@colanode/ui/editor/extensions';
 import { ToolbarMenu, ActionMenu } from '@colanode/ui/editor/menus';
+import { createExternalReferenceCommand, ExternalReferenceDialog, type ExternalReferenceRequest } from '@colanode/ui/editor/commands/external-reference';
 
 interface DocumentEditorProps {
   node: LocalNode;
@@ -193,6 +195,7 @@ export const DocumentEditor = ({
   autoFocus,
 }: DocumentEditorProps) => {
   const workspace = useWorkspace();
+  const [externalReferenceRequest, setExternalReferenceRequest] = useState<ExternalReferenceRequest | null>(null);
 
   const hasPendingChanges = useRef(false);
   const revisionRef = useRef(state?.revision ?? 0);
@@ -296,6 +299,7 @@ export const DocumentEditor = ({
         AutoJoiner,
         CommanderExtension.configure({
           commands: [
+            createExternalReferenceCommand(setExternalReferenceRequest),
             ParagraphCommand,
             PageCommand,
             BlockquoteCommand,
@@ -442,6 +446,7 @@ export const DocumentEditor = ({
         </Fragment>
       )}
       <EditorContent editor={editor} />
+      {externalReferenceRequest && <ExternalReferenceDialog request={externalReferenceRequest} onClose={() => setExternalReferenceRequest(null)} />}
     </>
   );
 };

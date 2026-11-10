@@ -1,8 +1,10 @@
+// Modified: derive record activity before query filtering and sorting.
 import { sql } from 'kysely';
 
 import { SelectNode } from '@colanode/client/databases';
 import { WorkspaceQueryHandlerBase } from '@colanode/client/handlers/queries/workspace-query-handler-base';
 import { mapNode } from '@colanode/client/lib';
+import { activityNodesSql } from '@colanode/client/lib/record-activity';
 import {
   buildNodeFiltersQuery,
   buildNodeSortsQuery,
@@ -34,7 +36,7 @@ export class NodeListQueryHandler
     const filterQuery = buildNodeFiltersQuery(input.filters);
     const sortQuery = buildNodeSortsQuery(input.sorts);
 
-    let queryString = `SELECT * FROM nodes n WHERE 1=1 ${filterQuery}`;
+    let queryString = `SELECT * FROM ${activityNodesSql} n WHERE 1=1 ${filterQuery}`;
 
     if (sortQuery) {
       queryString += ` ORDER BY ${sortQuery}`;

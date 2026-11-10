@@ -1,3 +1,4 @@
+// Modified: refresh record activity on document update events.
 import {
   BasicIndex,
   createCollection,
@@ -5,6 +6,7 @@ import {
 } from '@tanstack/react-db';
 
 import { LocalNode } from '@colanode/client/types';
+import { withRecordActivity } from '@colanode/client/lib';
 import { applyNodeTransaction } from '@colanode/ui/lib/nodes';
 
 export const createNodesCollection = (userId: string) => {
@@ -19,6 +21,12 @@ export const createNodesCollection = (userId: string) => {
     sync: {
       rowUpdateMode: 'full',
       sync({ begin, write, commit, markReady }) {
+        const known = new Map<string, LocalNode>();
+        const remember = (node: LocalNode) => {
+          const value = withRecordActivity(node, known.get(node.id));
+          known.set(node.id, value);
+          return value;
+        };
         window.colanode
           .executeQuery({
             type: 'node.list',
@@ -35,7 +43,7 @@ export const createNodesCollection = (userId: string) => {
           .then((nodes) => {
             begin();
             for (const node of nodes) {
-              write({ type: 'insert', value: node });
+              write({ type: 'insert', value: remember(node) });
             }
             commit();
             markReady();
@@ -47,19 +55,32 @@ export const createNodesCollection = (userId: string) => {
             event.workspace.userId === userId
           ) {
             begin();
-            write({ type: 'insert', value: event.node });
+            write({ type: 'insert', value: remember(event.node) });
             commit();
           } else if (
             event.type === 'node.updated' &&
             event.workspace.userId === userId
           ) {
             begin();
-            write({ type: 'update', value: event.node });
+            write({ type: 'update', value: remember(event.node) });
             commit();
+          } else if (
+            event.type === 'document.updated' &&
+            event.workspace.userId === userId
+          ) {
+            const node = known.get(event.document.id);
+            if (node?.type === 'record') {
+              const value = withRecordActivity(node, event.document);
+              known.set(node.id, value);
+              begin();
+              write({ type: 'update', value });
+              commit();
+            }
           } else if (
             event.type === 'node.deleted' &&
             event.workspace.userId === userId
           ) {
+            known.delete(event.node.id);
             begin();
             write({ type: 'delete', value: event.node });
             commit();
@@ -81,7 +102,7 @@ export const createNodesCollection = (userId: string) => {
 
             begin();
             for (const node of nodes) {
-              write({ type: 'insert', value: node });
+              write({ type: 'insert', value: remember(node) });
             }
             commit();
           },

@@ -1,3 +1,4 @@
+// Modified: export record activity derivation.
 export * from './ky';
 export * from './backoff-calculator';
 export * from './editor';
@@ -9,3 +10,4 @@ export * from './servers';
 export * from './types';
 export * from './utils';
 export * from './features';
+export * from './record-activity';
