@@ -1,4 +1,4 @@
-import type { Editor, Range } from '@tiptap/core';
+import type { Editor } from '@tiptap/core';
 import { Link2 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -8,16 +8,21 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@colanode/ui/components/ui/input';
 import { externalReferenceParagraph, parseExternalReference } from '@colanode/ui/lib/external-reference';
 
-export interface ExternalReferenceRequest { editor: Editor; range: Range }
+export interface ExternalReferenceRequest { editor: Editor }
 
 export const createExternalReferenceCommand = (request: (value: ExternalReferenceRequest) => void): EditorCommand => ({
   key: 'external-reference',
   name: 'Embed',
   description: 'Reference Google Drive media or an external image by URL',
-  keywords: ['embed', 'drive', 'image', 'video', 'image', 'video', 'Embed'],
+  keywords: ['embed', 'drive', 'image', 'video'],
   icon: Link2,
   disabled: false,
-  handler({ editor, range }) { request({ editor, range }); },
+  handler({ editor, range }) {
+    if (editor.isDestroyed || !editor.isEditable) return;
+    // Consume the slash token now, before a dialog or remote edit can stale it.
+    editor.chain().deleteRange(range).run();
+    request({ editor });
+  },
 });
 
 export const ExternalReferenceDialog = ({ request, onClose }: { request: ExternalReferenceRequest; onClose: () => void }) => {
@@ -35,7 +40,7 @@ export const ExternalReferenceDialog = ({ request, onClose }: { request: Externa
           const reference = parseExternalReference(url);
           if (!reference) { setError('Enter an HTTPS Google Drive file link or a direct image URL without credentials.'); return; }
           if (request.editor.isDestroyed) { onClose(); return; }
-          request.editor.chain().focus().deleteRange(request.range).insertContent(externalReferenceParagraph(reference)).run();
+          request.editor.chain().focus().insertContent(externalReferenceParagraph(reference)).run();
           onClose();
         }}>
           <Input type="url" aria-label="Source URL" placeholder="https://drive.google.com/file/d/…/view" value={url} onChange={(event) => { setUrl(event.target.value); setError(''); }} required />

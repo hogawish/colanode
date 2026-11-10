@@ -23,6 +23,8 @@ export const createNodesCollection = (userId: string) => {
       sync({ begin, write, commit, markReady }) {
         const known = new Map<string, LocalNode>();
         const remember = (node: LocalNode) => {
+          // Raw node events can predate a body update; retain the last effective
+          // activity stamp until a newer document event or reload refreshes it.
           const value = withRecordActivity(node, known.get(node.id));
           known.set(node.id, value);
           return value;
@@ -88,7 +90,10 @@ export const createNodesCollection = (userId: string) => {
         });
 
         return {
-          cleanup: () => window.eventBus.unsubscribe(subscriptionId),
+          cleanup: () => {
+            known.clear();
+            window.eventBus.unsubscribe(subscriptionId);
+          },
           loadSubset: async (options) => {
             const parsedOptions = parseLoadSubsetOptions(options);
 

@@ -21,9 +21,10 @@ describe('external media references', () => {
   it('limits iframe sources to recognized Drive file URLs', () => {
     const ref = parseExternalReference(url)!;
     expect(drivePreviewUrl(ref)).toBe('https://drive.google.com/file/d/ExampleFile_123/preview?resourcekey=example-key');
-    for (const input of ['javascript:alert(1)', 'data:image/png;base64,AAAA', 'http://example.invalid/image.png', 'https://user:password@example.invalid/image.png', 'https://drive.google.com/drive/folders/example', 'https://example.invalid/image.png?access_token=example', 'https://example.invalid/image.png?X-Amz-Signature=example']) {
+    for (const input of ['javascript:alert(1)', 'data:image/png;base64,AAAA', 'http://example.invalid/image.png', 'https://user:password@example.invalid/image.png', 'https://drive.google.com/drive/folders/example', 'https://example.invalid/image.png?access_token=example', 'https://example.invalid/image.png?X-Amz-Signature=example', 'https://example.invalid/image.png?api_key=example', 'https://example.invalid/image.png?apikey=example', 'https://example.invalid/image.png?sig=example', 'https://example.invalid/image.png?AWSAccessKeyId=example']) {
       expect(parseExternalReference(input)).toBeNull();
     }
+    expect(parseExternalReference('https://images.example.invalid/photo.png?width=640&key=thumbnail')?.provider).toBe('direct-image');
     expect(readExternalReference({ ...ref, fileId: 'DifferentFile' })).toBeNull();
     expect(parseExternalReference('https://drive.google.com.example.invalid/image.png')?.provider).toBe('direct-image');
     const html = renderToStaticMarkup(<ExternalReferencePreview value={ref} />);

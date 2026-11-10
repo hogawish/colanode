@@ -13,9 +13,10 @@ export const parseExternalReference = (input: string): ExternalReference | null 
     return null;
   }
   if (url.protocol !== 'https:' || url.username || url.password) return null;
-  // This first version does not store OAuth tokens or temporary signed access.
+  // Best-effort rejection of common credential/signature parameters, not a
+  // guarantee that a URL contains no credentials or is safe to persist/share.
   for (const key of url.searchParams.keys()) {
-    if (/^(access_token|token|authorization|signature|x-amz-.+|x-goog-.+)$/i.test(key)) {
+    if (/^(access_token|token|authorization|signature|api[_-]?key|sig|awsaccesskeyid|x-amz-.+|x-goog-.+)$/i.test(key)) {
       return null;
     }
   }

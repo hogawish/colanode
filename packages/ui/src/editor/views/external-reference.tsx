@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { type NodeViewProps } from '@tiptap/core';
-import { NodeViewContent, NodeViewWrapper } from '@tiptap/react';
+import { createRoot, type Root } from 'react-dom/client';
 
-import { defaultClasses } from '@colanode/ui/editor/classes';
 import { drivePreviewUrl, readExternalReference } from '@colanode/ui/lib/external-reference';
 
 export const ExternalReferencePreview = ({ value }: { value: unknown }) => {
@@ -44,17 +42,40 @@ export const ExternalReferencePreview = ({ value }: { value: unknown }) => {
   );
 };
 
-export const ReferenceParagraphView = ({ node, updateAttributes, editor }: NodeViewProps) => {
-  const reference = readExternalReference(node.attrs.externalRef);
-  return (
-    <NodeViewWrapper>
-      {reference && (
-        <div contentEditable={false}>
-          <ExternalReferencePreview value={reference} />
-          {editor.isEditable && <button type="button" className="text-xs text-muted-foreground underline" onClick={() => updateAttributes({ externalRef: null })}>Remove preview and keep link</button>}
-        </div>
+const widgetRoots = new WeakMap<HTMLElement, Root>();
+
+// Mount only a preview widget. The paragraph itself keeps its native DOM.
+export const createExternalReferenceWidget = (
+  value: unknown,
+  onRemove?: () => void
+): HTMLElement => {
+  const dom = document.createElement('div');
+  dom.contentEditable = 'false';
+  dom.dataset.externalReferenceWidget = '';
+  const root = createRoot(dom);
+  widgetRoots.set(dom, root);
+  root.render(
+    <>
+      <ExternalReferencePreview value={value} />
+      {onRemove && (
+        <button
+          type="button"
+          className="text-xs text-muted-foreground underline"
+          onClick={onRemove}
+        >
+          Remove preview and keep link
+        </button>
       )}
-      <NodeViewContent className={defaultClasses.paragraph} />
-    </NodeViewWrapper>
+    </>
   );
+  return dom;
+};
+
+export const destroyExternalReferenceWidget = (dom: Node) => {
+  const root = widgetRoots.get(dom as HTMLElement);
+  if (!root) return;
+  widgetRoots.delete(dom as HTMLElement);
+  // A remove button can dispatch while React is handling this widget's event.
+  // Defer unmount to finish that event, including when the editor is destroyed.
+  queueMicrotask(() => root.unmount());
 };
