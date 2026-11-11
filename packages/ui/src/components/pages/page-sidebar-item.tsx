@@ -2,7 +2,11 @@ import { eq, inArray, useLiveQuery } from '@tanstack/react-db';
 import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
-import { LocalNode, LocalPageNode } from '@colanode/client/types';
+import {
+  LocalNode,
+  LocalPageNode,
+  LocalSpaceNode,
+} from '@colanode/client/types';
 import { Avatar } from '@colanode/ui/components/avatars/avatar';
 import { SidebarItem } from '@colanode/ui/components/layouts/sidebars/sidebar-item';
 import {
@@ -12,6 +16,7 @@ import {
 } from '@colanode/ui/components/ui/collapsible';
 import { Link } from '@colanode/ui/components/ui/link';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
+import { sortSpaceChildren } from '@colanode/ui/lib/spaces';
 import { cn } from '@colanode/ui/lib/utils';
 
 interface PageSidebarItemProps {
@@ -34,7 +39,21 @@ export const PageSidebarItem = ({ page }: PageSidebarItemProps) => {
     [workspace.userId, page.id]
   );
 
-  const children = (childrenQuery.data ?? []) as LocalNode[];
+  const spaceQuery = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: workspace.collections.nodes })
+        .where(({ nodes }) => eq(nodes.id, page.rootId))
+        .findOne(),
+    [workspace.userId, page.rootId]
+  );
+  const children =
+    spaceQuery.data?.type === 'space'
+      ? sortSpaceChildren(
+          spaceQuery.data as LocalSpaceNode,
+          (childrenQuery.data ?? []) as LocalNode[]
+        )
+      : ((childrenQuery.data ?? []) as LocalNode[]);
   const hasChildren = children.length > 0;
 
   return (

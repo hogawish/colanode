@@ -32,6 +32,7 @@ import { NodeInteractionSeenMutationHandler } from './nodes/node-interaction-see
 import { NodeReactionCreateMutationHandler } from './nodes/node-reaction-create';
 import { NodeReactionDeleteMutationHandler } from './nodes/node-reaction-delete';
 import { NodeUpdateMutationHandler } from './nodes/node-update';
+import { RecordFieldSetMutationHandler } from './nodes/record-field-set';
 import { ServerCreateMutationHandler } from './servers/server-create';
 import { ServerDeleteMutationHandler } from './servers/server-delete';
 import { ServerSyncMutationHandler } from './servers/server-sync';
@@ -58,6 +59,7 @@ export const buildMutationHandlerMap = (
     'node.delete': new NodeDeleteMutationHandler(app),
     'node.create': new NodeCreateMutationHandler(app),
     'node.update': new NodeUpdateMutationHandler(app),
+    'record.field.set': new RecordFieldSetMutationHandler(app),
     'chat.create': new ChatCreateMutationHandler(app),
     'message.create': new MessageCreateMutationHandler(app),
     'node.collaborator.create': new NodeCollaboratorCreateMutationHandler(app),

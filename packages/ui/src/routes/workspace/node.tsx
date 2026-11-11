@@ -37,6 +37,7 @@ export const nodeMaskRoute = createRoute({
           nodeId: ctx.params.nodeId,
         },
         replace: true,
+        hash: ctx.location.hash,
       });
     }
   },

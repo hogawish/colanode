@@ -3,6 +3,7 @@ export type SpaceChildReorderMutationInput = {
   userId: string;
   spaceId: string;
   childId: string;
+  parentId?: string;
   after: string | null;
 };
 

@@ -29,7 +29,8 @@ export class SpaceChildReorderMutationHandler
     const workspace = this.getWorkspace(input.userId);
     const children = await workspace.database
       .selectFrom('nodes')
-      .where('parent_id', '=', input.spaceId)
+      .where('parent_id', '=', input.parentId ?? input.spaceId)
+      .where('root_id', '=', input.spaceId)
       .orderBy('id')
       .selectAll()
       .execute();
@@ -38,6 +39,18 @@ export class SpaceChildReorderMutationHandler
       throw new MutationError(
         MutationErrorCode.SpaceUpdateFailed,
         'Space has no children.'
+      );
+    }
+
+    if (
+      !children.some((child) => child.id === input.childId) ||
+      input.after === input.childId ||
+      (input.after !== null &&
+        !children.some((child) => child.id === input.after))
+    ) {
+      throw new MutationError(
+        MutationErrorCode.SpaceUpdateFailed,
+        'Choose another item in the same parent.'
       );
     }
 
@@ -74,6 +87,13 @@ export class SpaceChildReorderMutationHandler
       throw new MutationError(
         MutationErrorCode.SpaceUpdateForbidden,
         "You don't have permission to update this space."
+      );
+    }
+
+    if (result !== 'success') {
+      throw new MutationError(
+        MutationErrorCode.SpaceUpdateFailed,
+        `Could not save the order: ${result}`
       );
     }
 
