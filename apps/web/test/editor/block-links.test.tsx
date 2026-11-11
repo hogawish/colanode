@@ -47,6 +47,8 @@ const createEditor = () => {
 beforeEach(() => {
   state.hash = '';
   HTMLElement.prototype.scrollIntoView = vi.fn();
+  HTMLElement.prototype.getBoundingClientRect = () =>
+    new DOMRect(0, 0, 200, 20);
   HTMLElement.prototype.animate = vi.fn().mockReturnValue({ cancel: vi.fn() });
   Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
   Range.prototype.getBoundingClientRect = () => new DOMRect();
@@ -193,6 +195,45 @@ describe('stable block links', () => {
       findBlockElement(editor, 'first')
     );
     expect(editor.getJSON().content?.[0]?.attrs?.id).toBe('first');
+  });
+
+  it('waits for a pending NodeView to have layout before scrolling', async () => {
+    let ready = false;
+    let notifyResize = () => {};
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          notifyResize = callback;
+        }
+        observe() {}
+        disconnect() {}
+      }
+    );
+    const editor = createEditor();
+    state.hash = 'block=second';
+    const target = findBlockElement(editor, 'second')!;
+    target.getBoundingClientRect = () =>
+      new DOMRect(0, 500, 200, ready ? 20 : 0);
+    render(
+      <DocumentBlockMenu editor={editor} documentId="page">
+        <EditorContent editor={editor} />
+      </DocumentBlockMenu>
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(HTMLElement.prototype.scrollIntoView).not.toHaveBeenCalled();
+    act(() => {
+      ready = true;
+      notifyResize();
+    });
+    await waitFor(() =>
+      expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledTimes(1)
+    );
+    expect(
+      vi.mocked(HTMLElement.prototype.scrollIntoView).mock.contexts[0]
+    ).toBe(target);
   });
 
   it('handles malformed links and removed blocks without jumping to another block', () => {

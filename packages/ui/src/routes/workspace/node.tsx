@@ -38,6 +38,14 @@ export const nodeMaskRoute = createRoute({
         },
         replace: true,
         hash: ctx.location.hash,
+        mask: {
+          to: '/$workspaceId/$nodeId',
+          params: {
+            workspaceId: ctx.params.workspaceId,
+            nodeId: ctx.params.nodeId,
+          },
+          hash: ctx.location.hash,
+        },
       });
     }
   },
