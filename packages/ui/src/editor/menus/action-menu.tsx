@@ -10,6 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@colanode/ui/components/ui/popover';
+import { BlockFormatControls } from '@colanode/ui/editor/menus/block-format-controls';
 import { useCopyBlockLink } from '@colanode/ui/hooks/use-copy-block-link';
 import { isInBlockHandleCorridor } from '@colanode/ui/lib/block-handle';
 
@@ -336,6 +337,11 @@ export const ActionMenu = ({ editor, documentId }: ActionMenuProps) => {
             aria-label="Block actions"
             onCloseAutoFocus={(event) => event.preventDefault()}
           >
+            <BlockFormatControls
+              editor={editor}
+              blockId={selectedBlockId}
+              onApplied={() => setMenuOpen(false)}
+            />
             <button
               type="button"
               role="menuitem"

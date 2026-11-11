@@ -1,7 +1,9 @@
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { Extension } from '@tiptap/react';
 import { Plugin, PluginKey } from 'prosemirror-state';
 
 import { EditorNodeTypes, generateId, IdType } from '@colanode/core';
+import { blockBackgroundClass } from '@colanode/ui/lib/block-formatting';
 
 const types = [
   EditorNodeTypes.Paragraph,
@@ -28,8 +30,28 @@ export const IdExtension = Extension.create({
   addGlobalAttributes() {
     return [
       {
+        types: ['heading1', 'heading2', 'heading3'],
+        attributes: {
+          // Retain an existing link preview when a paragraph becomes a heading;
+          // converting back to text restores the paragraph's preview.
+          externalRef: { default: null, rendered: false, keepOnSplit: false },
+        },
+      },
+      {
         types,
         attributes: {
+          blockBackground: {
+            default: null,
+            parseHTML: (element) =>
+              element.getAttribute('data-block-background'),
+            renderHTML: (attrs) =>
+              attrs.blockBackground
+                ? {
+                    'data-block-background': attrs.blockBackground,
+                    class: blockBackgroundClass(attrs.blockBackground),
+                  }
+                : {},
+          },
           id: {
             default: null,
             parseHTML: (element) => element.getAttribute('data-id'),
@@ -53,6 +75,23 @@ export const IdExtension = Extension.create({
     return [
       new Plugin({
         key: new PluginKey('id'),
+        props: {
+          decorations(state) {
+            const decorations: Decoration[] = [];
+            state.doc.descendants((node, pos) => {
+              const background = blockBackgroundClass(
+                node.attrs.blockBackground
+              );
+              if (node.isBlock && background)
+                decorations.push(
+                  Decoration.node(pos, pos + node.nodeSize, {
+                    class: background,
+                  })
+                );
+            });
+            return DecorationSet.create(state.doc, decorations);
+          },
+        },
         appendTransaction(_, __, state) {
           const { tr } = state;
           const ids = new Set<string>();

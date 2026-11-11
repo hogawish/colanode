@@ -2,6 +2,7 @@ import { JSONContent } from '@tiptap/core';
 
 import { defaultClasses } from '@colanode/ui/editor/classes';
 import { NodeChildrenRenderer } from '@colanode/ui/editor/renderers/node-children';
+import { blockBackgroundClass } from '@colanode/ui/lib/block-formatting';
 
 interface Heading2RendererProps {
   node: JSONContent;
@@ -13,7 +14,7 @@ export const Heading2Renderer = ({
   keyPrefix,
 }: Heading2RendererProps) => {
   return (
-    <h2 className={defaultClasses.heading2}>
+    <h2 className={[defaultClasses.heading2, blockBackgroundClass(node.attrs?.blockBackground)].join(' ')}>
       <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
     </h2>
   );
