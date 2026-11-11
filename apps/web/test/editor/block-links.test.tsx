@@ -5,9 +5,10 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { Editor } from '@tiptap/core';
+import { Editor, Node as TiptapNode } from '@tiptap/core';
 import TiptapDocument from '@tiptap/extension-document';
 import TiptapText from '@tiptap/extension-text';
+import { NodeSelection } from '@tiptap/pm/state';
 import { EditorContent } from '@tiptap/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -80,14 +81,29 @@ describe('stable block links', () => {
     editor.view.dom.getBoundingClientRect = () => new DOMRect(100, 0, 400, 400);
     const target = findBlockElement(editor, 'second')!;
     target.getBoundingClientRect = () => new DOMRect(100, 40, 400, 20);
+    let position = 0;
+    editor.state.doc.descendants((node, pos) => {
+      if (node.attrs.id === 'second') position = pos;
+    });
+    vi.spyOn(editor.view, 'posAtCoords').mockReturnValue({
+      pos: position + 1,
+      inside: position,
+    });
     fireEvent.mouseMove(target, { clientX: 120, clientY: 50 });
     return editor;
   };
 
   it('opens the block menu by clicking the handle and copies that block', async () => {
-    mountHandle();
+    const editor = mountHandle();
     fireEvent.click(
       await screen.findByRole('button', { name: 'Block actions' })
+    );
+    expect(editor.state.selection).toBeInstanceOf(NodeSelection);
+    expect((editor.state.selection as NodeSelection).node.attrs.id).toBe(
+      'second'
+    );
+    expect(findBlockElement(editor, 'second')).toHaveClass(
+      'ProseMirror-selectednode'
     );
     fireEvent.click(
       await screen.findByRole('menuitem', { name: 'Copy link to block' })
@@ -96,6 +112,86 @@ describe('stable block links', () => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
         buildBlockLink(window.location.origin, 'workspace', 'page', 'second')
       )
+    );
+  });
+
+  it('keeps a toggle child targeted while moving sideways to its handle, then can target the parent header', async () => {
+    const Toggle = TiptapNode.create({
+      name: 'toggle',
+      group: 'block',
+      content: 'paragraph block*',
+      addAttributes: () => ({ id: { default: null } }),
+      renderHTML: ({ HTMLAttributes }) => [
+        'section',
+        { 'data-id': HTMLAttributes.id },
+        0,
+      ],
+    });
+    const editor = new Editor({
+      extensions: [
+        TiptapDocument,
+        ParagraphNode,
+        TiptapText,
+        IdExtension,
+        Toggle,
+      ],
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'toggle',
+            attrs: { id: 'parent' },
+            content: ['summary', 'child'].map((id) => ({
+              type: 'paragraph',
+              attrs: { id },
+              content: [{ type: 'text', text: id }],
+            })),
+          },
+        ],
+      },
+    });
+    editors.push(editor);
+    render(
+      <>
+        <EditorContent editor={editor} />
+        <ActionMenu editor={editor} documentId="page" />
+      </>
+    );
+    editor.view.dom.getBoundingClientRect = () => new DOMRect(100, 0, 400, 400);
+    const positions: Record<string, number> = {};
+    editor.state.doc.descendants((node, pos) => {
+      if (node.attrs.id) positions[node.attrs.id] = pos;
+    });
+    const parent = findBlockElement(editor, 'parent')!;
+    const child = findBlockElement(editor, 'child')!;
+    parent.getBoundingClientRect = () => new DOMRect(120, 40, 380, 100);
+    child.getBoundingClientRect = () => new DOMRect(150, 70, 350, 20);
+    vi.spyOn(editor.view, 'posAtCoords').mockImplementation(({ left }) =>
+      left >= 150
+        ? { pos: positions.child! + 1, inside: positions.child! }
+        : { pos: positions.summary! + 1, inside: positions.summary! }
+    );
+    fireEvent.mouseMove(child, { clientX: 160, clientY: 80 });
+    const handle = await screen.findByRole('button', { name: 'Block actions' });
+    handle.parentElement!.getBoundingClientRect = () =>
+      new DOMRect(95, 68, 40, 24);
+    fireEvent.mouseMove(parent, { clientX: 125, clientY: 80 });
+    fireEvent.click(handle);
+    expect((editor.state.selection as NodeSelection).node.attrs.id).toBe(
+      'child'
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Copy link to block' })
+    );
+    await waitFor(() =>
+      expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
+        buildBlockLink(window.location.origin, 'workspace', 'page', 'child')
+      )
+    );
+    fireEvent.mouseMove(parent, { clientX: 125, clientY: 45 });
+    fireEvent.click(screen.getByRole('button', { name: 'Block actions' }));
+    expect((editor.state.selection as NodeSelection).node.attrs.id).toBe(
+      'parent'
     );
   });
 

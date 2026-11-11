@@ -5,13 +5,13 @@ import { Editor } from '@tiptap/react';
 import { GripVertical, Link2, Plus } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 
-import { isDescendantNode } from '@colanode/client/lib';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@colanode/ui/components/ui/popover';
 import { useCopyBlockLink } from '@colanode/ui/hooks/use-copy-block-link';
+import { isInBlockHandleCorridor } from '@colanode/ui/lib/block-handle';
 
 interface ActionMenuProps {
   editor: Editor | null;
@@ -19,6 +19,67 @@ interface ActionMenuProps {
 }
 
 const LEFT_MARGIN = 45;
+
+// Blocks that are handled as one unit (the handle never goes inside them).
+const ATOMIC_UNITS = ['table', 'blockquote'];
+// For these containers the first text line stands for the container itself.
+const FIRST_LINE_HOLDERS = ['listItem', 'taskItem', 'toggle'];
+
+/**
+ * Pick the block the handle belongs to: the innermost block under the mouse
+ * that is a sensible unit to move (list item, toggle, child of a toggle...),
+ * instead of always the outermost one.
+ */
+const findHandleTarget = (
+  doc: ProseMirrorNode,
+  coords: { pos: number; inside: number }
+): { node: ProseMirrorNode; pos: number; depth: number } | null => {
+  // A block without text under the mouse (page, database, file, divider...)
+  if (coords.inside >= 0) {
+    const inside = doc.nodeAt(coords.inside);
+    if (inside && inside.isBlock && inside.isAtom) {
+      return {
+        node: inside,
+        pos: coords.inside,
+        depth: doc.resolve(coords.inside).depth + 1,
+      };
+    }
+  }
+
+  const $pos = doc.resolve(coords.pos);
+
+  // Inside a table or a quote: the whole table / quote is the unit.
+  for (let depth = 1; depth <= $pos.depth; depth++) {
+    if (ATOMIC_UNITS.includes($pos.node(depth).type.name)) {
+      return {
+        node: $pos.node(depth),
+        pos: $pos.before(depth),
+        depth,
+      };
+    }
+  }
+
+  for (let depth = $pos.depth; depth >= 1; depth--) {
+    const node = $pos.node(depth);
+    const parent = $pos.node(depth - 1);
+
+    if (!node.isBlock) {
+      continue;
+    }
+
+    if (
+      node.isTextblock &&
+      FIRST_LINE_HOLDERS.includes(parent.type.name) &&
+      $pos.index(depth - 1) === 0
+    ) {
+      continue;
+    }
+
+    return { node, pos: $pos.before(depth), depth };
+  }
+
+  return null;
+};
 
 type MenuState = {
   show: boolean;
@@ -37,6 +98,11 @@ export const ActionMenu = ({ editor, documentId }: ActionMenuProps) => {
   const [menuState, setMenuState] = useState<MenuState>({
     show: false,
   });
+  const hovered = useRef<MenuState>({ show: false });
+  const updateMenuState = (next: MenuState) => {
+    hovered.current = next;
+    setMenuState(next);
+  };
 
   const { refs, floatingStyles } = useFloating({
     placement: 'left',
@@ -60,6 +126,17 @@ export const ActionMenu = ({ editor, documentId }: ActionMenuProps) => {
 
     const handleMouseMove = (event: MouseEvent) => {
       if (menuOpen) return;
+      const current = hovered.current;
+      if (
+        current.show &&
+        current.domNode?.isConnected &&
+        isInBlockHandleCorridor(
+          { x: event.clientX, y: event.clientY },
+          current.domNode.getBoundingClientRect(),
+          refs.floating.current?.getBoundingClientRect()
+        )
+      )
+        return;
       const editorBounds = view.current.dom.getBoundingClientRect();
       const mouseOverEditor =
         event.clientX > editorBounds.left - LEFT_MARGIN &&
@@ -68,55 +145,41 @@ export const ActionMenu = ({ editor, documentId }: ActionMenuProps) => {
         event.clientY < editorBounds.bottom;
 
       if (!mouseOverEditor) {
-        setMenuState({
+        updateMenuState({
           show: false,
         });
         return;
       }
 
-      const pos = view.current.posAtDOM(event.target as Node, 0, 0);
-      if (!pos) {
-        setMenuState({
+      // Resolve by coordinates (not by the event target) so that moving the
+      // mouse sideways towards the handle keeps the same block selected.
+      const coords = view.current.posAtCoords({
+        left: Math.max(event.clientX, editorBounds.left + 1),
+        top: event.clientY,
+      });
+      if (!coords) {
+        updateMenuState({
           show: false,
         });
         return;
       }
 
-      let currentPos = pos;
-      let pmNode = null;
-      let domNode = null;
-      let nodePos = -1;
-
-      while (currentPos >= 0) {
-        const node = view.current.state.doc.nodeAt(currentPos);
-
-        if (!node || !node.isBlock) {
-          currentPos--;
-          continue;
-        }
-
-        if (pmNode && !isDescendantNode(node, pmNode)) {
-          currentPos--;
-          continue;
-        }
-
-        const nodeDOM = view.current.nodeDOM(currentPos) as HTMLElement;
-        const nodeDOMElement =
-          nodeDOM instanceof HTMLElement
-            ? nodeDOM
-            : ((nodeDOM as Node)?.parentElement as HTMLElement);
-
-        if (nodeDOMElement) {
-          pmNode = node;
-          domNode = nodeDOMElement;
-          nodePos = currentPos;
-        }
-
-        currentPos--;
+      const target = findHandleTarget(view.current.state.doc, coords);
+      if (!target) {
+        updateMenuState({
+          show: false,
+        });
+        return;
       }
 
-      if (!pmNode || !domNode) {
-        setMenuState({
+      const nodeDOM = view.current.nodeDOM(target.pos) as HTMLElement;
+      const domNode =
+        nodeDOM instanceof HTMLElement
+          ? nodeDOM
+          : ((nodeDOM as Node)?.parentElement as HTMLElement);
+
+      if (!domNode) {
+        updateMenuState({
           show: false,
         });
         return;
@@ -124,24 +187,27 @@ export const ActionMenu = ({ editor, documentId }: ActionMenuProps) => {
 
       const nodeRect = domNode.getBoundingClientRect();
       const editorRect = editor.view.dom.getBoundingClientRect();
+      // Top-level blocks keep the handle at the editor's left edge; nested
+      // blocks (list items, children of a toggle, ...) get it next to them.
+      const x = target.depth <= 1 ? editorRect.x - 10 : nodeRect.x - 34;
       const menuRect = DOMRect.fromRect({
-        x: editorRect.x - 10,
+        x,
         y: nodeRect.y,
         width: 0,
-        height: nodeRect.height,
+        height: Math.min(nodeRect.height, 32),
       });
 
-      setMenuState({
+      updateMenuState({
         show: true,
-        pmNode,
+        pmNode: target.node,
         domNode,
-        pos: nodePos,
+        pos: target.pos,
         rect: menuRect,
       });
     };
 
     const handleScroll = () => {
-      setMenuState({
+      updateMenuState({
         show: false,
       });
     };
@@ -173,9 +239,17 @@ export const ActionMenu = ({ editor, documentId }: ActionMenuProps) => {
               return;
             }
 
+            // Insert a sibling of the same kind in front of the block: a new
+            // list item for list items, a paragraph for everything else.
+            const typeName = menuState.pmNode?.type.name;
+            const content =
+              typeName === 'listItem' || typeName === 'taskItem'
+                ? { type: typeName, content: [{ type: 'paragraph' }] }
+                : { type: 'paragraph' };
+
             editor
               .chain()
-              .insertContentAt(menuState.pos, { type: 'paragraph' })
+              .insertContentAt(menuState.pos, content)
               .focus()
               .run();
           }}
@@ -183,6 +257,13 @@ export const ActionMenu = ({ editor, documentId }: ActionMenuProps) => {
         <Popover
           open={menuOpen}
           onOpenChange={(open) => {
+            if (open && menuState.pos !== undefined) {
+              view.current.dispatch(
+                view.current.state.tr.setSelection(
+                  NodeSelection.create(view.current.state.doc, menuState.pos)
+                )
+              );
+            }
             if (open)
               setSelectedBlockId(
                 typeof menuState.pmNode?.attrs.id === 'string'

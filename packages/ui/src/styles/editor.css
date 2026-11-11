@@ -74,3 +74,8 @@ ul[data-type='taskList'] li[data-checked='true'] > div > p {
   text-decoration: line-through;
   text-decoration-thickness: 2px;
 }
+.tiptap .ProseMirror-selectednode {
+  background-color: rgba(59, 130, 246, 0.16);
+  outline: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 4px;
+}
