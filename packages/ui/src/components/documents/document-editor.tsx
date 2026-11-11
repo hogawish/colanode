@@ -443,7 +443,7 @@ export const DocumentEditor = ({
       {editor && canEdit && (
         <Fragment>
           <ToolbarMenu editor={editor} />
-          <ActionMenu editor={editor} />
+          <ActionMenu editor={editor} documentId={node.id} />
         </Fragment>
       )}
       <DocumentBlockMenu editor={editor} documentId={node.id}>

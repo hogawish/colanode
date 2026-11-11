@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentBlockMenu } from '@colanode/ui/components/documents/document-block-menu';
 import { IdExtension } from '@colanode/ui/editor/extensions/id';
 import { ParagraphNode } from '@colanode/ui/editor/extensions/paragraph';
+import { ActionMenu } from '@colanode/ui/editor/menus/action-menu';
 import {
   blockAtTarget,
   buildBlockLink,
@@ -66,6 +67,58 @@ afterEach(() => {
 });
 
 describe('stable block links', () => {
+  const mountHandle = () => {
+    const editor = createEditor();
+    render(
+      <>
+        <EditorContent editor={editor} />
+        <ActionMenu editor={editor} documentId="page" />
+      </>
+    );
+    editor.view.dom.getBoundingClientRect = () => new DOMRect(100, 0, 400, 400);
+    const target = findBlockElement(editor, 'second')!;
+    target.getBoundingClientRect = () => new DOMRect(100, 40, 400, 20);
+    fireEvent.mouseMove(target, { clientX: 120, clientY: 50 });
+    return editor;
+  };
+
+  it('opens the block menu by clicking the handle and copies that block', async () => {
+    mountHandle();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Block actions' })
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Copy link to block' })
+    );
+    await waitFor(() =>
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        buildBlockLink(window.location.origin, 'workspace', 'page', 'second')
+      )
+    );
+  });
+
+  it('keeps handle dragging separate from clicking and allows the next click', async () => {
+    const editor = mountHandle();
+    const handle = await screen.findByRole('button', { name: 'Block actions' });
+    const transfer = {
+      clearData: vi.fn(),
+      setData: vi.fn(),
+      setDragImage: vi.fn(),
+      effectAllowed: '',
+    };
+    fireEvent.dragStart(handle, { dataTransfer: transfer });
+    expect(transfer.setData).toHaveBeenCalledWith('text/plain', 'second');
+    expect(editor.view.dragging).not.toBeNull();
+    fireEvent.dragEnd(handle);
+    fireEvent.click(handle);
+    expect(screen.queryByRole('menuitem')).not.toBeInTheDocument();
+    fireEvent.pointerDown(handle);
+    fireEvent.click(handle);
+    expect(
+      await screen.findByRole('menuitem', { name: 'Copy link to block' })
+    ).toBeInTheDocument();
+  });
+
   it('copies the right-clicked block rather than the previous caret position', async () => {
     const editor = createEditor();
     render(

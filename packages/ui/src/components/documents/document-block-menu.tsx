@@ -3,7 +3,6 @@ import { useRouterState } from '@tanstack/react-router';
 import type { Editor } from '@tiptap/core';
 import { Link2 } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 
 import {
   ContextMenu,
@@ -11,10 +10,9 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@colanode/ui/components/ui/context-menu';
-import { useWorkspace } from '@colanode/ui/contexts/workspace';
+import { useCopyBlockLink } from '@colanode/ui/hooks/use-copy-block-link';
 import {
   blockAtTarget,
-  buildBlockLink,
   findBlockElement,
   readBlockHash,
 } from '@colanode/ui/lib/block-links';
@@ -28,7 +26,7 @@ export const DocumentBlockMenu = ({
   documentId: string;
   children: ReactNode;
 }) => {
-  const workspace = useWorkspace();
+  const copyBlockLink = useCopyBlockLink(documentId);
   const hash = useRouterState({ select: (state) => state.location.hash });
   const [blockId, setBlockId] = useState<string | null>(null);
 
@@ -77,24 +75,7 @@ export const DocumentBlockMenu = ({
       <ContextMenuContent>
         <ContextMenuItem
           disabled={!blockId}
-          onSelect={async () => {
-            if (!blockId) return;
-            try {
-              await navigator.clipboard.writeText(
-                buildBlockLink(
-                  window.location.origin,
-                  workspace.workspaceId,
-                  documentId,
-                  blockId
-                )
-              );
-              toast.success('Block link copied');
-            } catch {
-              toast.error(
-                'Could not copy the block link. Please allow clipboard access.'
-              );
-            }
-          }}
+          onSelect={() => void copyBlockLink(blockId)}
         >
           <Link2 className="size-4" /> Copy link to block
         </ContextMenuItem>
