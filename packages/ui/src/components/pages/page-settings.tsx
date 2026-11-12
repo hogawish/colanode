@@ -1,6 +1,7 @@
 import {
   Copy,
   Image,
+  Images,
   LetterText,
   Link2,
   Settings,
@@ -15,6 +16,7 @@ import { NodeRole, hasNodeRole } from '@colanode/core';
 import { NodeCollaboratorAudit } from '@colanode/ui/components/collaborators/node-collaborator-audit';
 import { NodeDeleteDialog } from '@colanode/ui/components/nodes/node-delete-dialog';
 import { PageShareDialog } from '@colanode/ui/components/pages/page-share-dialog';
+import { PageUnusedImagesDialog } from '@colanode/ui/components/pages/page-unused-images-dialog';
 import { PageUpdateDialog } from '@colanode/ui/components/pages/page-update-dialog';
 import {
   DropdownMenu,
@@ -37,6 +39,7 @@ export const PageSettings = ({ page, role }: PageSettingsProps) => {
   const [showDeleteDialog, setShowDeleteModal] = useState(false);
 
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showUnusedImages, setShowUnusedImages] = useState(false);
   const app = useApp();
   const { workspaceId } = useWorkspace();
   const canShare = app.type === 'web' && hasNodeRole(role, 'admin');
@@ -76,6 +79,11 @@ export const PageSettings = ({ page, role }: PageSettingsProps) => {
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
+          {canEdit && (
+            <DropdownMenuItem onSelect={() => setShowUnusedImages(true)}>
+              <Images className="size-4" /> Unused images
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             className="flex items-center gap-2 cursor-pointer"
             onClick={() => {
@@ -151,6 +159,12 @@ export const PageSettings = ({ page, role }: PageSettingsProps) => {
         <PageShareDialog
           pageId={page.id}
           onClose={() => setShowShareDialog(false)}
+        />
+      )}
+      {showUnusedImages && (
+        <PageUnusedImagesDialog
+          pageId={page.id}
+          onClose={() => setShowUnusedImages(false)}
         />
       )}
       <NodeDeleteDialog
