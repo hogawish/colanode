@@ -24,6 +24,27 @@ export const readBlockHash = (hash: string): string | null => {
   }
 };
 
+export const readLocalBlockLink = (href: string, base: string) => {
+  try {
+    const url = new URL(href, base);
+    if (url.origin !== new URL(base).origin || !readBlockHash(url.hash)) {
+      return null;
+    }
+    const path = /^\/([a-z0-9]+wc)\/(?:(shared)\/)?([a-z0-9]+)\/?$/.exec(
+      url.pathname
+    );
+    if (!path) return null;
+    return {
+      workspaceId: path[1]!,
+      documentId: path[3]!,
+      shared: path[2] === 'shared',
+      hash: url.hash.slice(1),
+    };
+  } catch {
+    return null;
+  }
+};
+
 export const blockAtTarget = (editor: Editor, target: EventTarget | null) => {
   if (!(target instanceof Node) || !editor.view.dom.contains(target))
     return null;
@@ -60,6 +81,11 @@ export const findBlockElement = (
 };
 
 export const highlightBlock = (element: HTMLElement) => {
+  let details = element.parentElement?.closest('details');
+  while (details) {
+    details.open = true;
+    details = details.parentElement?.closest('details');
+  }
   element.scrollIntoView({ block: 'center', behavior: 'auto' });
   // Avoid DOM class/style mutations that ProseMirror can interpret as edits.
   return element.animate?.(

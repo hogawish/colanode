@@ -55,7 +55,6 @@ describe('shared page blocks', () => {
     render(<SharedPageDocument pageId="page" content={content} />);
     const nested = screen.getByText('Nested content');
     expect(screen.getByRole('separator')).toBeVisible();
-    expect(nested.closest('details')).toHaveAttribute('open');
     await waitFor(() =>
       expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith({
         block: 'center',
@@ -65,6 +64,7 @@ describe('shared page blocks', () => {
     expect(
       vi.mocked(HTMLElement.prototype.scrollIntoView).mock.contexts[0]
     ).toBe(nested);
+    expect(nested.closest('details')).toHaveAttribute('open');
   });
 
   it('copies a canonical link for the selected block in view-only mode', async () => {

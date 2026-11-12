@@ -59,11 +59,6 @@ export const SharedPageDocument = ({
       `[data-document-block="${CSS.escape(targetId)}"]`
     );
     if (!target) return;
-    let details = target.parentElement?.closest('details');
-    while (details) {
-      details.open = true;
-      details = details.parentElement?.closest('details');
-    }
     let highlight: Animation | undefined;
     let frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => {

@@ -24,7 +24,10 @@ import {
 } from '@colanode/ui/lib/block-links';
 
 const state = vi.hoisted(() => ({ hash: '' }));
-vi.mock('@tanstack/react-router', () => ({ useRouterState: () => state.hash }));
+vi.mock('@tanstack/react-router', () => ({
+  useRouterState: () => state.hash,
+  useRouter: () => ({ state: { location: {} } }),
+}));
 vi.mock('@colanode/ui/contexts/workspace', () => ({
   useWorkspace: () => ({ workspaceId: 'workspace' }),
 }));

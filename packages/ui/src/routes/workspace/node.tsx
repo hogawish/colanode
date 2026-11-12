@@ -14,7 +14,13 @@ import {
   workspaceMaskRoute,
 } from '@colanode/ui/routes/workspace';
 
-const PageBlockRoute = ({ pageId }: { pageId: string }) => {
+const PageRoute = ({
+  pageId,
+  blockId,
+}: {
+  pageId: string;
+  blockId: string | null;
+}) => {
   const { collections, userId } = useWorkspace();
   const node = useLiveQuery(
     (q) =>
@@ -26,10 +32,10 @@ const PageBlockRoute = ({ pageId }: { pageId: string }) => {
   );
 
   if (node.isLoading) return null;
-  return node.data ? (
-    <NodeContainer type="full" nodeId={pageId} />
-  ) : (
+  return !node.data && blockId ? (
     <SharedPageView key={`${userId}/${pageId}`} pageId={pageId} />
+  ) : (
+    <NodeContainer type="full" nodeId={pageId} />
   );
 };
 
@@ -42,8 +48,8 @@ export const nodeRoute = createRoute({
       select: (state) =>
         state.location.maskedLocation?.hash || state.location.hash,
     });
-    return isIdOfType(nodeId, IdType.Page) && readBlockHash(hash) ? (
-      <PageBlockRoute pageId={nodeId} />
+    return isIdOfType(nodeId, IdType.Page) ? (
+      <PageRoute pageId={nodeId} blockId={readBlockHash(hash)} />
     ) : (
       <NodeContainer type="full" nodeId={nodeId} />
     );

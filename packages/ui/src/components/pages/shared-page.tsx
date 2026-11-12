@@ -8,8 +8,21 @@ import { SharedPageDocument } from '@colanode/ui/components/pages/shared-page-do
 import { SharedPageEditor } from '@colanode/ui/components/pages/shared-page-editor';
 import { Button } from '@colanode/ui/components/ui/button';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
+import { useFollowBlockLink } from '@colanode/ui/hooks/use-follow-block-link';
 
 export const SharedPageView = ({ pageId }: { pageId: string }) => {
+  const followBlockLink = useFollowBlockLink();
+  return (
+    <div
+      className="h-full overflow-y-auto overscroll-contain"
+      onClickCapture={followBlockLink}
+    >
+      <SharedPageContent pageId={pageId} />
+    </div>
+  );
+};
+
+const SharedPageContent = ({ pageId }: { pageId: string }) => {
   const { userId, workspaceId } = useWorkspace();
   const [page, setPage] = useState<SharedPage | null>(null);
   const [busy, setBusy] = useState(true);

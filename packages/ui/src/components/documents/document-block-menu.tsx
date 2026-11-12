@@ -11,6 +11,7 @@ import {
   ContextMenuTrigger,
 } from '@colanode/ui/components/ui/context-menu';
 import { useCopyBlockLink } from '@colanode/ui/hooks/use-copy-block-link';
+import { useFollowBlockLink } from '@colanode/ui/hooks/use-follow-block-link';
 import {
   blockAtTarget,
   findBlockElement,
@@ -28,6 +29,7 @@ export const DocumentBlockMenu = ({
   children: ReactNode;
 }) => {
   const copyBlockLink = useCopyBlockLink(documentId);
+  const followBlockLink = useFollowBlockLink();
   const hash = useRouterState({
     select: (state) =>
       state.location.maskedLocation?.hash || state.location.hash,
@@ -82,6 +84,7 @@ export const DocumentBlockMenu = ({
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
+          onClickCapture={followBlockLink}
           onContextMenu={(event) =>
             setBlockId(editor ? blockAtTarget(editor, event.target) : null)
           }
