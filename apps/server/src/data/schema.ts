@@ -309,6 +309,24 @@ interface CounterTable {
 interface PageShareTable {
   page_id: ColumnType<string, string, never>;
   viewer_id: ColumnType<string, string, never>;
+  role: ColumnType<
+    'viewer' | 'editor',
+    'viewer' | 'editor' | undefined,
+    'viewer' | 'editor'
+  >;
+}
+
+interface PageInvitationTable {
+  page_id: ColumnType<string, string, never>;
+  email: ColumnType<string, string, never>;
+  token_hash: ColumnType<string, string, string>;
+  role: ColumnType<
+    'viewer' | 'editor',
+    'viewer' | 'editor',
+    'viewer' | 'editor'
+  >;
+  inviter_id: ColumnType<string, string, string>;
+  expires_at: ColumnType<Date, Date, Date>;
 }
 
 export interface DatabaseSchema {
@@ -324,6 +342,7 @@ export interface DatabaseSchema {
   node_tombstones: NodeTombstoneTable;
   collaborations: CollaborationTable;
   page_shares: PageShareTable;
+  page_invitations: PageInvitationTable;
   documents: DocumentTable;
   document_updates: DocumentUpdateTable;
   uploads: UploadTable;

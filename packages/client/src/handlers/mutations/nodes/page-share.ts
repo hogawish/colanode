@@ -3,6 +3,7 @@ import { parseApiError } from '@colanode/client/lib/ky';
 import type { MutationHandler } from '@colanode/client/lib/types';
 import { MutationError, MutationErrorCode } from '@colanode/client/mutations';
 import type {
+  PageShareInvitation,
   PageShareMutationInput,
   PageShareMutationOutput,
   PageShareViewer,
@@ -25,21 +26,40 @@ export class PageShareMutationHandler
         case 'read':
           return {
             action: 'read',
-            page: await client
-              .get(path, { cache: 'no-store' })
-              .json<SharedPage>(),
+            page: await client.get(path).json<SharedPage>(),
           };
         case 'list': {
-          const { viewers } = await client
+          const { viewers, invitations } = await client
             .get(`${path}/viewers`)
-            .json<{ viewers: PageShareViewer[] }>();
-          return { action: 'list', viewers };
+            .json<{
+              viewers: PageShareViewer[];
+              invitations: PageShareInvitation[];
+            }>();
+          return { action: 'list', viewers, invitations };
         }
         case 'set':
           await client.put(`${path}/viewers`, {
             json: { viewerId: input.viewerId, enabled: input.enabled },
           });
           return { action: 'set' };
+        case 'invite': {
+          const result = await client
+            .post(`${path}/invitations`, {
+              json: { email: input.email, role: input.role },
+            })
+            .json<{ token?: string }>();
+          return { action: 'invite', token: result.token };
+        }
+        case 'cancel-invitation':
+          await client.delete(`${path}/invitations`, {
+            json: { email: input.email },
+          });
+          return { action: 'cancel-invitation' };
+        case 'edit':
+          await client.put(path, {
+            json: { revision: input.revision, content: input.content },
+          });
+          return { action: 'edit' };
       }
     } catch (error) {
       const apiError = await parseApiError(error);

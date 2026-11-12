@@ -4,6 +4,7 @@ import { AppService } from '@colanode/client/services';
 
 import { AccountLogoutMutationHandler } from './accounts/account-logout';
 import { AccountUpdateMutationHandler } from './accounts/account-update';
+import { PageInvitationAcceptHandler } from './accounts/page-invitation-accept';
 import { MetadataDeleteMutationHandler } from './apps/metadata-delete';
 import { MetadataUpdateMutationHandler } from './apps/metadata-update';
 import { TabCreateMutationHandler } from './apps/tab-create';
@@ -64,6 +65,7 @@ export const buildMutationHandlerMap = (
     'node.create': new NodeCreateMutationHandler(app),
     'node.update': new NodeUpdateMutationHandler(app),
     'page.share': new PageShareMutationHandler(app),
+    'page.invitation.accept': new PageInvitationAcceptHandler(app),
     'board.card.reorder': new BoardCardReorderMutationHandler(app),
     'table.order.update': new TableOrderUpdateMutationHandler(app),
     'record.field.set': new RecordFieldSetMutationHandler(app),

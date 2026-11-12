@@ -16,5 +16,6 @@ export type UpdateDocumentInput = {
   documentId: string;
   userId: string;
   workspaceId: string;
+  expectedRevision?: string | null;
   updater: (content: DocumentContent) => DocumentContent | null;
 };

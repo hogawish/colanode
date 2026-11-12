@@ -33,6 +33,7 @@ import { addWorkspaceIndexToUploads } from './00030-add-workspace-index-to-uploa
 import { addCreatedAtIndexToUploads } from './00031-add-created-at-index-to-uploads';
 import { cleanupCounterTriggers } from './00032-cleanup-counter-triggers';
 import { createPageSharesTable } from './00033-create-page-shares-table';
+import { createPageInvitationsTable } from './00034-create-page-invitations-table';
 
 export const databaseMigrations: Record<string, Migration> = {
   '00001_create_accounts_table': createAccountsTable,
@@ -72,4 +73,5 @@ export const databaseMigrations: Record<string, Migration> = {
   '00031_add_created_at_index_to_uploads': addCreatedAtIndexToUploads,
   '00032_cleanup_counter_triggers': cleanupCounterTriggers,
   '00033_create_page_shares_table': createPageSharesTable,
+  '00034_create_page_invitations_table': createPageInvitationsTable,
 };

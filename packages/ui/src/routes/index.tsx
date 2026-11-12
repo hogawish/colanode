@@ -6,6 +6,7 @@ import { registerRoute } from '@colanode/ui/routes/auth/register';
 import { resetRoute } from '@colanode/ui/routes/auth/reset';
 import { workspaceCreateRoute } from '@colanode/ui/routes/create';
 import { homeRoute } from '@colanode/ui/routes/home';
+import { pageInviteRoute } from '@colanode/ui/routes/page-invite';
 import { rootRoute } from '@colanode/ui/routes/root';
 import {
   workspaceRoute,
@@ -57,6 +58,7 @@ import {
 
 export const routeTree = rootRoute.addChildren([
   homeRoute,
+  pageInviteRoute,
   authRoute.addChildren([loginRoute, registerRoute, resetRoute]),
   workspaceCreateRoute,
   workspaceRoute.addChildren([

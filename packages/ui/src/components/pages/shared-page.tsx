@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react';
 
 import { buildEditorContent } from '@colanode/client/lib';
 import type { SharedPage } from '@colanode/client/mutations';
+import type { RichTextContent } from '@colanode/core';
 import { FileSaveButton } from '@colanode/ui/components/files/file-save-button';
+import { SharedPageEditor } from '@colanode/ui/components/pages/shared-page-editor';
 import { Button } from '@colanode/ui/components/ui/button';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
 import { DocumentRenderer } from '@colanode/ui/editor/renderers/document';
@@ -12,6 +14,7 @@ export const SharedPageView = ({ pageId }: { pageId: string }) => {
   const { userId, workspaceId } = useWorkspace();
   const [page, setPage] = useState<SharedPage | null>(null);
   const [busy, setBusy] = useState(true);
+  const [editing, setEditing] = useState(false);
   const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
@@ -47,28 +50,62 @@ export const SharedPageView = ({ pageId }: { pageId: string }) => {
       </p>
     );
 
+  const save = async (content: RichTextContent) => {
+    const result = await window.colanode.executeMutation({
+      type: 'page.share',
+      action: 'edit',
+      userId,
+      pageId,
+      content,
+      revision: page.revision,
+    });
+    if (!result.success) throw new Error(result.error.message);
+    setEditing(false);
+    setRefresh((value) => value + 1);
+  };
+
   return (
     <article className="mx-auto max-w-3xl space-y-6 px-6 py-10">
       <header className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-1 text-sm text-muted-foreground">
-            Shared page · View only
+            {page.canEdit
+              ? 'Shared page · Can edit'
+              : 'Shared page · View only'}
           </p>
           <h1 className="text-3xl font-semibold">{page.name}</h1>
         </div>
-        <Button
-          variant="ghost"
-          onClick={() => setRefresh((value) => value + 1)}
-        >
-          Reload
-        </Button>
+        {!editing && (
+          <div className="flex gap-2">
+            {page.canEdit && (
+              <Button variant="outline" onClick={() => setEditing(true)}>
+                Edit page
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              onClick={() => setRefresh((value) => value + 1)}
+            >
+              Reload
+            </Button>
+          </div>
+        )}
       </header>
-      <div className="space-y-2">
-        <DocumentRenderer
-          node={buildEditorContent(pageId, page.content)}
-          keyPrefix={pageId}
+      {editing ? (
+        <SharedPageEditor
+          pageId={pageId}
+          content={page.content}
+          onSave={save}
+          onCancel={() => setEditing(false)}
         />
-      </div>
+      ) : (
+        <div className="space-y-2">
+          <DocumentRenderer
+            node={buildEditorContent(pageId, page.content)}
+            keyPrefix={pageId}
+          />
+        </div>
+      )}
       {page.pages.length > 0 && (
         <section>
           <h2 className="mb-2 font-semibold">Child pages</h2>

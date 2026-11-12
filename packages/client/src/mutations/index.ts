@@ -1,4 +1,5 @@
 export * from './accounts/account-logout';
+export * from './accounts/page-invitation-accept';
 export * from './accounts/account-update';
 export * from './auth/email-login';
 export * from './auth/email-password-reset-complete';

@@ -318,6 +318,17 @@ const tryUpdateDocument = async (
     return { type: 'error', error: 'Node does not support documents' };
   }
 
+  if (input.expectedRevision !== undefined) {
+    const current = await database
+      .selectFrom('documents')
+      .select('revision')
+      .where('id', '=', input.documentId)
+      .executeTakeFirst();
+    if ((current?.revision ?? null) !== input.expectedRevision) {
+      return { type: 'error', error: 'Document revision changed' };
+    }
+  }
+
   const documentUpdates = await database
     .selectFrom('document_updates')
     .where('document_id', '=', input.documentId)
@@ -372,26 +383,38 @@ const tryUpdateDocument = async (
           throw new Error('Failed to create document update');
         }
 
-        const updatedDocument = await trx
-          .insertInto('documents')
-          .returningAll()
-          .values({
-            id: input.documentId,
-            workspace_id: input.workspaceId,
-            content: JSON.stringify(content),
-            created_at: date,
-            created_by: input.userId,
-            revision: createdDocumentUpdate.revision,
-          })
-          .onConflict((cb) =>
-            cb.column('id').doUpdateSet({
-              content: JSON.stringify(content),
-              updated_at: date,
-              updated_by: input.userId,
-              revision: createdDocumentUpdate.revision,
-            })
-          )
-          .executeTakeFirst();
+        const fields = {
+          content: JSON.stringify(content),
+          updated_at: date,
+          updated_by: input.userId,
+          revision: createdDocumentUpdate.revision,
+        };
+        const updatedDocument =
+          typeof input.expectedRevision === 'string'
+            ? await trx
+                .updateTable('documents')
+                .set(fields)
+                .where('id', '=', input.documentId)
+                .where('revision', '=', input.expectedRevision)
+                .returningAll()
+                .executeTakeFirst()
+            : await trx
+                .insertInto('documents')
+                .returningAll()
+                .values({
+                  id: input.documentId,
+                  workspace_id: input.workspaceId,
+                  content: JSON.stringify(content),
+                  created_at: date,
+                  created_by: input.userId,
+                  revision: createdDocumentUpdate.revision,
+                })
+                .onConflict((cb) =>
+                  input.expectedRevision === null
+                    ? cb.column('id').doNothing()
+                    : cb.column('id').doUpdateSet(fields)
+                )
+                .executeTakeFirst();
 
         if (!updatedDocument) {
           throw new Error('Failed to update document');

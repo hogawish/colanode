@@ -1,6 +1,7 @@
 import { afterAll, expect, it } from 'vitest';
 
 import { IdType, generateId } from '@colanode/core';
+import { database } from '@colanode/server/data/database';
 import { createDocument } from '@colanode/server/lib/documents';
 
 import { buildTestApp } from '../helpers/app';
@@ -164,4 +165,134 @@ it('shares a single page and its children and attachments until access is remove
   expect((await read(childId)).statusCode).toBe(404);
   expect((await download(childFile)).statusCode).toBe(403);
   expect((await read(pageId, adminHeaders)).statusCode).toBe(200);
+});
+
+it('invites a new guest and edits the original body only for a page editor', async () => {
+  const [owner, recipient, other] = await Promise.all([
+    createAccount(),
+    createAccount(),
+    createAccount(),
+  ]);
+  const workspace = await createWorkspace({ createdBy: owner.id });
+  const admin = await createUser({
+    account: owner,
+    workspaceId: workspace.id,
+    role: 'owner',
+  });
+  const [adminDevice, recipientDevice, otherDevice] = await Promise.all([
+    createDevice({ accountId: owner.id }),
+    createDevice({ accountId: recipient.id }),
+    createDevice({ accountId: other.id }),
+  ]);
+  const adminHeaders = buildAuthHeader(adminDevice.token);
+  const recipientHeaders = buildAuthHeader(recipientDevice.token);
+  const otherHeaders = buildAuthHeader(otherDevice.token);
+  const rootId = await createSpaceNode({
+    workspaceId: workspace.id,
+    userId: admin.id,
+  });
+  const fixture = { workspaceId: workspace.id, userId: admin.id, rootId };
+  const pageId = await createPageNode({ ...fixture, parentId: rootId });
+  const siblingId = await createPageNode({ ...fixture, parentId: rootId });
+  const childId = await createPageNode({ ...fixture, parentId: pageId });
+  const blockId = generateId(IdType.Block);
+  const content = {
+    type: 'rich_text' as const,
+    blocks: {
+      [blockId]: {
+        id: blockId,
+        parentId: pageId,
+        type: 'paragraph',
+        index: 'a0',
+        content: [{ type: 'text', text: 'Before' }],
+      },
+      [childId]: { id: childId, parentId: pageId, type: 'page', index: 'a1' },
+    },
+  };
+  expect(
+    await createDocument({ ...fixture, nodeId: pageId, content })
+  ).not.toBeNull();
+  const endpoint = `/client/v1/workspaces/${workspace.id}/page-shares`;
+  const url = `${endpoint}/${pageId}`;
+  const invite = (role: 'viewer' | 'editor') =>
+    app.inject({
+      method: 'POST',
+      url: `${url}/invitations`,
+      headers: adminHeaders,
+      payload: { email: recipient.email.toUpperCase(), role },
+    });
+  const claim = (headers: Record<string, string>, token: string) =>
+    app.inject({
+      method: 'POST',
+      url: '/client/v1/workspaces/page-invitations/accept',
+      headers,
+      payload: { token },
+    });
+  const read = (id = pageId) =>
+    app.inject({ url: `${endpoint}/${id}`, headers: recipientHeaders });
+  const edit = (revision: string, text: string) =>
+    app.inject({
+      method: 'PUT',
+      url,
+      headers: recipientHeaders,
+      payload: {
+        revision,
+        content: {
+          ...content,
+          blocks: {
+            [blockId]: {
+              ...content.blocks[blockId],
+              content: [{ type: 'text', text }],
+            },
+          },
+        },
+      },
+    });
+
+  const invitation = await invite('editor');
+  expect(invitation.statusCode).toBe(200);
+  const { token } = invitation.json<{ token: string }>();
+  expect((await claim(otherHeaders, token)).statusCode).toBe(404);
+  expect((await claim(recipientHeaders, token)).json()).toEqual({
+    pageId,
+    workspaceId: workspace.id,
+  });
+  expect((await claim(recipientHeaders, token)).statusCode).toBe(404);
+  expect((await read(siblingId)).statusCode).toBe(404);
+  expect((await read(childId)).json()).toMatchObject({ canEdit: true });
+
+  const initial = (await read()).json();
+  expect(initial.canEdit).toBe(true);
+  expect(initial.content.blocks[childId]).toBeUndefined();
+  expect((await edit(initial.revision, 'Edited by guest')).statusCode).toBe(
+    200
+  );
+  expect((await edit(initial.revision, 'Stale save')).statusCode).toBe(409);
+  expect((await read()).json().content.blocks[blockId].content[0].text).toBe(
+    'Edited by guest'
+  );
+  const stored = await database
+    .selectFrom('documents')
+    .select('content')
+    .where('id', '=', pageId)
+    .executeTakeFirstOrThrow();
+  expect(stored.content).toMatchObject({
+    blocks: {
+      [childId]: { type: 'page' },
+      [blockId]: { content: [{ text: 'Edited by guest' }] },
+    },
+  });
+  const member = await database
+    .selectFrom('users')
+    .select('role')
+    .where('account_id', '=', recipient.id)
+    .where('workspace_id', '=', workspace.id)
+    .executeTakeFirstOrThrow();
+  expect(member.role).toBe('guest');
+
+  expect((await invite('viewer')).json()).toEqual({ type: 'shared' });
+  expect((await read()).json()).toMatchObject({ canEdit: false });
+  expect(
+    (await edit((await read()).json().revision, 'Not allowed')).statusCode
+  ).toBe(403);
 });

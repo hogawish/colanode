@@ -6,12 +6,19 @@ import {
   extractNodeRole,
   FileStatus,
   hasNodeRole,
+  hasWorkspaceRole,
   richTextContentSchema,
   UserStatus,
 } from '@colanode/core';
 import { database } from '@colanode/server/data/database';
+import { updateDocument } from '@colanode/server/lib/documents';
 import { fetchNodeTree, mapNode } from '@colanode/server/lib/nodes';
-import { canViewSharedPage } from '@colanode/server/lib/page-shares';
+import { inviteToPage } from '@colanode/server/lib/page-invitations';
+import {
+  getSharedPageRole,
+  mergeSharedPageBody,
+  sharedPageBody,
+} from '@colanode/server/lib/page-shares';
 
 const params = z.object({ workspaceId: z.string(), pageId: z.string() });
 
@@ -40,11 +47,8 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
     const tree = await getPageTree(workspaceId, pageId);
     const page = tree.at(-1);
     const role = extractNodeRole(tree, user.id);
-    if (
-      page?.type !== 'page' ||
-      (!(role && hasNodeRole(role, 'viewer')) &&
-        !(await canViewSharedPage(tree, user.id)))
-    ) {
+    const shareRole = await getSharedPageRole(tree, user.id);
+    if (page?.type !== 'page' || (!role && !shareRole)) {
       return reply
         .code(404)
         .send({ code: ApiErrorCode.NotFound, message: 'Page is unavailable.' });
@@ -53,7 +57,7 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
     const [document, children] = await Promise.all([
       database
         .selectFrom('documents')
-        .select('content')
+        .select(['content', 'revision'])
         .where('id', '=', pageId)
         .where('workspace_id', '=', workspaceId)
         .executeTakeFirst(),
@@ -79,22 +83,15 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
       }
     }
     const content = richTextContentSchema.safeParse(document?.content);
-    // Child pages and files have their own checked entries above. Do not send embedded DB or folder references.
-    const body = content.data;
-    if (body) {
-      const separateBlockTypes = new Set([
-        'page',
-        'file',
-        'folder',
-        'database',
-      ]);
-      body.blocks = Object.fromEntries(
-        Object.entries(body.blocks).filter(
-          ([, block]) => !separateBlockTypes.has(block.type)
-        )
-      );
-    }
-    return { name: page.name, content: body ?? null, pages, files };
+    return {
+      name: page.name,
+      content: content.data ? sharedPageBody(content.data) : null,
+      revision: document?.revision ?? null,
+      canEdit:
+        shareRole === 'editor' || Boolean(role && hasNodeRole(role, 'editor')),
+      pages,
+      files,
+    };
   });
 
   instance.get(
@@ -109,22 +106,27 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         user.id
       );
       if (!role || !hasNodeRole(role, 'admin')) {
-        return reply
-          .code(404)
-          .send({
-            code: ApiErrorCode.NotFound,
-            message: 'Page sharing is unavailable.',
-          });
+        return reply.code(404).send({
+          code: ApiErrorCode.NotFound,
+          message: 'Page sharing is unavailable.',
+        });
       }
       const viewers = await database
         .selectFrom('page_shares')
         .innerJoin('users', 'users.id', 'page_shares.viewer_id')
-        .select(['users.id', 'users.name', 'users.email'])
+        .select(['users.id', 'users.name', 'users.email', 'page_shares.role'])
         .where('page_shares.page_id', '=', pageId)
         .where('users.workspace_id', '=', workspaceId)
         .orderBy('users.name')
         .execute();
-      return { viewers };
+      const invitations = await database
+        .selectFrom('page_invitations')
+        .select(['email', 'role'])
+        .where('page_id', '=', pageId)
+        .where('expires_at', '>', new Date())
+        .orderBy('email')
+        .execute();
+      return { viewers, invitations };
     }
   );
 
@@ -145,12 +147,10 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         user.id
       );
       if (!role || !hasNodeRole(role, 'admin')) {
-        return reply
-          .code(404)
-          .send({
-            code: ApiErrorCode.NotFound,
-            message: 'Page sharing is unavailable.',
-          });
+        return reply.code(404).send({
+          code: ApiErrorCode.NotFound,
+          message: 'Page sharing is unavailable.',
+        });
       }
 
       if (enabled) {
@@ -163,12 +163,10 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
           .where('role', '!=', 'none')
           .executeTakeFirst();
         if (!viewer) {
-          return reply
-            .code(404)
-            .send({
-              code: ApiErrorCode.NotFound,
-              message: 'Choose an active workspace member.',
-            });
+          return reply.code(404).send({
+            code: ApiErrorCode.NotFound,
+            message: 'Choose an active workspace member.',
+          });
         }
         await database
           .insertInto('page_shares')
@@ -184,6 +182,117 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
           .where('viewer_id', '=', viewerId)
           .execute();
       }
+      return {};
+    }
+  );
+
+  instance.post(
+    '/:pageId/invitations',
+    {
+      schema: {
+        params,
+        body: z.object({
+          email: z.string().trim().max(256).pipe(z.email()),
+          role: z.enum(['viewer', 'editor']),
+        }),
+      },
+    },
+    async (request, reply) => {
+      reply.header('Cache-Control', 'private, no-store');
+      const { id: workspaceId, user } = request.workspace;
+      const { pageId } = request.params;
+      const role = extractNodeRole(
+        await getPageTree(workspaceId, pageId),
+        user.id
+      );
+      if (role !== 'admin')
+        return reply.code(404).send({
+          code: ApiErrorCode.NotFound,
+          message: 'Page sharing is unavailable.',
+        });
+
+      const result = await inviteToPage({
+        pageId,
+        workspaceId,
+        inviterId: user.id,
+        canInviteNewMember: hasWorkspaceRole(user.role, 'admin'),
+        ...request.body,
+      });
+      if (!result)
+        return reply.code(403).send({
+          code: ApiErrorCode.UserInviteNoAccess,
+          message:
+            'An active member is required. Workspace administrators can invite new guests.',
+        });
+      return result;
+    }
+  );
+
+  instance.delete(
+    '/:pageId/invitations',
+    {
+      schema: { params, body: z.object({ email: z.email() }) },
+    },
+    async (request, reply) => {
+      const { id: workspaceId, user } = request.workspace;
+      const { pageId } = request.params;
+      const role = extractNodeRole(
+        await getPageTree(workspaceId, pageId),
+        user.id
+      );
+      if (role !== 'admin')
+        return reply.code(404).send({
+          code: ApiErrorCode.NotFound,
+          message: 'Page sharing is unavailable.',
+        });
+      await database
+        .deleteFrom('page_invitations')
+        .where('page_id', '=', pageId)
+        .where('email', '=', request.body.email.toLowerCase())
+        .execute();
+      return {};
+    }
+  );
+
+  instance.put(
+    '/:pageId',
+    {
+      schema: {
+        params,
+        body: z.object({
+          revision: z.string().nullable(),
+          content: richTextContentSchema,
+        }),
+      },
+    },
+    async (request, reply) => {
+      const { id: workspaceId, user } = request.workspace;
+      const { pageId } = request.params;
+      const tree = await getPageTree(workspaceId, pageId);
+      const role = extractNodeRole(tree, user.id);
+      const shareRole = await getSharedPageRole(tree, user.id);
+      if (shareRole !== 'editor' && !(role && hasNodeRole(role, 'editor'))) {
+        return reply
+          .code(403)
+          .send({
+            code: ApiErrorCode.Forbidden,
+            message: 'You cannot edit this page.',
+          });
+      }
+      const { revision, content } = request.body;
+      const updated = await updateDocument({
+        documentId: pageId,
+        userId: user.id,
+        workspaceId,
+        expectedRevision: revision,
+        updater: (current) => mergeSharedPageBody(pageId, current, content),
+      });
+      if (!updated)
+        return reply.code(409).send({
+          code: ApiErrorCode.BadRequest,
+          message:
+            'Could not save this version. Copy your changes and reload the page.',
+        });
       return {};
     }
   );

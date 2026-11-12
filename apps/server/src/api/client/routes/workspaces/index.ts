@@ -5,6 +5,7 @@ import { workspaceAuthenticator } from '@colanode/server/api/client/plugins/work
 
 import { fileRoutes } from './files';
 import { mutationsRoutes } from './mutations';
+import { pageInvitationAcceptRoute } from './page-invitation-accept';
 import { pageSharesRoutes } from './page-shares';
 import { userRoutes } from './users';
 import { workspaceCreateRoute } from './workspace-create';
@@ -16,6 +17,7 @@ export const workspaceRoutes: FastifyPluginCallback = (instance, _, done) => {
   instance.register(accountAuthenticator);
 
   instance.register(workspaceCreateRoute);
+  instance.register(pageInvitationAcceptRoute);
 
   instance.register(
     (subInstance) => {
