@@ -45,9 +45,16 @@ export const SharedPageView = ({ pageId }: { pageId: string }) => {
   if (busy) return <p className="m-6 text-sm">Loading shared page…</p>;
   if (!page)
     return (
-      <p role="alert" className="m-6 text-sm">
-        This page is unavailable.
-      </p>
+      <div className="m-6 flex items-center gap-2 text-sm">
+        <p role="alert">This page is unavailable.</p>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setRefresh((value) => value + 1)}
+        >
+          Try again
+        </Button>
+      </div>
     );
 
   const save = async (content: RichTextContent) => {

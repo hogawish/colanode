@@ -38,6 +38,10 @@ export class AppService {
   private readonly servers: Map<string, ServerService> = new Map();
   private readonly accounts: Map<string, AccountService> = new Map();
   private readonly workspaces: Map<string, WorkspaceService> = new Map();
+  private readonly workspaceInitializations = new Map<
+    string,
+    Promise<WorkspaceService>
+  >();
   private readonly eventSubscriptionId: string;
 
   public readonly meta: AppMeta;
@@ -222,9 +226,12 @@ export class AppService {
   public async initWorkspace(
     workspace: SelectWorkspace
   ): Promise<WorkspaceService> {
-    if (this.workspaces.has(workspace.user_id)) {
-      return this.workspaces.get(workspace.user_id)!;
-    }
+    const userId = workspace.user_id;
+    const existing = this.workspaces.get(userId);
+    if (existing) return existing;
+
+    const pending = this.workspaceInitializations.get(userId);
+    if (pending) return pending;
 
     const account = this.accounts.get(workspace.account_id);
     if (!account) {
@@ -235,10 +242,16 @@ export class AppService {
       mapWorkspace(workspace),
       account
     );
-    await workspaceService.init();
-
-    this.workspaces.set(workspace.user_id, workspaceService);
-    return workspaceService;
+    const initialization = workspaceService.init().then(() => {
+      this.workspaces.set(userId, workspaceService);
+      return workspaceService;
+    });
+    this.workspaceInitializations.set(userId, initialization);
+    try {
+      return await initialization;
+    } finally {
+      this.workspaceInitializations.delete(userId);
+    }
   }
 
   public async createServer(url: URL): Promise<ServerService | null> {

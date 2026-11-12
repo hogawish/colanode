@@ -318,6 +318,7 @@ export class AccountService {
       });
 
       for (const createdWorkspace of result.createdWorkspaces) {
+        await this.app.initWorkspace(createdWorkspace);
         eventBus.publish({
           type: 'workspace.created',
           workspace: mapWorkspace(createdWorkspace),
@@ -325,6 +326,8 @@ export class AccountService {
       }
 
       for (const updatedWorkspace of result.updatedWorkspaces) {
+        // A previous sync may have persisted this workspace before it could initialize.
+        await this.app.initWorkspace(updatedWorkspace);
         eventBus.publish({
           type: 'workspace.updated',
           workspace: mapWorkspace(updatedWorkspace),

@@ -2,12 +2,15 @@ import { eq, useLiveQuery } from '@tanstack/react-db';
 
 import { LocalSpaceNode } from '@colanode/client/types';
 import { SidebarHeader } from '@colanode/ui/components/layouts/sidebars/sidebar-header';
+import { SidebarSharedPages } from '@colanode/ui/components/layouts/sidebars/sidebar-shared-pages';
 import { SpaceCreateButton } from '@colanode/ui/components/spaces/space-create-button';
 import { SpaceSidebarItem } from '@colanode/ui/components/spaces/space-sidebar-item';
+import { useApp } from '@colanode/ui/contexts/app';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
 
 export const SidebarSpaces = () => {
   const workspace = useWorkspace();
+  const app = useApp();
   const canCreateSpace =
     workspace.role !== 'guest' && workspace.role !== 'none';
 
@@ -33,6 +36,7 @@ export const SidebarSpaces = () => {
           <SpaceSidebarItem space={space} key={space.id} />
         ))}
       </div>
+      {app.type === 'web' && <SidebarSharedPages />}
     </div>
   );
 };

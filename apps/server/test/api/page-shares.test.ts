@@ -127,10 +127,19 @@ it('shares a single page and its children and attachments until access is remove
     app.inject({ url: `${endpoint}/page-shares/${id}`, headers });
   const download = (id: string) =>
     app.inject({ url: `${endpoint}/files/${id}`, headers: viewerHeaders });
+  const sharedPages = (headers = viewerHeaders) =>
+    app.inject({ url: `${endpoint}/page-shares/mine`, headers });
 
+  expect((await sharedPages()).json()).toEqual({ pages: [] });
   expect((await read(pageId)).statusCode).toBe(404);
   expect((await setAccess(viewerHeaders, true)).statusCode).toBe(404);
   expect((await setAccess(adminHeaders, true)).statusCode).toBe(200);
+  const list = await sharedPages();
+  expect(list.headers['cache-control']).toBe('private, no-store');
+  expect(list.json()).toEqual({
+    pages: [{ id: pageId, name: 'Shared original' }],
+  });
+  expect((await sharedPages(outsideHeaders)).json()).toEqual({ pages: [] });
   expect(
     (await app.inject({ url: `${url}/viewers`, headers: adminHeaders })).json()
   ).toMatchObject({ viewers: [{ id: viewer.id }] });
@@ -161,6 +170,7 @@ it('shares a single page and its children and attachments until access is remove
   expect((await download(privateFile)).statusCode).toBe(403);
 
   expect((await setAccess(adminHeaders, false)).statusCode).toBe(200);
+  expect((await sharedPages()).json()).toEqual({ pages: [] });
   expect((await read(pageId)).statusCode).toBe(404);
   expect((await read(childId)).statusCode).toBe(404);
   expect((await download(childFile)).statusCode).toBe(403);

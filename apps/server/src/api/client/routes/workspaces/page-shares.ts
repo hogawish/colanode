@@ -40,6 +40,27 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
   _,
   done
 ) => {
+  instance.get('/mine', async (request, reply) => {
+    reply.header('Cache-Control', 'private, no-store');
+    const { id: workspaceId, user } = request.workspace;
+    const grants = await database
+      .selectFrom('page_shares')
+      .innerJoin('nodes', 'nodes.id', 'page_shares.page_id')
+      .select(['nodes.id', 'nodes.attributes'])
+      .where('page_shares.viewer_id', '=', user.id)
+      .where('nodes.workspace_id', '=', workspaceId)
+      .where('nodes.type', '=', 'page')
+      .execute();
+
+    const pages = grants.flatMap(({ id, attributes }) =>
+      attributes.type === 'page' ? [{ id, name: attributes.name }] : []
+    );
+    pages.sort(
+      (a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id)
+    );
+    return { pages };
+  });
+
   instance.get('/:pageId', { schema: { params } }, async (request, reply) => {
     reply.header('Cache-Control', 'private, no-store');
     const { pageId } = request.params;
@@ -272,12 +293,10 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
       const role = extractNodeRole(tree, user.id);
       const shareRole = await getSharedPageRole(tree, user.id);
       if (shareRole !== 'editor' && !(role && hasNodeRole(role, 'editor'))) {
-        return reply
-          .code(403)
-          .send({
-            code: ApiErrorCode.Forbidden,
-            message: 'You cannot edit this page.',
-          });
+        return reply.code(403).send({
+          code: ApiErrorCode.Forbidden,
+          message: 'You cannot edit this page.',
+        });
       }
       const { revision, content } = request.body;
       const updated = await updateDocument({
