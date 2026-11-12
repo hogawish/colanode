@@ -46,13 +46,14 @@ export const PageUnusedImagesDialog = ({
       }
     }
   }
-  const images = children.data.filter(
-    (node) =>
-      node.type === 'file' &&
-      node.subtype === 'image' &&
-      node.status === FileStatus.Ready &&
-      !referenced.has(node.id)
-  );
+  const images = children.data
+    .filter((node) => node.type === 'file')
+    .filter(
+      (file) =>
+        file.subtype === 'image' &&
+        file.status === FileStatus.Ready &&
+        !referenced.has(file.id)
+    );
   const size = images.reduce((total, image) => total + image.size, 0);
 
   return (
