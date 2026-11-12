@@ -8,6 +8,7 @@ import { DatabaseViews } from '@colanode/ui/components/databases/database-views'
 import { NodeProvider } from '@colanode/ui/components/nodes/node-provider';
 import { Link } from '@colanode/ui/components/ui/link';
 import { useNode } from '@colanode/ui/contexts/node';
+import { isBoardRecordDrag } from '@colanode/ui/lib/board-drag';
 
 const DatabaseNodeViewContent = ({
   id,
@@ -25,10 +26,12 @@ const DatabaseNodeViewContent = ({
         className="my-4 w-full"
         contentEditable={false}
         onDragStart={(e: React.DragEvent<HTMLDivElement>) => {
+          if (isBoardRecordDrag(e)) return;
           e.stopPropagation();
           e.preventDefault();
         }}
         onDragOver={(e: React.DragEvent<HTMLDivElement>) => {
+          if (isBoardRecordDrag(e)) return;
           e.preventDefault();
           e.stopPropagation();
         }}

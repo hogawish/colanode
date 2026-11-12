@@ -4,7 +4,6 @@ import { CircleAlert, CircleDashed } from 'lucide-react';
 import {
   CollaboratorFieldAttributes,
   DatabaseViewFilterAttributes,
-  FieldValue,
 } from '@colanode/core';
 import { Avatar } from '@colanode/ui/components/avatars/avatar';
 import { BoardViewColumn } from '@colanode/ui/components/databases/boards/board-view-column';
@@ -63,13 +62,7 @@ export const BoardViewColumnsCollaborator = ({
             value={{
               field,
               filter,
-              canDrop: () => true,
-              drop: () => {
-                return {
-                  type: 'string_array',
-                  value: [collaborator.value],
-                };
-              },
+              columnValue: collaborator.value,
               header: (
                 <BoardViewColumnCollaboratorHeader
                   field={field}
@@ -77,49 +70,6 @@ export const BoardViewColumnsCollaborator = ({
                   count={collaborator.count}
                 />
               ),
-              canDrag: (record) => record.canEdit,
-              onDragEnd: async (record, value) => {
-                const nodes = workspace.collections.nodes;
-                if (!value) {
-                  nodes.update(record.id, (draft) => {
-                    if (draft.type !== 'record') {
-                      return;
-                    }
-
-                    const { [field.id]: _removed, ...rest } = draft.fields;
-                    draft.fields = rest;
-                  });
-                } else {
-                  if (value.type !== 'string_array') {
-                    return;
-                  }
-
-                  let newValue: FieldValue = value;
-                  const currentValue = record.fields[field.id];
-                  if (currentValue && currentValue.type === 'string_array') {
-                    const newOptions = [
-                      ...currentValue.value.filter(
-                        (collaboratorId) =>
-                          collaboratorId !== collaborator.value
-                      ),
-                      ...newValue.value,
-                    ];
-
-                    newValue = {
-                      type: 'string_array',
-                      value: newOptions,
-                    };
-                  }
-
-                  nodes.update(record.id, (draft) => {
-                    if (draft.type !== 'record') {
-                      return;
-                    }
-
-                    draft.fields[field.id] = newValue;
-                  });
-                }
-              },
             }}
           >
             <BoardViewColumn />
@@ -130,10 +80,7 @@ export const BoardViewColumnsCollaborator = ({
         value={{
           field,
           filter: noValueFilter,
-          canDrop: () => true,
-          drop: () => {
-            return null;
-          },
+          columnValue: null,
           header: (
             <BoardViewColumnCollaboratorHeader
               field={field}
@@ -141,28 +88,6 @@ export const BoardViewColumnsCollaborator = ({
               count={noValueCount}
             />
           ),
-          canDrag: () => true,
-          onDragEnd: async (record, value) => {
-            const nodes = workspace.collections.nodes;
-            if (!value) {
-              nodes.update(record.id, (draft) => {
-                if (draft.type !== 'record') {
-                  return;
-                }
-
-                const { [field.id]: _removed, ...rest } = draft.fields;
-                draft.fields = rest;
-              });
-            } else {
-              nodes.update(record.id, (draft) => {
-                if (draft.type !== 'record') {
-                  return;
-                }
-
-                draft.fields[field.id] = value;
-              });
-            }
-          },
         }}
       >
         <BoardViewColumn />

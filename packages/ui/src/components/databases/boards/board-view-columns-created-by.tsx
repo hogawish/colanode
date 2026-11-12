@@ -56,8 +56,7 @@ export const BoardViewColumnsCreatedBy = ({
             value={{
               field,
               filter,
-              canDrop: () => false,
-              drop: () => null,
+              columnValue: user.value,
               header: (
                 <BoardViewColumnCreatedByHeader
                   field={field}
@@ -65,8 +64,6 @@ export const BoardViewColumnsCreatedBy = ({
                   count={user.count}
                 />
               ),
-              canDrag: () => false,
-              onDragEnd: () => {},
             }}
           >
             <BoardViewColumn />

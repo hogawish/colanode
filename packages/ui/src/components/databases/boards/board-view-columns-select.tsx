@@ -71,13 +71,7 @@ export const BoardViewColumnsSelect = ({
             value={{
               field,
               filter,
-              canDrop: () => true,
-              drop: () => {
-                return {
-                  type: 'string',
-                  value: option.id,
-                };
-              },
+              columnValue: option.id,
               dragOverClass: draggingClass,
               header: (
                 <BoardViewColumnSelectHeader
@@ -86,28 +80,6 @@ export const BoardViewColumnsSelect = ({
                   count={count}
                 />
               ),
-              canDrag: (record) => record.canEdit,
-              onDragEnd: async (record, value) => {
-                const nodes = workspace.collections.nodes;
-                if (!value) {
-                  nodes.update(record.id, (draft) => {
-                    if (draft.type !== 'record') {
-                      return;
-                    }
-
-                    const { [field.id]: _removed, ...rest } = draft.fields;
-                    draft.fields = rest;
-                  });
-                } else {
-                  nodes.update(record.id, (draft) => {
-                    if (draft.type !== 'record') {
-                      return;
-                    }
-
-                    draft.fields[field.id] = value;
-                  });
-                }
-              },
             }}
           >
             <BoardViewColumn />
@@ -118,10 +90,7 @@ export const BoardViewColumnsSelect = ({
         value={{
           field,
           filter: noValueFilter,
-          canDrop: () => true,
-          drop: () => {
-            return null;
-          },
+          columnValue: null,
           header: (
             <BoardViewColumnSelectHeader
               field={field}
@@ -130,28 +99,6 @@ export const BoardViewColumnsSelect = ({
             />
           ),
           dragOverClass: noValueDraggingClass,
-          canDrag: () => true,
-          onDragEnd: async (record, value) => {
-            const nodes = workspace.collections.nodes;
-            if (!value) {
-              nodes.update(record.id, (draft) => {
-                if (draft.type !== 'record') {
-                  return;
-                }
-
-                const { [field.id]: _removed, ...rest } = draft.fields;
-                draft.fields = rest;
-              });
-            } else {
-              nodes.update(record.id, (draft) => {
-                if (draft.type !== 'record') {
-                  return;
-                }
-
-                draft.fields[field.id] = value;
-              });
-            }
-          },
         }}
       >
         <BoardViewColumn />

@@ -2,7 +2,6 @@ import { CircleDashed } from 'lucide-react';
 
 import {
   DatabaseViewFilterAttributes,
-  FieldValue,
   MultiSelectFieldAttributes,
   SelectOptionAttributes,
 } from '@colanode/core';
@@ -72,13 +71,7 @@ export const BoardViewColumnsMultiSelect = ({
             value={{
               field,
               filter,
-              canDrop: () => true,
-              drop: () => {
-                return {
-                  type: 'string_array',
-                  value: [option.id],
-                };
-              },
+              columnValue: option.id,
               dragOverClass: draggingClass,
               header: (
                 <BoardViewColumnMultiSelectHeader
@@ -87,48 +80,6 @@ export const BoardViewColumnsMultiSelect = ({
                   count={count}
                 />
               ),
-              canDrag: (record) => record.canEdit,
-              onDragEnd: async (record, value) => {
-                const nodes = workspace.collections.nodes;
-                if (!value) {
-                  nodes.update(record.id, (draft) => {
-                    if (draft.type !== 'record') {
-                      return;
-                    }
-
-                    const { [field.id]: _removed, ...rest } = draft.fields;
-                    draft.fields = rest;
-                  });
-                } else {
-                  if (value.type !== 'string_array') {
-                    return;
-                  }
-
-                  let newValue: FieldValue = value;
-                  const currentValue = record.fields[field.id];
-                  if (currentValue && currentValue.type === 'string_array') {
-                    const newOptions = [
-                      ...currentValue.value.filter(
-                        (optionId) => optionId !== option.id
-                      ),
-                      ...newValue.value,
-                    ];
-
-                    newValue = {
-                      type: 'string_array',
-                      value: newOptions,
-                    };
-                  }
-
-                  nodes.update(record.id, (draft) => {
-                    if (draft.type !== 'record') {
-                      return;
-                    }
-
-                    draft.fields[field.id] = newValue;
-                  });
-                }
-              },
             }}
           >
             <BoardViewColumn />
@@ -139,10 +90,7 @@ export const BoardViewColumnsMultiSelect = ({
         value={{
           field,
           filter: noValueFilter,
-          canDrop: () => true,
-          drop: () => {
-            return null;
-          },
+          columnValue: null,
           header: (
             <BoardViewColumnMultiSelectHeader
               field={field}
@@ -151,28 +99,6 @@ export const BoardViewColumnsMultiSelect = ({
             />
           ),
           dragOverClass: noValueDraggingClass,
-          canDrag: () => true,
-          onDragEnd: async (record, value) => {
-            const nodes = workspace.collections.nodes;
-            if (!value) {
-              nodes.update(record.id, (draft) => {
-                if (draft.type !== 'record') {
-                  return;
-                }
-
-                const { [field.id]: _removed, ...rest } = draft.fields;
-                draft.fields = rest;
-              });
-            } else {
-              nodes.update(record.id, (draft) => {
-                if (draft.type !== 'record') {
-                  return;
-                }
-
-                draft.fields[field.id] = value;
-              });
-            }
-          },
         }}
       >
         <BoardViewColumn />
