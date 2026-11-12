@@ -1,10 +1,7 @@
-import { Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
 import type { SharedPage } from '@colanode/client/mutations';
 import type { RichTextContent } from '@colanode/core';
-import { FileSaveButton } from '@colanode/ui/components/files/file-save-button';
-import { SharedDatabaseDialog } from '@colanode/ui/components/pages/shared-database';
 import { SharedPageDocument } from '@colanode/ui/components/pages/shared-page-document';
 import { SharedPageEditor } from '@colanode/ui/components/pages/shared-page-editor';
 import { Button } from '@colanode/ui/components/ui/button';
@@ -24,7 +21,7 @@ export const SharedPageView = ({ pageId }: { pageId: string }) => {
 };
 
 const SharedPageContent = ({ pageId }: { pageId: string }) => {
-  const { userId, workspaceId } = useWorkspace();
+  const { userId } = useWorkspace();
   const [page, setPage] = useState<SharedPage | null>(null);
   const [busy, setBusy] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -69,19 +66,6 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
         </Button>
       </div>
     );
-
-  const placed = new Set(page.pagePlacements?.map(({ id }) => id));
-  const childPages = editing
-    ? page.pages
-    : page.pages.filter(({ id }) => !placed.has(id));
-  const placedDatabases = new Set(page.databasePlacements?.map(({ id }) => id));
-  const childDatabases = (page.databases ?? []).filter(
-    ({ id }) => editing || !placedDatabases.has(id)
-  );
-  const placedFiles = new Set(page.filePlacements?.map(({ id }) => id));
-  const attachments = page.files.filter(
-    ({ id }) => editing || !placedFiles.has(id)
-  );
 
   const save = async (content: RichTextContent) => {
     const result = await window.colanode.executeMutation({
@@ -145,56 +129,6 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
           files={page.files}
           filePlacements={page.filePlacements}
         />
-      )}
-      {childDatabases.length > 0 && (
-        <section>
-          <h2 className="mb-2 font-semibold">Databases</h2>
-          {childDatabases.map((database) => (
-            <SharedDatabaseDialog
-              key={database.id}
-              pageId={pageId}
-              database={database}
-            />
-          ))}
-        </section>
-      )}
-      {childPages.length > 0 && (
-        <section>
-          <h2 className="mb-2 font-semibold">Child pages</h2>
-          <ul className="space-y-2">
-            {childPages.map((child) => (
-              <li key={child.id}>
-                <Link
-                  className="underline"
-                  to="/workspace/$userId/shared/$pageId"
-                  params={{ userId, pageId: child.id }}
-                  mask={{
-                    to: '/$workspaceId/shared/$pageId',
-                    params: { workspaceId, pageId: child.id },
-                  }}
-                >
-                  {child.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      {attachments.length > 0 && (
-        <section>
-          <h2 className="mb-2 font-semibold">Attachments</h2>
-          <ul className="space-y-2">
-            {attachments.map((file) => (
-              <li
-                key={file.id}
-                className="flex items-center justify-between gap-3"
-              >
-                <span>{file.name}</span>
-                <FileSaveButton file={file} remoteOnly />
-              </li>
-            ))}
-          </ul>
-        </section>
       )}
     </article>
   );
