@@ -71,4 +71,17 @@ it('persists a view order across reload and preserves both sort settings and fil
     manualSort: true,
     manualRowOrder: ['b', 'filtered', 'a'],
   });
+  await handler.handleMutation({
+    ...reorder,
+    visibleIds: ['b', 'a', 'c', 'd'],
+    recordIds: ['c', 'b'],
+    anchorId: 'd',
+    side: 'after',
+  });
+  doc = new YDoc(doc.getState());
+  expect(doc.getObject<DatabaseViewAttributes>()).toEqual({
+    ...original,
+    manualSort: true,
+    manualRowOrder: ['a', 'filtered', 'd', 'b', 'c'],
+  });
 });

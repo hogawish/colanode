@@ -1,6 +1,6 @@
 import { WorkspaceMutationHandlerBase } from '@colanode/client/handlers/mutations/workspace-mutation-handler-base';
 import type { MutationHandler } from '@colanode/client/lib/types';
-import { moveRecordInOrder } from '@colanode/client/lib/view-record-order';
+import { moveRecordsInOrder } from '@colanode/client/lib/view-record-order';
 import type { TableOrderUpdateMutationInput } from '@colanode/client/mutations/nodes/table-order-update';
 import type { DatabaseViewAttributes } from '@colanode/core';
 
@@ -26,10 +26,10 @@ export class TableOrderUpdateMutationHandler
         if (!view.manualSort) {
           throw new Error('Choose Manual order before moving rows.');
         }
-        const order = moveRecordInOrder(
+        const order = moveRecordsInOrder(
           view.manualRowOrder ?? [],
           input.visibleIds,
-          input.recordId,
+          input.recordIds ?? [input.recordId],
           input.anchorId,
           input.side
         );

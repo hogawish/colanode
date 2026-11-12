@@ -16,15 +16,32 @@ export const moveRecordInOrder = (
   anchorId: string,
   side: 'before' | 'after'
 ) => {
-  if (recordId === anchorId) return;
+  return moveRecordsInOrder(saved, visibleIds, [recordId], anchorId, side);
+};
+
+export const moveRecordsInOrder = (
+  saved: readonly string[],
+  visibleIds: readonly string[],
+  recordIds: readonly string[],
+  anchorId: string,
+  side: 'before' | 'after'
+) => {
   const visible = new Set(visibleIds);
-  if (!visible.has(recordId) || !visible.has(anchorId)) return;
+  const selection = new Set(recordIds);
+  if (!visible.has(anchorId) || selection.has(anchorId)) return;
 
   const all = [...new Set([...saved, ...visibleIds])];
   const current = all.filter((id) => visible.has(id));
-  const moved = current.filter((id) => id !== recordId);
-  const index = moved.indexOf(anchorId) + (side === 'after' ? 1 : 0);
-  moved.splice(index, 0, recordId);
+  const group = current.filter((id) => selection.has(id));
+  if (group.length === 0) return;
+
+  const remaining = current.filter((id) => !selection.has(id));
+  const index = remaining.indexOf(anchorId) + (side === 'after' ? 1 : 0);
+  const moved = [
+    ...remaining.slice(0, index),
+    ...group,
+    ...remaining.slice(index),
+  ];
   if (current.every((id, position) => moved[position] === id)) return;
 
   // Keep the slots of cards excluded by the view's current filters.

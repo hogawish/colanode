@@ -21,8 +21,9 @@ import { useWorkspace } from '@colanode/ui/contexts/workspace';
 interface TableViewRowProps {
   index: number;
   record: LocalRecordNode;
+  selectedIds?: string[];
   onReorder?: (
-    recordId: string,
+    recordIds: string[],
     anchorId: string,
     side: 'before' | 'after'
   ) => void;
@@ -32,6 +33,7 @@ export const TableViewRow = ({
   index,
   record,
   onReorder,
+  selectedIds,
 }: TableViewRowProps) => {
   const workspace = useWorkspace();
   const database = useDatabase();
@@ -53,6 +55,7 @@ export const TableViewRow = ({
               <TableRowDragHandle
                 row={row}
                 recordId={record.id}
+                selectedIds={selectedIds}
                 name={record.name || `row ${index + 1}`}
                 onReorder={onReorder}
               />

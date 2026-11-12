@@ -85,6 +85,27 @@ beforeEach(() => {
   Object.assign(window, { colanode: { executeMutation: state.execute } });
 });
 
+const dragRow = async (grip: HTMLElement, anchor: HTMLElement) => {
+  const types: string[] = [];
+  const dataTransfer = {
+    types,
+    setData: (type: string) => {
+      if (!types.includes(type)) types.push(type);
+    },
+    setDragImage: vi.fn(),
+    dropEffect: 'none',
+    effectAllowed: 'all',
+  };
+  expect(fireEvent.dragStart(grip, { dataTransfer })).toBe(true);
+  await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+  const drop = createEvent.drop(anchor, { dataTransfer });
+  Object.defineProperties(drop, {
+    clientX: { value: 0 },
+    clientY: { value: 0 },
+  });
+  fireEvent(anchor, drop);
+};
+
 it('only enables row drag in Manual order and restores the saved order after switching back', async () => {
   state.execute.mockImplementation(async (input) => {
     if (input.action === 'set-mode') state.manualSort = input.manual;
@@ -109,24 +130,7 @@ it('only enables row drag in Manual order and restores the saved order after swi
 
   const grip = screen.getByRole('button', { name: 'Reorder Gamma' });
   const anchor = screen.getByText('Alpha').closest('[data-selected]')!;
-  const types: string[] = [];
-  const dataTransfer = {
-    types,
-    setData: (type: string) => {
-      if (!types.includes(type)) types.push(type);
-    },
-    setDragImage: vi.fn(),
-    dropEffect: 'none',
-    effectAllowed: 'all',
-  };
-  expect(fireEvent.dragStart(grip, { dataTransfer })).toBe(true);
-  await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
-  const drop = createEvent.drop(anchor, { dataTransfer });
-  Object.defineProperties(drop, {
-    clientX: { value: 0 },
-    clientY: { value: 0 },
-  });
-  fireEvent(anchor, drop);
+  await dragRow(grip, anchor);
   expect(state.execute).toHaveBeenLastCalledWith({
     type: 'table.order.update',
     action: 'reorder',
@@ -151,6 +155,47 @@ it('only enables row drag in Manual order and restores the saved order after swi
   view.rerender(table());
   expect(rowNames()).toEqual(['Gamma', 'Alpha', 'Beta']);
 });
+it('moves checked rows in display order and leaves unchecked drags independent', async () => {
+  state.manualSort = true;
+  render(
+    <DndProvider backend={HTML5Backend}>
+      <TableViewBody />
+    </DndProvider>
+  );
+  const row = (name: string) =>
+    screen.getByText(name).closest<HTMLElement>('[data-selected]')!;
+  const grip = (name: string) =>
+    screen.getByRole('button', { name: `Reorder ${name}` });
+
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Select Gamma' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Select Alpha' }));
+  expect(grip('Gamma').title).toBe('Drag to reorder selected rows');
+
+  await dragRow(grip('Gamma'), row('Alpha'));
+  expect(state.execute).not.toHaveBeenCalled();
+  await dragRow(grip('Gamma'), row('Beta'));
+  expect(state.execute).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      recordIds: ['0', '2'],
+      anchorId: '1',
+      side: 'before',
+    })
+  );
+
+  await dragRow(grip('Beta'), row('Alpha'));
+  expect(state.execute).toHaveBeenLastCalledWith({
+    type: 'table.order.update',
+    action: 'reorder',
+    userId: 'human',
+    databaseId: 'db',
+    viewId: 'view',
+    visibleIds: ['0', '1', '2'],
+    recordId: '1',
+    anchorId: '0',
+    side: 'before',
+  });
+});
+
 describe('table row selection', () => {
   it('supports range selection, select-loaded and clearing selection on filter change', () => {
     const view = render(<TableViewBody />);

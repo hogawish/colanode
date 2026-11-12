@@ -13,7 +13,7 @@ import { cn } from '@colanode/ui/lib/utils';
 
 const dragType = 'table-record';
 type RowDrag = {
-  recordId: string;
+  recordIds: string[];
   userId: string;
   databaseId: string;
   viewId: string;
@@ -22,14 +22,16 @@ type RowDrag = {
 export const TableRowDragHandle = ({
   row,
   recordId,
+  selectedIds,
   name,
   onReorder,
 }: {
   row: RefObject<HTMLDivElement | null>;
   recordId: string;
+  selectedIds?: string[];
   name: string;
   onReorder: (
-    recordId: string,
+    recordIds: string[],
     anchorId: string,
     side: 'before' | 'after'
   ) => void;
@@ -42,15 +44,20 @@ export const TableRowDragHandle = ({
   const [, drag] = useDrag<RowDrag>(
     () => ({
       type: dragType,
-      item: { recordId, userId, databaseId, viewId },
+      item: {
+        recordIds: selectedIds ?? [recordId],
+        userId,
+        databaseId,
+        viewId,
+      },
     }),
-    [recordId, userId, databaseId, viewId]
+    [recordId, selectedIds, userId, databaseId, viewId]
   );
   const [{ isOver }, drop] = useDrop<RowDrag, object, { isOver: boolean }>(
     () => ({
       accept: dragType,
       canDrop: (item) =>
-        item.recordId !== recordId &&
+        !item.recordIds.includes(recordId) &&
         item.userId === userId &&
         item.databaseId === databaseId &&
         item.viewId === viewId,
@@ -60,7 +67,7 @@ export const TableRowDragHandle = ({
       },
       drop: (item, monitor) => {
         onReorder(
-          item.recordId,
+          item.recordIds,
           recordId,
           getRecordDropSide(row.current, monitor.getClientOffset()?.y)
         );
@@ -88,7 +95,11 @@ export const TableRowDragHandle = ({
         ref={handle}
         className="flex h-8 w-7 shrink-0 cursor-grab items-center justify-center text-muted-foreground hover:text-foreground active:cursor-grabbing"
         aria-label={`Reorder ${name}`}
-        title="Drag to reorder"
+        title={
+          selectedIds && selectedIds.length > 1
+            ? 'Drag to reorder selected rows'
+            : 'Drag to reorder'
+        }
         onDragStart={(event) =>
           event.dataTransfer.setData(databaseRecordDragMime, '1')
         }

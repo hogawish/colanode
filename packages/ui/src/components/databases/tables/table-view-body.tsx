@@ -54,7 +54,7 @@ const ManualTableBody = () => {
     ...unranked.data.filter((record) => !byId.has(record.id)),
   ];
   const reorder = async (
-    recordId: string,
+    recordIds: string[],
     anchorId: string,
     side: 'before' | 'after'
   ) => {
@@ -66,7 +66,8 @@ const ManualTableBody = () => {
         databaseId: database.id,
         viewId: view.id,
         visibleIds: records.map((record) => record.id),
-        recordId,
+        recordId: recordIds[0]!,
+        ...(recordIds.length > 1 && { recordIds }),
         anchorId,
         side,
       });
@@ -96,7 +97,7 @@ const SelectableTableBody = ({
 }: {
   query: ReturnType<typeof useRecordsQuery>;
   onReorder?: (
-    recordId: string,
+    recordIds: string[],
     anchorId: string,
     side: 'before' | 'after'
   ) => void;
@@ -110,6 +111,7 @@ const SelectableTableBody = ({
   } | null>(null);
   const anchor = useRef<string | null>(null);
   const selectedRecords = records.filter((record) => selected.has(record.id));
+  const selectedIds = selectedRecords.map((record) => record.id);
   const toggle = (record: LocalRecordNode, shift = false) => {
     const start = records.findIndex((item) => item.id === anchor.current);
     const end = records.findIndex((item) => item.id === record.id);
@@ -184,6 +186,7 @@ const SelectableTableBody = ({
             index={index}
             record={record}
             onReorder={onReorder}
+            selectedIds={selected.has(record.id) ? selectedIds : undefined}
           />
         ))}
         <InView

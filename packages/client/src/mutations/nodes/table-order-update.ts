@@ -9,6 +9,7 @@ export type TableOrderUpdateMutationInput = {
       action: 'reorder';
       visibleIds: string[];
       recordId: string;
+      recordIds?: string[];
       anchorId: string;
       side: 'before' | 'after';
     }
