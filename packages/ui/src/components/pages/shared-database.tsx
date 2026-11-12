@@ -3,7 +3,14 @@ import {
   createCollection,
   localOnlyCollectionOptions,
 } from '@tanstack/react-db';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  type ReactElement,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 import type { SharedDatabase, SharedPage } from '@colanode/client/mutations';
 import type { LocalNode } from '@colanode/client/types';
@@ -57,15 +64,19 @@ export const SharedDatabaseBlock = ({
 export const SharedDatabaseDialog = ({
   pageId,
   database,
+  trigger,
 }: {
   pageId: string;
   database: ChildDatabase;
+  trigger?: ReactElement;
 }) => (
   <Dialog>
     <DialogTrigger asChild>
-      <button type="button" className="block w-full text-left">
-        <PageLinkContent {...database} />
-      </button>
+      {trigger ?? (
+        <button type="button" className="block w-full text-left">
+          <PageLinkContent {...database} />
+        </button>
+      )}
     </DialogTrigger>
     <DialogContent className="max-h-[85dvh] w-[95vw] max-w-none overflow-auto sm:max-w-6xl">
       <DialogTitle>{database.name}</DialogTitle>
@@ -139,8 +150,8 @@ const SharedDatabaseContent = ({ data }: { data: SharedDatabase }) => {
       createCollection(
         localOnlyCollectionOptions<LocalNode, string>({
           getKey: (node) => node.id,
-        defaultIndexType: BasicIndex,
-        autoIndex: 'eager',
+          defaultIndexType: BasicIndex,
+          autoIndex: 'eager',
           initialData: data.nodes.map((node) => ({
             ...node,
             localRevision: '0',
