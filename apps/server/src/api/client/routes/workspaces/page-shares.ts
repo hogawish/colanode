@@ -3,6 +3,7 @@ import { z } from 'zod/v4';
 
 import {
   ApiErrorCode,
+  type Block,
   extractNodeRole,
   FileStatus,
   type FileSubtype,
@@ -12,6 +13,7 @@ import {
   UserStatus,
 } from '@colanode/core';
 import { database } from '@colanode/server/data/database';
+import type { SelectNode } from '@colanode/server/data/schema';
 import { updateDocument } from '@colanode/server/lib/documents';
 import { fetchNodeTree, mapNode } from '@colanode/server/lib/nodes';
 import { inviteToPage } from '@colanode/server/lib/page-invitations';
@@ -36,6 +38,30 @@ const getPageTree = async (workspaceId: string, pageId: string) => {
     return [];
   }
   return rows.map(mapNode);
+};
+
+const linkedDatabaseId = (block?: Block) =>
+  block?.type === 'database' &&
+  typeof block.attrs?.sourceDatabaseId === 'string'
+    ? block.attrs.sourceDatabaseId
+    : null;
+
+const readDatabase = async (db: SelectNode) => {
+  const children = await database
+    .selectFrom('nodes')
+    .selectAll()
+    .where('workspace_id', '=', db.workspace_id)
+    .where('parent_id', '=', db.id)
+    .where('type', 'in', ['database_view', 'record'])
+    .execute();
+  const nodes = children
+    .filter(
+      ({ attributes }) =>
+        attributes.type === 'database_view' ||
+        (attributes.type === 'record' && attributes.databaseId === db.id)
+    )
+    .map(mapNode);
+  return { database: mapNode(db), nodes };
 };
 
 export const pageSharesRoutes: FastifyPluginCallbackZod = (
@@ -141,6 +167,7 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         !body ||
         block?.type !== 'database' ||
         block.id !== id ||
+        linkedDatabaseId(block) ||
         !isInSharedPageBody(pageId, block.parentId, body)
       )
         return [];
@@ -159,6 +186,16 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         ? [{ id, parentId: block.parentId, index: block.index }]
         : [];
     });
+    const linkedDatabasePlacements =
+      body && content.data
+        ? Object.entries(content.data.blocks).flatMap(([id, block]) =>
+            id === block.id &&
+            linkedDatabaseId(block) &&
+            isInSharedPageBody(pageId, block.parentId, body)
+              ? [{ id, parentId: block.parentId, index: block.index }]
+              : []
+          )
+        : [];
     return {
       name: page.name,
       content: body,
@@ -169,6 +206,7 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
       pagePlacements,
       databases,
       databasePlacements,
+      linkedDatabasePlacements,
       filePlacements,
       files,
     };
@@ -202,19 +240,70 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         .executeTakeFirst();
       if (!db || db.attributes.type !== 'database') return unavailable();
 
-      const children = await ownedNodes
-        .where('parent_id', '=', databaseId)
-        .where('type', 'in', ['database_view', 'record'])
-        .execute();
-      const nodes = children
-        .filter(
-          ({ attributes }) =>
-            attributes.type === 'database_view' ||
-            (attributes.type === 'record' &&
-              attributes.databaseId === databaseId)
-        )
-        .map(mapNode);
-      return { database: mapNode(db), nodes };
+      return readDatabase(db);
+    }
+  );
+
+  instance.get(
+    '/:pageId/linked-databases/:blockId',
+    { schema: { params: params.extend({ blockId: z.string() }) } },
+    async (request, reply) => {
+      reply.header('Cache-Control', 'private, no-store');
+      const { pageId, blockId } = request.params;
+      const { id: workspaceId, user } = request.workspace;
+      const unavailable = () =>
+        reply.code(404).send({
+          code: ApiErrorCode.NotFound,
+          message: 'Database is unavailable.',
+        });
+      const destination = await getPageTree(workspaceId, pageId);
+      if (
+        !extractNodeRole(destination, user.id) &&
+        !(await getSharedPageRole(destination, user.id))
+      ) {
+        return unavailable();
+      }
+      const document = await database
+        .selectFrom('documents')
+        .select('content')
+        .where('id', '=', pageId)
+        .where('workspace_id', '=', workspaceId)
+        .executeTakeFirst();
+      const { data: content } = richTextContentSchema.safeParse(
+        document?.content
+      );
+      const block = content?.blocks[blockId];
+      const sourceId = linkedDatabaseId(block);
+      if (
+        !sourceId ||
+        !content ||
+        !block ||
+        block.id !== blockId ||
+        !isInSharedPageBody(pageId, block.parentId, content)
+      ) {
+        return unavailable();
+      }
+
+      const source = await fetchNodeTree(sourceId);
+      const db = source.at(-1);
+      if (
+        db?.id !== sourceId ||
+        db.workspace_id !== workspaceId ||
+        db.type !== 'database'
+      )
+        return unavailable();
+      const nodes = source.map(mapNode);
+      const canReadSource =
+        extractNodeRole(nodes, user.id) ||
+        (nodes.at(-2)?.type === 'page' &&
+          (await getSharedPageRole(nodes.slice(0, -1), user.id)));
+      if (!canReadSource) return unavailable();
+
+      const initialViewId = block.attrs?.sourceViewId;
+      return {
+        ...(await readDatabase(db)),
+        ...(typeof initialViewId === 'string' && { initialViewId }),
+      };
     }
   );
 

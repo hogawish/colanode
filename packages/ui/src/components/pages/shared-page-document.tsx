@@ -37,6 +37,7 @@ export const SharedPageDocument = ({
   pagePlacements,
   databases,
   databasePlacements,
+  linkedDatabasePlacements,
   files,
   filePlacements,
 }: {
@@ -46,6 +47,7 @@ export const SharedPageDocument = ({
   pagePlacements?: SharedPage['pagePlacements'];
   databases?: SharedPage['databases'];
   databasePlacements?: SharedPage['databasePlacements'];
+  linkedDatabasePlacements?: SharedPage['linkedDatabasePlacements'];
   files?: SharedPage['files'];
   filePlacements?: SharedPage['filePlacements'];
 }) => {
@@ -77,6 +79,13 @@ export const SharedPageDocument = ({
         };
       }
     }
+    for (const placement of linkedDatabasePlacements ?? []) {
+      blocks[placement.id] = {
+        ...placement,
+        type: 'database',
+        attrs: { linked: true },
+      };
+    }
     for (const placement of filePlacements ?? []) {
       if (childFiles.has(placement.id)) {
         blocks[placement.id] = { ...placement, type: 'file' };
@@ -89,6 +98,7 @@ export const SharedPageDocument = ({
     pagePlacements,
     childPages,
     databasePlacements,
+    linkedDatabasePlacements,
     childDatabases,
     filePlacements,
     childFiles,

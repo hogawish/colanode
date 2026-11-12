@@ -13,6 +13,7 @@ type Placement = Pick<Block, 'id' | 'parentId' | 'index'>;
 export type SharedDatabase = {
   database: DatabaseNode;
   nodes: (DatabaseViewNode | RecordNode)[];
+  initialViewId?: string;
 };
 export type SharedFile = NamedItem & {
   mimeType?: string;
@@ -27,6 +28,7 @@ export type SharedPage = {
   pagePlacements?: Placement[];
   databases?: SharedChild[];
   databasePlacements?: (Placement & { inline: boolean })[];
+  linkedDatabasePlacements?: Placement[];
   files: SharedFile[];
   filePlacements?: Placement[];
 };
@@ -41,6 +43,7 @@ export type PageShareMutationInput = {
 } & (
   | { action: 'read' }
   | { action: 'read-database'; databaseId: string }
+  | { action: 'read-linked-database'; blockId: string }
   | { action: 'list' }
   | { action: 'set'; viewerId: string; enabled: boolean }
   | ({ action: 'invite' } & PageShareInvitation)

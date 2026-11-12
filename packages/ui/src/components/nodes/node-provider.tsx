@@ -10,16 +10,14 @@ const buildContextValue = (
   node: LocalNode,
   parentContext: NodeContextValue | null,
   userId: string
-): NodeContextValue => {
+): NodeContextValue | null => {
   const breadcrumb = parentContext
     ? [...parentContext.breadcrumb, node]
     : [node];
   const root = parentContext ? parentContext.root : node;
   const role = extractNodeRole(root, userId);
 
-  if (!role) {
-    throw new Error('Node role not found');
-  }
+  if (!role) return null;
 
   return {
     node,
@@ -32,9 +30,14 @@ const buildContextValue = (
 type NodeProviderProps = {
   nodeId: string;
   children: ReactNode;
+  fallback?: ReactNode;
 };
 
-export const NodeProvider = ({ nodeId, children }: NodeProviderProps) => {
+export const NodeProvider = ({
+  nodeId,
+  children,
+  fallback,
+}: NodeProviderProps) => {
   const workspace = useWorkspace();
 
   const nodeQuery = useLiveQuery(
@@ -52,31 +55,27 @@ export const NodeProvider = ({ nodeId, children }: NodeProviderProps) => {
 
   const node = nodeQuery.data;
   if (!node) {
-    return null;
+    return fallback ?? null;
   }
+
+  const renderNode = (parentContext: NodeContextValue | null) => {
+    const value = buildContextValue(node, parentContext, workspace.userId);
+    if (!value) {
+      if (fallback !== undefined) return fallback;
+      throw new Error('Node role not found');
+    }
+    return (
+      <NodeContext.Provider value={value}>{children}</NodeContext.Provider>
+    );
+  };
 
   if (node.parentId) {
     return (
-      <NodeProvider nodeId={node.parentId}>
-        <NodeContext.Consumer>
-          {(parentContext) => {
-            const value = buildContextValue(
-              node,
-              parentContext,
-              workspace.userId
-            );
-
-            return (
-              <NodeContext.Provider value={value}>
-                {children}
-              </NodeContext.Provider>
-            );
-          }}
-        </NodeContext.Consumer>
+      <NodeProvider nodeId={node.parentId} fallback={fallback}>
+        <NodeContext.Consumer>{renderNode}</NodeContext.Consumer>
       </NodeProvider>
     );
   }
 
-  const value = buildContextValue(node, null, workspace.userId);
-  return <NodeContext.Provider value={value}>{children}</NodeContext.Provider>;
+  return renderNode(null);
 };

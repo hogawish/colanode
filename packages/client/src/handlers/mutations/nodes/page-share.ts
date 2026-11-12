@@ -36,6 +36,15 @@ export class PageShareMutationHandler
               .get(`${path}/databases/${encodeURIComponent(input.databaseId)}`)
               .json<SharedDatabase>(),
           };
+        case 'read-linked-database':
+          return {
+            action: 'read-database',
+            database: await client
+              .get(
+                `${path}/linked-databases/${encodeURIComponent(input.blockId)}`
+              )
+              .json<SharedDatabase>(),
+          };
         case 'list': {
           const { viewers, invitations } = await client
             .get(`${path}/viewers`)

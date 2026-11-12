@@ -19,6 +19,12 @@ export const DatabaseNode = Node.create({
       inline: {
         default: false,
       },
+      sourceDatabaseId: {
+        default: null,
+      },
+      sourceViewId: {
+        default: null,
+      },
     };
   },
   renderHTML({ HTMLAttributes }) {

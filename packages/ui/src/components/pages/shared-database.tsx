@@ -39,12 +39,21 @@ export const SharedDatabasesContext = createContext<{
 export const SharedDatabaseBlock = ({
   id,
   inline,
+  linked,
 }: {
   id?: string;
   inline?: boolean;
+  linked?: boolean;
 }) => {
   const shared = useContext(SharedDatabasesContext);
   const database = id ? shared?.databases.get(id) : undefined;
+  if (shared && id && linked) {
+    return (
+      <div data-document-block={id} className="my-4 w-full">
+        <SharedDatabaseView pageId={shared.pageId} databaseId={id} linked />
+      </div>
+    );
+  }
   if (!shared || !database) return null;
 
   return (
@@ -88,9 +97,11 @@ export const SharedDatabaseDialog = ({
 const SharedDatabaseView = ({
   pageId,
   databaseId,
+  linked = false,
 }: {
   pageId: string;
   databaseId: string;
+  linked?: boolean;
 }) => {
   const { userId } = useWorkspace();
   const [attempt, setAttempt] = useState(0);
@@ -104,10 +115,11 @@ const SharedDatabaseView = ({
     void window.colanode
       .executeMutation({
         type: 'page.share',
-        action: 'read-database',
         userId,
         pageId,
-        databaseId,
+        ...(linked
+          ? { action: 'read-linked-database' as const, blockId: databaseId }
+          : { action: 'read-database' as const, databaseId }),
       })
       .then((response) => {
         if (!active) return;
@@ -123,7 +135,7 @@ const SharedDatabaseView = ({
     return () => {
       active = false;
     };
-  }, [userId, pageId, databaseId, attempt]);
+  }, [userId, pageId, databaseId, linked, attempt]);
 
   if (result === undefined) return <p className="text-sm">Loading database…</p>;
   if (!result) {
@@ -140,10 +152,21 @@ const SharedDatabaseView = ({
       </div>
     );
   }
-  return <SharedDatabaseContent data={result} />;
+  return (
+    <SharedDatabaseContent
+      data={result}
+      instanceId={linked ? databaseId : undefined}
+    />
+  );
 };
 
-const SharedDatabaseContent = ({ data }: { data: SharedDatabase }) => {
+const SharedDatabaseContent = ({
+  data,
+  instanceId,
+}: {
+  data: SharedDatabase;
+  instanceId?: string;
+}) => {
   const workspace = useWorkspace();
   const nodes = useMemo(
     () =>
@@ -178,7 +201,13 @@ const SharedDatabaseContent = ({ data }: { data: SharedDatabase }) => {
         role="viewer"
         shared
       >
-        <DatabaseViews />
+        {instanceId && (
+          <p className="mb-1 text-sm font-medium">{data.database.name}</p>
+        )}
+        <DatabaseViews
+          instanceId={instanceId}
+          initialViewId={data.initialViewId}
+        />
       </Database>
     </WorkspaceContext.Provider>
   );

@@ -76,6 +76,7 @@ export const View = ({ view }: ViewProps) => {
         isFieldFilterOpened: (fieldId: string) =>
           openedFieldFilters.includes(fieldId),
         initFieldFilter: (fieldId: string) => {
+          if (!database.canEdit && !database.shared) return;
           workspace.collections.nodes.update(view.id, (draft) => {
             if (draft.type !== 'database_view') return;
 

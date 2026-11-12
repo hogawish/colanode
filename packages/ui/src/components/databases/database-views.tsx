@@ -9,15 +9,21 @@ import { useMetadata } from '@colanode/ui/hooks/use-metadata';
 
 interface DatabaseViewsProps {
   inline?: boolean;
+  instanceId?: string;
+  initialViewId?: string;
 }
 
-export const DatabaseViews = ({ inline = false }: DatabaseViewsProps) => {
+export const DatabaseViews = ({
+  inline = false,
+  instanceId,
+  initialViewId,
+}: DatabaseViewsProps) => {
   const workspace = useWorkspace();
   const database = useDatabase();
 
   const [activeViewId, setActiveViewId] = useMetadata<string>(
     workspace.userId,
-    `${database.id}.activeViewId`
+    `${instanceId ?? database.id}.activeViewId`
   );
 
   const databaseViewListQuery = useLiveQuery(
@@ -36,7 +42,10 @@ export const DatabaseViews = ({ inline = false }: DatabaseViewsProps) => {
   const views = databaseViewListQuery.data.map(
     (node) => node as LocalDatabaseViewNode
   );
-  const activeView = views.find((view) => view.id === activeViewId) ?? views[0];
+  const activeView =
+    views.find((view) => view.id === activeViewId) ??
+    views.find((view) => view.id === initialViewId) ??
+    views[0];
 
   return (
     <DatabaseViewsContext.Provider

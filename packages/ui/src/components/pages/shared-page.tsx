@@ -99,7 +99,7 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
 
   return (
     <article
-      className={`mx-auto w-full min-w-0 space-y-6 px-6 py-10 ${page.databasePlacements?.some(({ inline }) => inline) ? '' : 'max-w-3xl'}`}
+      className={`mx-auto w-full min-w-0 space-y-6 px-6 py-10 ${page.linkedDatabasePlacements?.length || page.databasePlacements?.some(({ inline }) => inline) ? '' : 'max-w-3xl'}`}
     >
       <header className="flex items-start justify-between gap-4">
         <div>
@@ -141,6 +141,7 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
           pagePlacements={page.pagePlacements}
           databases={page.databases}
           databasePlacements={page.databasePlacements}
+          linkedDatabasePlacements={page.linkedDatabasePlacements}
           files={page.files}
           filePlacements={page.filePlacements}
         />

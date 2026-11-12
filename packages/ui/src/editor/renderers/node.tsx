@@ -92,6 +92,7 @@ export const NodeRenderer = ({
           <SharedDatabaseBlock
             id={node.attrs?.id}
             inline={node.attrs?.inline}
+            linked={node.attrs?.linked}
           />
         ))
         .with('mention', () => (

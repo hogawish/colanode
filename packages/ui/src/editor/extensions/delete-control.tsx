@@ -14,7 +14,10 @@ export const DeleteControlExtension = Extension.create({
           tr.selection.$from.start(),
           tr.selection.$to.end(),
           (node) => {
-            if (specialBlocks.includes(node.type.name)) {
+            if (
+              specialBlocks.includes(node.type.name) &&
+              !(node.type.name === 'database' && node.attrs.sourceDatabaseId)
+            ) {
               result = true;
             }
           }

@@ -64,6 +64,7 @@ it('shares a single page and its children and attachments until access is remove
   const blockId = generateId(IdType.Block);
   const dbId = generateId(IdType.Database);
   const unrelatedDb = generateId(IdType.Database);
+  const linkedBlockId = generateId(IdType.Block);
   const recordId = generateId(IdType.Record);
   const viewId = generateId(IdType.DatabaseView);
   for (const [nodeId, parentId] of [
@@ -142,6 +143,13 @@ it('shares a single page and its children and attachments until access is remove
           parentId: pageId,
           index: 'a4',
         },
+        [linkedBlockId]: {
+          id: linkedBlockId,
+          parentId: pageId,
+          index: 'a5',
+          type: 'database',
+          attrs: { sourceDatabaseId: unrelatedDb },
+        },
       },
     },
   });
@@ -215,6 +223,8 @@ it('shares a single page and its children and attachments until access is remove
     app.inject({ url: `${endpoint}/page-shares/mine`, headers });
   const readDatabase = (id: string, headers = viewerHeaders) =>
     app.inject({ url: `${url}/databases/${id}`, headers });
+  const readLinkedDatabase = (headers = viewerHeaders) =>
+    app.inject({ url: `${url}/linked-databases/${linkedBlockId}`, headers });
 
   expect((await sharedPages()).json()).toEqual({ pages: [] });
   expect((await read(pageId)).statusCode).toBe(404);
@@ -251,6 +261,9 @@ it('shares a single page and its children and attachments until access is remove
   expect(shared.json().content.blocks).not.toHaveProperty(childId);
   expect(shared.json().content.blocks).not.toHaveProperty(siblingId);
   expect(shared.json().content.blocks).not.toHaveProperty(dbId);
+  expect(shared.json().linkedDatabasePlacements).toEqual([
+    { id: linkedBlockId, parentId: pageId, index: 'a5' },
+  ]);
   const sharedDatabase = await readDatabase(dbId);
   expect(sharedDatabase.statusCode).toBe(200);
   expect(sharedDatabase.headers['cache-control']).toBe('private, no-store');
@@ -263,6 +276,21 @@ it('shares a single page and its children and attachments until access is remove
   });
   expect((await readDatabase(dbId, outsideHeaders)).statusCode).toBe(404);
   expect((await readDatabase(unrelatedDb)).statusCode).toBe(404);
+  expect((await readLinkedDatabase()).statusCode).toBe(404);
+  const setSourceAccess = (enabled: boolean) =>
+    app.inject({
+      method: 'PUT',
+      url: `${endpoint}/page-shares/${siblingId}/viewers`,
+      headers: adminHeaders,
+      payload: { viewerId: viewer.id, enabled },
+    });
+  expect((await setSourceAccess(true)).statusCode).toBe(200);
+  const linkedDatabase = await readLinkedDatabase();
+  expect(linkedDatabase.statusCode).toBe(200);
+  expect(linkedDatabase.json().database.id).toBe(unrelatedDb);
+  expect((await readLinkedDatabase(outsideHeaders)).statusCode).toBe(404);
+  expect((await setSourceAccess(false)).statusCode).toBe(200);
+  expect((await readLinkedDatabase()).statusCode).toBe(404);
   expect((await read(childId)).json()).toMatchObject({
     files: [{ id: childFile, name: 'Child.txt' }],
     filePlacements: [{ id: childFile, parentId: childId, index: 'a0' }],

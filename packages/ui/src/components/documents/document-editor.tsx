@@ -2,6 +2,7 @@
 import '@colanode/ui/styles/editor.css';
 
 import {
+  type Editor,
   EditorContent,
   FocusPosition,
   JSONContent,
@@ -45,6 +46,10 @@ import {
   DatabaseInlineCommand,
 } from '@colanode/ui/editor/commands';
 import { createExternalReferenceCommand, ExternalReferenceDialog, type ExternalReferenceRequest } from '@colanode/ui/editor/commands/external-reference';
+import {
+  createLinkedDatabaseCommand,
+  LinkedDatabaseDialog,
+} from '@colanode/ui/editor/commands/linked-database';
 import {
   BlockquoteNode,
   BoldMark,
@@ -197,6 +202,7 @@ export const DocumentEditor = ({
 }: DocumentEditorProps) => {
   const workspace = useWorkspace();
   const [externalReferenceRequest, setExternalReferenceRequest] = useState<ExternalReferenceRequest | null>(null);
+  const [linkedDatabaseEditor, setLinkedDatabaseEditor] = useState<Editor | null>(null);
 
   const hasPendingChanges = useRef(false);
   const revisionRef = useRef(state?.revision ?? 0);
@@ -301,6 +307,7 @@ export const DocumentEditor = ({
         CommanderExtension.configure({
           commands: [
             createExternalReferenceCommand(setExternalReferenceRequest),
+            createLinkedDatabaseCommand(setLinkedDatabaseEditor),
             ParagraphCommand,
             PageCommand,
             BlockquoteCommand,
@@ -450,6 +457,12 @@ export const DocumentEditor = ({
         <EditorContent editor={editor} />
       </DocumentBlockMenu>
       {externalReferenceRequest && <ExternalReferenceDialog request={externalReferenceRequest} onClose={() => setExternalReferenceRequest(null)} />}
+      {linkedDatabaseEditor && (
+        <LinkedDatabaseDialog
+          editor={linkedDatabaseEditor}
+          onClose={() => setLinkedDatabaseEditor(null)}
+        />
+      )}
     </>
   );
 };

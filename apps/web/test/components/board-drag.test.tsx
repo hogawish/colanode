@@ -49,7 +49,10 @@ vi.mock('@colanode/ui/contexts/database', () => ({
   useDatabase: () => ({ id: 'database' }),
 }));
 vi.mock('@colanode/ui/contexts/node', () => ({
-  useNode: () => ({ node: { id: 'database', name: 'Tasks' }, role: 'editor' }),
+  useNode: () => ({
+    node: { id: 'database', type: 'database', name: 'Tasks' },
+    role: 'editor',
+  }),
 }));
 vi.mock('@colanode/ui/components/nodes/node-provider', () => ({
   NodeProvider: ({ children }: { children: ReactNode }) => children,

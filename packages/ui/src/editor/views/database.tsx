@@ -1,7 +1,6 @@
 import { type NodeViewProps } from '@tiptap/core';
 import { NodeViewWrapper } from '@tiptap/react';
 
-import { LocalDatabaseNode } from '@colanode/client/types';
 import { Avatar } from '@colanode/ui/components/avatars/avatar';
 import { Database } from '@colanode/ui/components/databases/database';
 import { DatabaseViews } from '@colanode/ui/components/databases/database-views';
@@ -10,14 +9,25 @@ import { Link } from '@colanode/ui/components/ui/link';
 import { useNode } from '@colanode/ui/contexts/node';
 import { isDatabaseRecordDrag } from '@colanode/ui/lib/database-drag';
 
+const UnavailableDatabase = ({ id }: { id: string }) => (
+  <NodeViewWrapper data-id={id} className="my-4 text-sm text-muted-foreground">
+    Linked database unavailable
+  </NodeViewWrapper>
+);
+
 const DatabaseNodeViewContent = ({
   id,
   inline,
+  linked,
+  initialViewId,
 }: {
   id: string;
   inline?: boolean;
+  linked?: boolean;
+  initialViewId?: string;
 }) => {
-  const { node: database, role } = useNode<LocalDatabaseNode>();
+  const { node: database, role } = useNode();
+  if (database.type !== 'database') return <UnavailableDatabase id={id} />;
 
   if (inline) {
     return (
@@ -36,8 +46,13 @@ const DatabaseNodeViewContent = ({
           e.stopPropagation();
         }}
       >
+        {linked && <p className="mb-1 text-sm font-medium">{database.name}</p>}
         <Database database={database} role={role}>
-          <DatabaseViews inline />
+          <DatabaseViews
+            inline
+            instanceId={linked ? id : undefined}
+            initialViewId={initialViewId}
+          />
         </Database>
       </NodeViewWrapper>
     );
@@ -62,6 +77,22 @@ const DatabaseNodeViewContent = ({
 
 export const DatabaseNodeView = ({ node }: NodeViewProps) => {
   const id = node.attrs.id;
+  const sourceDatabaseId = node.attrs.sourceDatabaseId;
+  if (typeof sourceDatabaseId === 'string' && sourceDatabaseId) {
+    return (
+      <NodeProvider
+        nodeId={sourceDatabaseId}
+        fallback={<UnavailableDatabase id={id} />}
+      >
+        <DatabaseNodeViewContent
+          id={id}
+          inline
+          linked
+          initialViewId={node.attrs.sourceViewId ?? undefined}
+        />
+      </NodeProvider>
+    );
+  }
   return (
     <NodeProvider nodeId={id}>
       <DatabaseNodeViewContent id={id} inline={node.attrs.inline} />

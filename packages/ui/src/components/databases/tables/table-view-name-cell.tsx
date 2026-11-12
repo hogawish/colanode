@@ -5,6 +5,7 @@ import React, { Fragment } from 'react';
 import { RecordNode } from '@colanode/core';
 import { Link } from '@colanode/ui/components/ui/link';
 import { useDatabase } from '@colanode/ui/contexts/database';
+import { useRecord } from '@colanode/ui/contexts/record';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
 
 interface NameEditorProps {
@@ -59,7 +60,8 @@ export const TableViewNameCell = ({ record }: TableViewNameCellProps) => {
   const workspace = useWorkspace();
   const [isEditing, setIsEditing] = React.useState(false);
 
-  const canEdit = !useDatabase().shared;
+  const canOpen = !useDatabase().shared;
+  const canEdit = useRecord().canEdit;
   const hasName = record.name && record.name.length > 0;
 
   const handleSave = (newName: string) => {
@@ -96,7 +98,7 @@ export const TableViewNameCell = ({ record }: TableViewNameCellProps) => {
               <span className="text-muted-foreground">Unnamed</span>
             )}
           </div>
-          {canEdit && (
+          {canOpen && (
             <Link
               from="/workspace/$userId/$nodeId"
               to="modal/$modalNodeId"
