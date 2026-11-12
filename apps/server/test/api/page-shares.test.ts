@@ -181,6 +181,22 @@ it('shares a single page and its children and attachments until access is remove
     return fileId;
   };
   const childFile = await addAttachment(childId, 'Child.txt');
+  const undoneFile = await addAttachment(childId, 'Undone.txt');
+  await createDocument({
+    ...fixture,
+    nodeId: childId,
+    content: {
+      type: 'rich_text',
+      blocks: {
+        [childFile]: {
+          id: childFile,
+          parentId: childId,
+          index: 'a0',
+          type: 'file',
+        },
+      },
+    },
+  });
   const privateFile = await addAttachment(siblingId, 'Private.txt');
 
   const url = `${endpoint}/page-shares/${pageId}`;
@@ -256,6 +272,15 @@ it('shares a single page and its children and attachments until access is remove
   expect(file.statusCode).toBe(200);
   expect(file.body).toBe(payload.toString());
   expect(file.headers['cache-control']).toBe('private, no-store');
+  expect((await download(undoneFile)).statusCode).toBe(403);
+  expect(
+    (
+      await app.inject({
+        url: `${endpoint}/files/${undoneFile}`,
+        headers: adminHeaders,
+      })
+    ).statusCode
+  ).toBe(200);
   expect((await download(privateFile)).statusCode).toBe(403);
 
   expect((await setAccess(adminHeaders, false)).statusCode).toBe(200);

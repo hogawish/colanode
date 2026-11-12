@@ -6,10 +6,14 @@ import {
   ApiErrorCode,
   extractNodeRole,
   FileStatus,
+  richTextContentSchema,
 } from '@colanode/core';
 import { database } from '@colanode/server/data/database';
 import { fetchNodeTree, mapNode } from '@colanode/server/lib/nodes';
-import { canViewSharedPage } from '@colanode/server/lib/page-shares';
+import {
+  canViewSharedPage,
+  isSharedFileBlock,
+} from '@colanode/server/lib/page-shares';
 import { storage } from '@colanode/server/lib/storage';
 
 export const fileDownloadRoute: FastifyPluginCallbackZod = (
@@ -62,12 +66,23 @@ export const fileDownloadRoute: FastifyPluginCallbackZod = (
 
       const role = extractNodeRole(nodes, request.workspace.user.id);
       const allowedBySpace = role !== null && hasNodeRole(role, 'viewer');
-      const allowedByPage =
+      let allowedByPage = false;
+      const parent = nodes.at(-2);
+      if (
         !allowedBySpace &&
-        (await canViewSharedPage(
-          nodes.slice(0, -1),
-          request.workspace.user.id
-        ));
+        parent?.type === 'page' &&
+        (await canViewSharedPage(nodes.slice(0, -1), request.workspace.user.id))
+      ) {
+        const document = await database
+          .selectFrom('documents')
+          .select('content')
+          .where('id', '=', parent.id)
+          .where('workspace_id', '=', request.workspace.id)
+          .executeTakeFirst();
+        const content = richTextContentSchema.safeParse(document?.content);
+        allowedByPage =
+          content.success && isSharedFileBlock(content.data, parent.id, fileId);
+      }
       if (!allowedBySpace && !allowedByPage) {
         return reply.code(403).send({
           code: ApiErrorCode.FileNoAccess,

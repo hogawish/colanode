@@ -17,6 +17,7 @@ import { inviteToPage } from '@colanode/server/lib/page-invitations';
 import {
   getSharedPageRole,
   isInSharedPageBody,
+  isSharedFileBlock,
   mergeSharedPageBody,
   sharedPageBody,
 } from '@colanode/server/lib/page-shares';
@@ -96,6 +97,7 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
     const pages: { id: string; name: string; avatar?: string }[] = [];
     const databases: typeof pages = [];
     const files: { id: string; name: string }[] = [];
+    const content = richTextContentSchema.safeParse(document?.content);
     for (const { id, attributes } of children) {
       if (attributes.type === 'page') {
         const { name, avatar } = attributes;
@@ -107,12 +109,13 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
       }
       if (
         attributes.type === 'file' &&
-        attributes.status === FileStatus.Ready
+        attributes.status === FileStatus.Ready &&
+        content.data &&
+        isSharedFileBlock(content.data, pageId, id)
       ) {
         files.push({ id, name: attributes.name });
       }
     }
-    const content = richTextContentSchema.safeParse(document?.content);
     const body = content.data ? sharedPageBody(content.data) : null;
     const pagePlacements = pages.flatMap(({ id }) => {
       const block = content.data?.blocks[id];

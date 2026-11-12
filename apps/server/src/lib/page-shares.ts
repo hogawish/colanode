@@ -59,11 +59,25 @@ export const isInSharedPageBody = (
   const visited = new Set<string>();
   while (parentId !== pageId) {
     const parent = body.blocks[parentId];
-    if (!parent || visited.has(parentId)) return false;
+    if (!parent || referenceTypes.has(parent.type) || visited.has(parentId))
+      return false;
     visited.add(parentId);
     parentId = parent.parentId;
   }
   return true;
+};
+
+export const isSharedFileBlock = (
+  content: RichTextContent,
+  pageId: string,
+  fileId: string
+) => {
+  const block = content.blocks[fileId];
+  return (
+    block?.id === fileId &&
+    block.type === 'file' &&
+    isInSharedPageBody(pageId, block.parentId, content)
+  );
 };
 
 export const mergeSharedPageBody = (
