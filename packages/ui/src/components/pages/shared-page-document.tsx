@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildEditorContent } from '@colanode/client/lib';
 import type { SharedPage } from '@colanode/client/mutations';
 import type { RichTextContent } from '@colanode/core';
+import { SharedDatabasesContext } from '@colanode/ui/components/pages/shared-database';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -33,15 +34,23 @@ export const SharedPageDocument = ({
   content,
   pages,
   pagePlacements,
+  databases,
+  databasePlacements,
 }: {
   pageId: string;
   content: RichTextContent | null;
   pages?: SharedPage['pages'];
   pagePlacements?: SharedPage['pagePlacements'];
+  databases?: SharedPage['databases'];
+  databasePlacements?: SharedPage['databasePlacements'];
 }) => {
   const childPages = useMemo(
     () => new Map(pages?.map((page) => [page.id, page])),
     [pages]
+  );
+  const childDatabases = useMemo(
+    () => new Map(databases?.map((database) => [database.id, database])),
+    [databases]
   );
   const document = useMemo(() => {
     const blocks = { ...content?.blocks };
@@ -50,8 +59,24 @@ export const SharedPageDocument = ({
         blocks[placement.id] = { ...placement, type: 'page' };
       }
     }
+    for (const { inline, ...placement } of databasePlacements ?? []) {
+      if (childDatabases.has(placement.id)) {
+        blocks[placement.id] = {
+          ...placement,
+          type: 'database',
+          attrs: { inline },
+        };
+      }
+    }
     return buildEditorContent(pageId, { type: 'rich_text', blocks });
-  }, [pageId, content, pagePlacements, childPages]);
+  }, [
+    pageId,
+    content,
+    pagePlacements,
+    childPages,
+    databasePlacements,
+    childDatabases,
+  ]);
   const root = useRef<HTMLDivElement>(null);
   const handle = useRef<HTMLButtonElement>(null);
   const [blockId, setBlockId] = useState<string | null>(null);
@@ -132,7 +157,11 @@ export const SharedPageDocument = ({
           }}
         >
           <SharedChildPagesContext.Provider value={childPages}>
-            <DocumentRenderer node={document} keyPrefix={pageId} />
+            <SharedDatabasesContext.Provider
+              value={{ pageId, databases: childDatabases }}
+            >
+              <DocumentRenderer node={document} keyPrefix={pageId} />
+            </SharedDatabasesContext.Provider>
           </SharedChildPagesContext.Provider>
           {hovered && (
             <DropdownMenu

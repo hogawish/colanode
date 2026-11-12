@@ -8,7 +8,7 @@ export const ViewFullscreenButton = () => {
   const database = useDatabase();
   const views = useDatabaseViews();
 
-  if (!views.inline) {
+  if (!views.inline || database.shared) {
     return null;
   }
 

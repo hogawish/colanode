@@ -15,6 +15,7 @@ interface DatabaseContext {
   isLocked: boolean;
   canCreateRecord: boolean;
   role: NodeRole;
+  shared?: boolean;
   rootId: string;
   toggleLock: () => void;
 }

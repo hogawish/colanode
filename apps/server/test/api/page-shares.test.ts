@@ -3,6 +3,7 @@ import { afterAll, expect, it } from 'vitest';
 import { IdType, generateId } from '@colanode/core';
 import { database } from '@colanode/server/data/database';
 import { createDocument } from '@colanode/server/lib/documents';
+import { createNode } from '@colanode/server/lib/nodes';
 
 import { buildTestApp } from '../helpers/app';
 import {
@@ -61,6 +62,53 @@ it('shares a single page and its children and attachments until access is remove
     name: 'Private sibling',
   });
   const blockId = generateId(IdType.Block);
+  const dbId = generateId(IdType.Database);
+  const unrelatedDb = generateId(IdType.Database);
+  const recordId = generateId(IdType.Record);
+  const viewId = generateId(IdType.DatabaseView);
+  for (const [nodeId, parentId] of [
+    [dbId, pageId],
+    [unrelatedDb, siblingId],
+  ] as const) {
+    expect(
+      await createNode({
+        ...fixture,
+        nodeId,
+        attributes: {
+          type: 'database',
+          name: 'Example database',
+          parentId,
+          fields: {},
+        },
+      })
+    ).toBeTruthy();
+  }
+  expect(
+    await createNode({
+      ...fixture,
+      nodeId: recordId,
+      attributes: {
+        type: 'record',
+        name: 'Example record',
+        parentId: dbId,
+        databaseId: dbId,
+        fields: {},
+      },
+    })
+  ).toBeTruthy();
+  expect(
+    await createNode({
+      ...fixture,
+      nodeId: viewId,
+      attributes: {
+        type: 'database_view',
+        name: 'Default',
+        parentId: dbId,
+        index: 'a0',
+        layout: 'table',
+      },
+    })
+  ).toBeTruthy();
   await createDocument({
     ...fixture,
     nodeId: pageId,
@@ -80,6 +128,19 @@ it('shares a single page and its children and attachments until access is remove
           type: 'page',
           parentId: pageId,
           index: 'a2',
+        },
+        [dbId]: {
+          id: dbId,
+          type: 'database',
+          parentId: pageId,
+          index: 'a3',
+          attrs: { inline: true },
+        },
+        [unrelatedDb]: {
+          id: unrelatedDb,
+          type: 'database',
+          parentId: pageId,
+          index: 'a4',
         },
       },
     },
@@ -136,6 +197,8 @@ it('shares a single page and its children and attachments until access is remove
     app.inject({ url: `${endpoint}/files/${id}`, headers: viewerHeaders });
   const sharedPages = (headers = viewerHeaders) =>
     app.inject({ url: `${endpoint}/page-shares/mine`, headers });
+  const readDatabase = (id: string, headers = viewerHeaders) =>
+    app.inject({ url: `${url}/databases/${id}`, headers });
 
   expect((await sharedPages()).json()).toEqual({ pages: [] });
   expect((await read(pageId)).statusCode).toBe(404);
@@ -162,12 +225,28 @@ it('shares a single page and its children and attachments until access is remove
     name: 'Shared original',
     pages: [{ id: childId, name: 'Child' }],
     pagePlacements: [{ id: childId, parentId: pageId, index: 'a1' }],
+    databasePlacements: [
+      { id: dbId, parentId: pageId, index: 'a3', inline: true },
+    ],
     content: {
       blocks: { [blockId]: { content: [{ text: 'Original body' }] } },
     },
   });
   expect(shared.json().content.blocks).not.toHaveProperty(childId);
   expect(shared.json().content.blocks).not.toHaveProperty(siblingId);
+  expect(shared.json().content.blocks).not.toHaveProperty(dbId);
+  const sharedDatabase = await readDatabase(dbId);
+  expect(sharedDatabase.statusCode).toBe(200);
+  expect(sharedDatabase.headers['cache-control']).toBe('private, no-store');
+  expect(sharedDatabase.json()).toMatchObject({
+    database: { id: dbId },
+    nodes: expect.arrayContaining([
+      expect.objectContaining({ id: recordId, name: 'Example record' }),
+      expect.objectContaining({ id: viewId, layout: 'table' }),
+    ]),
+  });
+  expect((await readDatabase(dbId, outsideHeaders)).statusCode).toBe(404);
+  expect((await readDatabase(unrelatedDb)).statusCode).toBe(404);
   expect((await read(childId)).json()).toMatchObject({
     files: [{ id: childFile, name: 'Child.txt' }],
   });
@@ -183,6 +262,7 @@ it('shares a single page and its children and attachments until access is remove
   expect((await sharedPages()).json()).toEqual({ pages: [] });
   expect((await read(pageId)).statusCode).toBe(404);
   expect((await read(childId)).statusCode).toBe(404);
+  expect((await readDatabase(dbId)).statusCode).toBe(404);
   expect((await download(childFile)).statusCode).toBe(403);
   expect((await read(pageId, adminHeaders)).statusCode).toBe(200);
 });

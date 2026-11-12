@@ -1,8 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 
+import { DatabaseRecordLink } from '@colanode/ui/components/databases/database-record-link';
 import { RecordFieldValue } from '@colanode/ui/components/records/record-field-value';
-import { Link } from '@colanode/ui/components/ui/link';
 import { useBoardView } from '@colanode/ui/contexts/board-view';
 import { useDatabaseView } from '@colanode/ui/contexts/database-view';
 import { useRecord } from '@colanode/ui/contexts/record';
@@ -147,12 +147,7 @@ export const BoardViewRecordCard = ({
           )}
         />
       )}
-      <Link
-        from="/workspace/$userId/$nodeId"
-        to="modal/$modalNodeId"
-        params={{ modalNodeId: record.id }}
-        draggable={false}
-      >
+      <DatabaseRecordLink recordId={record.id}>
         <p className={hasName ? '' : 'text-muted-foreground'}>
           {hasName ? name : 'Unnamed'}
         </p>
@@ -171,7 +166,7 @@ export const BoardViewRecordCard = ({
             })}
           </div>
         )}
-      </Link>
+      </DatabaseRecordLink>
     </div>
   );
 };

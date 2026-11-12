@@ -15,6 +15,7 @@ export const TaskListRenderer = ({
   return (
     <ul
       data-document-block={node.attrs?.id}
+      data-type="taskList"
       className={defaultClasses.taskList}
     >
       <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />

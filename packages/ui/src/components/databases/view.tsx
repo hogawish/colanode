@@ -175,6 +175,7 @@ export const View = ({ view }: ViewProps) => {
           setOpenedFieldFilters((prev) => prev.filter((id) => id !== fieldId));
         },
         createRecord: async (filters?: DatabaseViewFilterAttributes[]) => {
+          if (database.shared) return;
           const viewFilters = Object.values(view.filters ?? {}) ?? [];
           const extraFilters = filters ?? [];
 

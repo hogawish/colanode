@@ -16,12 +16,23 @@ export const TaskItemRenderer = ({
   return (
     <li
       data-document-block={node.attrs?.id}
+      data-checked={node.attrs?.checked === true}
       className={[
         defaultClasses.taskItem,
         blockBackgroundClass(node.attrs?.blockBackground),
       ].join(' ')}
     >
-      <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
+      <label>
+        <input
+          type="checkbox"
+          checked={node.attrs?.checked === true}
+          disabled
+          aria-label="Task completion"
+        />
+      </label>
+      <div>
+        <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
+      </div>
     </li>
   );
 };

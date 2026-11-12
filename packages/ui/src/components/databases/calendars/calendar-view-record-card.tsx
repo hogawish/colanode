@@ -1,5 +1,5 @@
+import { DatabaseRecordLink } from '@colanode/ui/components/databases/database-record-link';
 import { RecordFieldValue } from '@colanode/ui/components/records/record-field-value';
-import { Link } from '@colanode/ui/components/ui/link';
 import { useDatabaseView } from '@colanode/ui/contexts/database-view';
 import { useRecord } from '@colanode/ui/contexts/record';
 
@@ -11,10 +11,8 @@ export const CalendarViewRecordCard = () => {
   const hasName = name !== null && name !== '';
 
   return (
-    <Link
-      from="/workspace/$userId/$nodeId"
-      to="modal/$modalNodeId"
-      params={{ modalNodeId: record.id }}
+    <DatabaseRecordLink
+      recordId={record.id}
       key={record.id}
       className="animate-fade-in flex justify-start items-start cursor-pointer flex-col gap-1 rounded-md border p-1 pl-2 hover:bg-accent"
     >
@@ -36,6 +34,6 @@ export const CalendarViewRecordCard = () => {
           })}
         </div>
       )}
-    </Link>
+    </DatabaseRecordLink>
   );
 };

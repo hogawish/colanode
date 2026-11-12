@@ -1,13 +1,27 @@
-import type { Block, RichTextContent } from '@colanode/core';
+import type {
+  Block,
+  DatabaseNode,
+  DatabaseViewNode,
+  RecordNode,
+  RichTextContent,
+} from '@colanode/core';
 
 type NamedItem = { id: string; name: string };
+type SharedChild = NamedItem & { avatar?: string };
+type Placement = Pick<Block, 'id' | 'parentId' | 'index'>;
+export type SharedDatabase = {
+  database: DatabaseNode;
+  nodes: (DatabaseViewNode | RecordNode)[];
+};
 export type SharedPage = {
   name: string;
   content: RichTextContent | null;
   revision: string | null;
   canEdit: boolean;
-  pages: (NamedItem & { avatar?: string })[];
-  pagePlacements?: Pick<Block, 'id' | 'parentId' | 'index'>[];
+  pages: SharedChild[];
+  pagePlacements?: Placement[];
+  databases?: SharedChild[];
+  databasePlacements?: (Placement & { inline: boolean })[];
   files: NamedItem[];
 };
 export type PageShareRole = 'viewer' | 'editor';
@@ -20,6 +34,7 @@ export type PageShareMutationInput = {
   pageId: string;
 } & (
   | { action: 'read' }
+  | { action: 'read-database'; databaseId: string }
   | { action: 'list' }
   | { action: 'set'; viewerId: string; enabled: boolean }
   | ({ action: 'invite' } & PageShareInvitation)
@@ -29,6 +44,7 @@ export type PageShareMutationInput = {
 
 export type PageShareMutationOutput =
   | { action: 'read'; page: SharedPage }
+  | { action: 'read-database'; database: SharedDatabase }
   | {
       action: 'list';
       viewers: PageShareViewer[];

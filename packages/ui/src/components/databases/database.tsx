@@ -8,15 +8,21 @@ import { useWorkspace } from '@colanode/ui/contexts/workspace';
 interface DatabaseProps {
   database: LocalDatabaseNode;
   role: NodeRole;
+  shared?: boolean;
   children: ReactNode;
 }
 
-export const Database = ({ database, role, children }: DatabaseProps) => {
+export const Database = ({
+  database,
+  role,
+  shared = false,
+  children,
+}: DatabaseProps) => {
   const workspace = useWorkspace();
 
-  const canEdit = hasNodeRole(role, 'editor');
+  const canEdit = !shared && hasNodeRole(role, 'editor');
   const isLocked = database.locked ?? false;
-  const canCreateRecord = hasNodeRole(role, 'editor');
+  const canCreateRecord = canEdit;
 
   const toggleLock = useCallback(() => {
     if (!canEdit) {
@@ -41,6 +47,7 @@ export const Database = ({ database, role, children }: DatabaseProps) => {
         name: database.name,
         nameField: database.nameField,
         role,
+        shared,
         fields: Object.values(database.fields),
         canEdit: canEdit,
         isLocked,

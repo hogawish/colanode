@@ -7,6 +7,7 @@ import type {
   PageShareMutationInput,
   PageShareMutationOutput,
   PageShareViewer,
+  SharedDatabase,
   SharedPage,
 } from '@colanode/client/mutations/nodes/page-share';
 
@@ -27,6 +28,13 @@ export class PageShareMutationHandler
           return {
             action: 'read',
             page: await client.get(path).json<SharedPage>(),
+          };
+        case 'read-database':
+          return {
+            action: 'read-database',
+            database: await client
+              .get(`${path}/databases/${encodeURIComponent(input.databaseId)}`)
+              .json<SharedDatabase>(),
           };
         case 'list': {
           const { viewers, invitations } = await client

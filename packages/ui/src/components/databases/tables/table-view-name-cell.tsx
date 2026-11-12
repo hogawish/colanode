@@ -4,6 +4,7 @@ import React, { Fragment } from 'react';
 
 import { RecordNode } from '@colanode/core';
 import { Link } from '@colanode/ui/components/ui/link';
+import { useDatabase } from '@colanode/ui/contexts/database';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
 
 interface NameEditorProps {
@@ -58,7 +59,7 @@ export const TableViewNameCell = ({ record }: TableViewNameCellProps) => {
   const workspace = useWorkspace();
   const [isEditing, setIsEditing] = React.useState(false);
 
-  const canEdit = true;
+  const canEdit = !useDatabase().shared;
   const hasName = record.name && record.name.length > 0;
 
   const handleSave = (newName: string) => {
@@ -95,14 +96,16 @@ export const TableViewNameCell = ({ record }: TableViewNameCellProps) => {
               <span className="text-muted-foreground">Unnamed</span>
             )}
           </div>
-          <Link
-            from="/workspace/$userId/$nodeId"
-            to="modal/$modalNodeId"
-            params={{ modalNodeId: record.id }}
-            className="absolute right-2 flex h-6 cursor-pointer flex-row items-center gap-1 rounded-md border p-1 text-sm text-muted-foreground opacity-0 hover:bg-accent group-hover:opacity-100"
-          >
-            <SquareArrowOutUpRight className="mr-1 size-4" /> <p>Open</p>
-          </Link>
+          {canEdit && (
+            <Link
+              from="/workspace/$userId/$nodeId"
+              to="modal/$modalNodeId"
+              params={{ modalNodeId: record.id }}
+              className="absolute right-2 flex h-6 cursor-pointer flex-row items-center gap-1 rounded-md border p-1 text-sm text-muted-foreground opacity-0 hover:bg-accent group-hover:opacity-100"
+            >
+              <SquareArrowOutUpRight className="mr-1 size-4" /> <p>Open</p>
+            </Link>
+          )}
         </Fragment>
       )}
     </div>

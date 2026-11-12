@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { SharedPage } from '@colanode/client/mutations';
 import type { RichTextContent } from '@colanode/core';
 import { FileSaveButton } from '@colanode/ui/components/files/file-save-button';
+import { SharedDatabaseDialog } from '@colanode/ui/components/pages/shared-database';
 import { SharedPageDocument } from '@colanode/ui/components/pages/shared-page-document';
 import { SharedPageEditor } from '@colanode/ui/components/pages/shared-page-editor';
 import { Button } from '@colanode/ui/components/ui/button';
@@ -73,6 +74,10 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
   const childPages = editing
     ? page.pages
     : page.pages.filter(({ id }) => !placed.has(id));
+  const placedDatabases = new Set(page.databasePlacements?.map(({ id }) => id));
+  const childDatabases = (page.databases ?? []).filter(
+    ({ id }) => editing || !placedDatabases.has(id)
+  );
 
   const save = async (content: RichTextContent) => {
     const result = await window.colanode.executeMutation({
@@ -89,7 +94,9 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
   };
 
   return (
-    <article className="mx-auto w-full min-w-0 max-w-3xl space-y-6 px-6 py-10">
+    <article
+      className={`mx-auto w-full min-w-0 space-y-6 px-6 py-10 ${page.databasePlacements?.some(({ inline }) => inline) ? '' : 'max-w-3xl'}`}
+    >
       <header className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-1 text-sm text-muted-foreground">
@@ -128,7 +135,21 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
           content={page.content}
           pages={page.pages}
           pagePlacements={page.pagePlacements}
+          databases={page.databases}
+          databasePlacements={page.databasePlacements}
         />
+      )}
+      {childDatabases.length > 0 && (
+        <section>
+          <h2 className="mb-2 font-semibold">Databases</h2>
+          {childDatabases.map((database) => (
+            <SharedDatabaseDialog
+              key={database.id}
+              pageId={pageId}
+              database={database}
+            />
+          ))}
+        </section>
       )}
       {childPages.length > 0 && (
         <section>

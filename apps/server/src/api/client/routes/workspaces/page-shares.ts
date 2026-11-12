@@ -88,17 +88,22 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         .select(['id', 'attributes'])
         .where('workspace_id', '=', workspaceId)
         .where('parent_id', '=', pageId)
-        .where('type', 'in', ['page', 'file'])
+        .where('type', 'in', ['page', 'file', 'database'])
         .orderBy('created_at', 'asc')
         .execute(),
     ]);
 
     const pages: { id: string; name: string; avatar?: string }[] = [];
+    const databases: typeof pages = [];
     const files: { id: string; name: string }[] = [];
     for (const { id, attributes } of children) {
       if (attributes.type === 'page') {
         const { name, avatar } = attributes;
         pages.push({ id, name, ...(avatar ? { avatar } : {}) });
+      }
+      if (attributes.type === 'database') {
+        const { name, avatar } = attributes;
+        databases.push({ id, name, ...(avatar ? { avatar } : {}) });
       }
       if (
         attributes.type === 'file' &&
@@ -120,6 +125,24 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         return [];
       return [{ id, parentId: block.parentId, index: block.index }];
     });
+    const databasePlacements = databases.flatMap(({ id }) => {
+      const block = content.data?.blocks[id];
+      if (
+        !body ||
+        block?.type !== 'database' ||
+        block.id !== id ||
+        !isInSharedPageBody(pageId, block.parentId, body)
+      )
+        return [];
+      return [
+        {
+          id,
+          parentId: block.parentId,
+          index: block.index,
+          inline: block.attrs?.inline === true,
+        },
+      ];
+    });
     return {
       name: page.name,
       content: body,
@@ -128,9 +151,55 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         shareRole === 'editor' || Boolean(role && hasNodeRole(role, 'editor')),
       pages,
       pagePlacements,
+      databases,
+      databasePlacements,
       files,
     };
   });
+
+  instance.get(
+    '/:pageId/databases/:databaseId',
+    { schema: { params: params.extend({ databaseId: z.string() }) } },
+    async (request, reply) => {
+      reply.header('Cache-Control', 'private, no-store');
+      const { pageId, databaseId } = request.params;
+      const { id: workspaceId, user } = request.workspace;
+      const tree = await getPageTree(workspaceId, pageId);
+      const role = extractNodeRole(tree, user.id);
+      const shareRole = await getSharedPageRole(tree, user.id);
+      const unavailable = () =>
+        reply.code(404).send({
+          code: ApiErrorCode.NotFound,
+          message: 'Database is unavailable.',
+        });
+      if (!role && !shareRole) return unavailable();
+
+      const ownedNodes = database
+        .selectFrom('nodes')
+        .selectAll()
+        .where('workspace_id', '=', workspaceId);
+      const db = await ownedNodes
+        .where('id', '=', databaseId)
+        .where('parent_id', '=', pageId)
+        .where('type', '=', 'database')
+        .executeTakeFirst();
+      if (!db || db.attributes.type !== 'database') return unavailable();
+
+      const children = await ownedNodes
+        .where('parent_id', '=', databaseId)
+        .where('type', 'in', ['database_view', 'record'])
+        .execute();
+      const nodes = children
+        .filter(
+          ({ attributes }) =>
+            attributes.type === 'database_view' ||
+            (attributes.type === 'record' &&
+              attributes.databaseId === databaseId)
+        )
+        .map(mapNode);
+      return { database: mapNode(db), nodes };
+    }
+  );
 
   instance.get(
     '/:pageId/viewers',

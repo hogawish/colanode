@@ -8,7 +8,7 @@ interface WorkspaceContext {
   accountId: string;
   userId: string;
   role: WorkspaceRole;
-  collections: WorkspaceCollections;
+  collections: Pick<WorkspaceCollections, keyof WorkspaceCollections>;
 }
 
 export const WorkspaceContext = createContext<WorkspaceContext>(

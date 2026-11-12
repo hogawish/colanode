@@ -2,7 +2,7 @@ import { InView } from 'react-intersection-observer';
 
 import { DatabaseViewFilterAttributes, FieldAttributes } from '@colanode/core';
 import { Avatar } from '@colanode/ui/components/avatars/avatar';
-import { Link } from '@colanode/ui/components/ui/link';
+import { DatabaseRecordLink } from '@colanode/ui/components/databases/database-record-link';
 import { useDatabaseView } from '@colanode/ui/contexts/database-view';
 import { useRecordsQuery } from '@colanode/ui/hooks/use-records-query';
 
@@ -32,10 +32,9 @@ export const CalendarViewNoValueList = ({
       {records.map((record) => {
         const name = record.name ?? 'Unnamed';
         return (
-          <Link
-            from="/workspace/$userId"
-            to="$nodeId"
-            params={{ nodeId: record.id }}
+          <DatabaseRecordLink
+            recordId={record.id}
+            full
             key={record.id}
             className="flex flex-row items-center border rounded-md p-1 gap-2 cursor-pointer hover:bg-muted"
           >
@@ -46,7 +45,7 @@ export const CalendarViewNoValueList = ({
               size="small"
             />
             <p>{name}</p>
-          </Link>
+          </DatabaseRecordLink>
         );
       })}
       <InView

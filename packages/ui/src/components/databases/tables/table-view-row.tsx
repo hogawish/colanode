@@ -93,20 +93,22 @@ export const TableViewRow = ({
             <div className="w-8" />
           </div>
         </ContextMenuTrigger>
-        <ContextMenuContent>
-          <ContextMenuItem
-            onSelect={() => selection.openAction(record, 'edit')}
-          >
-            Edit{' '}
-            {selection.selected.has(record.id) ? 'selected rows' : 'this row'}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onSelect={() => selection.openAction(record, 'delete')}
-          >
-            Delete{' '}
-            {selection.selected.has(record.id) ? 'selected rows' : 'this row'}
-          </ContextMenuItem>
-        </ContextMenuContent>
+        {!database.shared && (
+          <ContextMenuContent>
+            <ContextMenuItem
+              onSelect={() => selection.openAction(record, 'edit')}
+            >
+              Edit{' '}
+              {selection.selected.has(record.id) ? 'selected rows' : 'this row'}
+            </ContextMenuItem>
+            <ContextMenuItem
+              onSelect={() => selection.openAction(record, 'delete')}
+            >
+              Delete{' '}
+              {selection.selected.has(record.id) ? 'selected rows' : 'this row'}
+            </ContextMenuItem>
+          </ContextMenuContent>
+        )}
       </ContextMenu>
     </RecordProvider>
   );

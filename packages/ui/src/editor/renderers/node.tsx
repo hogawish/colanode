@@ -2,6 +2,7 @@ import { JSONContent } from '@tiptap/core';
 import { ReactElement } from 'react';
 import { match } from 'ts-pattern';
 
+import { SharedDatabaseBlock } from '@colanode/ui/components/pages/shared-database';
 import { BlockquoteRenderer } from '@colanode/ui/editor/renderers/blockquote';
 import { BulletListRenderer } from '@colanode/ui/editor/renderers/bullet-list';
 import { CodeBlockRenderer } from '@colanode/ui/editor/renderers/code-block';
@@ -87,6 +88,12 @@ export const NodeRenderer = ({
         ))
         .with('file', () => <FileRenderer node={node} keyPrefix={keyPrefix} />)
         .with('page', () => <SharedPageLink id={node.attrs?.id} />)
+        .with('database', () => (
+          <SharedDatabaseBlock
+            id={node.attrs?.id}
+            inline={node.attrs?.inline}
+          />
+        ))
         .with('mention', () => (
           <MentionRenderer node={node} keyPrefix={keyPrefix} />
         ))

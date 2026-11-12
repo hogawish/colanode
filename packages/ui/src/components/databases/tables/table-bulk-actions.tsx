@@ -125,7 +125,7 @@ export const TableBulkActions = ({
     }
   };
 
-  if (records.length === 0 && !dialog) return null;
+  if (database.shared || (records.length === 0 && !dialog)) return null;
   return (
     <>
       <div
