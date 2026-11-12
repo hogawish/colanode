@@ -1,4 +1,4 @@
-import type { RichTextContent } from '@colanode/core';
+import type { Block, RichTextContent } from '@colanode/core';
 
 type NamedItem = { id: string; name: string };
 export type SharedPage = {
@@ -6,7 +6,8 @@ export type SharedPage = {
   content: RichTextContent | null;
   revision: string | null;
   canEdit: boolean;
-  pages: NamedItem[];
+  pages: (NamedItem & { avatar?: string })[];
+  pagePlacements?: Pick<Block, 'id' | 'parentId' | 'index'>[];
   files: NamedItem[];
 };
 export type PageShareRole = 'viewer' | 'editor';

@@ -69,6 +69,11 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
       </div>
     );
 
+  const placed = new Set(page.pagePlacements?.map(({ id }) => id));
+  const childPages = editing
+    ? page.pages
+    : page.pages.filter(({ id }) => !placed.has(id));
+
   const save = async (content: RichTextContent) => {
     const result = await window.colanode.executeMutation({
       type: 'page.share',
@@ -118,13 +123,18 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
           onCancel={() => setEditing(false)}
         />
       ) : (
-        <SharedPageDocument pageId={pageId} content={page.content} />
+        <SharedPageDocument
+          pageId={pageId}
+          content={page.content}
+          pages={page.pages}
+          pagePlacements={page.pagePlacements}
+        />
       )}
-      {page.pages.length > 0 && (
+      {childPages.length > 0 && (
         <section>
           <h2 className="mb-2 font-semibold">Child pages</h2>
           <ul className="space-y-2">
-            {page.pages.map((child) => (
+            {childPages.map((child) => (
               <li key={child.id}>
                 <Link
                   className="underline"

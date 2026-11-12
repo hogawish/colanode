@@ -3,6 +3,7 @@ import { GripVertical, Link2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { buildEditorContent } from '@colanode/client/lib';
+import type { SharedPage } from '@colanode/client/mutations';
 import type { RichTextContent } from '@colanode/core';
 import {
   ContextMenu,
@@ -17,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@colanode/ui/components/ui/dropdown-menu';
 import { DocumentRenderer } from '@colanode/ui/editor/renderers/document';
+import { SharedChildPagesContext } from '@colanode/ui/editor/renderers/shared-page-link';
 import { useCopyBlockLink } from '@colanode/ui/hooks/use-copy-block-link';
 import { isInBlockHandleCorridor } from '@colanode/ui/lib/block-handle';
 import { highlightBlock, readBlockHash } from '@colanode/ui/lib/block-links';
@@ -29,14 +31,27 @@ const findBlock = (target: EventTarget | null) =>
 export const SharedPageDocument = ({
   pageId,
   content,
+  pages,
+  pagePlacements,
 }: {
   pageId: string;
   content: RichTextContent | null;
+  pages?: SharedPage['pages'];
+  pagePlacements?: SharedPage['pagePlacements'];
 }) => {
-  const document = useMemo(
-    () => buildEditorContent(pageId, content),
-    [pageId, content]
+  const childPages = useMemo(
+    () => new Map(pages?.map((page) => [page.id, page])),
+    [pages]
   );
+  const document = useMemo(() => {
+    const blocks = { ...content?.blocks };
+    for (const placement of pagePlacements ?? []) {
+      if (childPages.has(placement.id)) {
+        blocks[placement.id] = { ...placement, type: 'page' };
+      }
+    }
+    return buildEditorContent(pageId, { type: 'rich_text', blocks });
+  }, [pageId, content, pagePlacements, childPages]);
   const root = useRef<HTMLDivElement>(null);
   const handle = useRef<HTMLButtonElement>(null);
   const [blockId, setBlockId] = useState<string | null>(null);
@@ -116,7 +131,9 @@ export const SharedPageDocument = ({
             if (!menuOpen) setHovered(null);
           }}
         >
-          <DocumentRenderer node={document} keyPrefix={pageId} />
+          <SharedChildPagesContext.Provider value={childPages}>
+            <DocumentRenderer node={document} keyPrefix={pageId} />
+          </SharedChildPagesContext.Provider>
           {hovered && (
             <DropdownMenu
               open={menuOpen}

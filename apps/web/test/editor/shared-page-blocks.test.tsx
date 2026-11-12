@@ -7,7 +7,17 @@ import { SharedPageDocument } from '@colanode/ui/components/pages/shared-page-do
 const route = vi.hoisted(() => ({ hash: 'block=nested' }));
 vi.mock(import('@tanstack/react-router'), async (original) => ({
   ...(await original()),
+  Link: ({
+    children,
+    params,
+  }: {
+    children: React.ReactNode;
+    params: { pageId: string };
+  }) => <a href={`/workspace/shared/${params.pageId}`}>{children}</a>,
   useRouterState: () => route.hash,
+}));
+vi.mock('@colanode/ui/contexts/app', () => ({
+  useApp: () => ({ type: 'web' }),
 }));
 vi.mock('@colanode/ui/contexts/workspace', () => ({
   useWorkspace: () => ({ workspaceId: 'workspace' }),
@@ -51,6 +61,27 @@ beforeEach(() => {
 });
 
 describe('shared page blocks', () => {
+  it('renders a shared child page as a link in its saved position inside a toggle', () => {
+    render(
+      <SharedPageDocument
+        pageId="page"
+        content={content}
+        pages={[{ id: 'childpg', name: 'Child page' }]}
+        pagePlacements={[{ id: 'childpg', parentId: 'toggle', index: 'a2' }]}
+      />
+    );
+    const child = screen.getByText('Child page');
+    const previousBlock = screen.getByText('Nested content');
+    expect(child.closest('details')).toBe(previousBlock.closest('details'));
+    expect(child.closest('a')).toHaveAttribute(
+      'href',
+      '/workspace/shared/childpg'
+    );
+    expect(previousBlock.compareDocumentPosition(child)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+  });
+
   it('renders a divider and opens the toggle before scrolling to a linked child', async () => {
     render(<SharedPageDocument pageId="page" content={content} />);
     const nested = screen.getByText('Nested content');

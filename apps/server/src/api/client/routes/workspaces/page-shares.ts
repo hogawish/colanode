@@ -16,6 +16,7 @@ import { fetchNodeTree, mapNode } from '@colanode/server/lib/nodes';
 import { inviteToPage } from '@colanode/server/lib/page-invitations';
 import {
   getSharedPageRole,
+  isInSharedPageBody,
   mergeSharedPageBody,
   sharedPageBody,
 } from '@colanode/server/lib/page-shares';
@@ -92,10 +93,13 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         .execute(),
     ]);
 
-    const pages: { id: string; name: string }[] = [];
+    const pages: { id: string; name: string; avatar?: string }[] = [];
     const files: { id: string; name: string }[] = [];
     for (const { id, attributes } of children) {
-      if (attributes.type === 'page') pages.push({ id, name: attributes.name });
+      if (attributes.type === 'page') {
+        const { name, avatar } = attributes;
+        pages.push({ id, name, ...(avatar ? { avatar } : {}) });
+      }
       if (
         attributes.type === 'file' &&
         attributes.status === FileStatus.Ready
@@ -104,13 +108,26 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
       }
     }
     const content = richTextContentSchema.safeParse(document?.content);
+    const body = content.data ? sharedPageBody(content.data) : null;
+    const pagePlacements = pages.flatMap(({ id }) => {
+      const block = content.data?.blocks[id];
+      if (
+        !body ||
+        block?.type !== 'page' ||
+        block.id !== id ||
+        !isInSharedPageBody(pageId, block.parentId, body)
+      )
+        return [];
+      return [{ id, parentId: block.parentId, index: block.index }];
+    });
     return {
       name: page.name,
-      content: content.data ? sharedPageBody(content.data) : null,
+      content: body,
       revision: document?.revision ?? null,
       canEdit:
         shareRole === 'editor' || Boolean(role && hasNodeRole(role, 'editor')),
       pages,
+      pagePlacements,
       files,
     };
   });

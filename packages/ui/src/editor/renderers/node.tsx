@@ -17,6 +17,7 @@ import { MentionRenderer } from '@colanode/ui/editor/renderers/mention';
 import { MessageRenderer } from '@colanode/ui/editor/renderers/message';
 import { OrderedListRenderer } from '@colanode/ui/editor/renderers/ordered-list';
 import { ParagraphRenderer } from '@colanode/ui/editor/renderers/paragraph';
+import { SharedPageLink } from '@colanode/ui/editor/renderers/shared-page-link';
 import { TableRenderer } from '@colanode/ui/editor/renderers/table';
 import { TableCellRenderer } from '@colanode/ui/editor/renderers/table-cell';
 import { TableHeaderRenderer } from '@colanode/ui/editor/renderers/table-header';
@@ -85,6 +86,7 @@ export const NodeRenderer = ({
           <ToggleRenderer node={node} keyPrefix={keyPrefix} />
         ))
         .with('file', () => <FileRenderer node={node} keyPrefix={keyPrefix} />)
+        .with('page', () => <SharedPageLink id={node.attrs?.id} />)
         .with('mention', () => (
           <MentionRenderer node={node} keyPrefix={keyPrefix} />
         ))

@@ -3,7 +3,7 @@ import { type NodeViewProps } from '@tiptap/core';
 import { NodeViewWrapper } from '@tiptap/react';
 
 import { LocalPageNode } from '@colanode/client/types';
-import { Avatar } from '@colanode/ui/components/avatars/avatar';
+import { PageLinkContent } from '@colanode/ui/components/pages/page-link-content';
 import { Link } from '@colanode/ui/components/ui/link';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
 
@@ -44,12 +44,7 @@ export const PageNodeView = ({ node }: NodeViewProps) => {
   return (
     <NodeViewWrapper data-id={node.attrs.id}>
       <Link from="/workspace/$userId" to="$nodeId" params={{ nodeId: id }}>
-        <div className="my-0.5 flex h-10 w-full cursor-pointer flex-row items-center gap-1 rounded-md p-1 hover:bg-accent">
-          <Avatar size="small" id={id} name={name} avatar={avatar} />
-          <div role="presentation" className="grow">
-            {name}
-          </div>
-        </div>
+        <PageLinkContent id={id} name={name} avatar={avatar} />
       </Link>
     </NodeViewWrapper>
   );

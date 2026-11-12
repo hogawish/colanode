@@ -74,6 +74,13 @@ it('shares a single page and its children and attachments until access is remove
           index: 'a0',
           content: [{ type: 'text', text: 'Original body' }],
         },
+        [childId]: { id: childId, type: 'page', parentId: pageId, index: 'a1' },
+        [siblingId]: {
+          id: siblingId,
+          type: 'page',
+          parentId: pageId,
+          index: 'a2',
+        },
       },
     },
   });
@@ -154,10 +161,13 @@ it('shares a single page and its children and attachments until access is remove
   expect(shared.json()).toMatchObject({
     name: 'Shared original',
     pages: [{ id: childId, name: 'Child' }],
+    pagePlacements: [{ id: childId, parentId: pageId, index: 'a1' }],
     content: {
       blocks: { [blockId]: { content: [{ text: 'Original body' }] } },
     },
   });
+  expect(shared.json().content.blocks).not.toHaveProperty(childId);
+  expect(shared.json().content.blocks).not.toHaveProperty(siblingId);
   expect((await read(childId)).json()).toMatchObject({
     files: [{ id: childFile, name: 'Child.txt' }],
   });

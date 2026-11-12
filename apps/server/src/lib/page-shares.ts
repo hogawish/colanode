@@ -51,6 +51,21 @@ export const sharedPageBody = (content: RichTextContent): RichTextContent => ({
   ),
 });
 
+export const isInSharedPageBody = (
+  pageId: string,
+  parentId: string,
+  body: RichTextContent
+) => {
+  const visited = new Set<string>();
+  while (parentId !== pageId) {
+    const parent = body.blocks[parentId];
+    if (!parent || visited.has(parentId)) return false;
+    visited.add(parentId);
+    parentId = parent.parentId;
+  }
+  return true;
+};
+
 export const mergeSharedPageBody = (
   pageId: string,
   original: DocumentContent | null,
