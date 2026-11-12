@@ -3,7 +3,7 @@ import { Plugin } from '@tiptap/pm/state';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 
 import { DatabaseNodeView } from '@colanode/ui/editor/views';
-import { isBoardRecordDrag } from '@colanode/ui/lib/board-drag';
+import { isDatabaseRecordDrag } from '@colanode/ui/lib/database-drag';
 
 export const DatabaseNode = Node.create({
   name: 'database',
@@ -29,9 +29,9 @@ export const DatabaseNode = Node.create({
       new Plugin({
         props: {
           handleDOMEvents: {
-            dragover: (_, event) => isBoardRecordDrag(event),
+            dragover: (_, event) => isDatabaseRecordDrag(event),
             drop: (_, event) => {
-              if (!isBoardRecordDrag(event)) return false;
+              if (!isDatabaseRecordDrag(event)) return false;
               event.preventDefault();
               return true;
             },

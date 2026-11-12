@@ -23,10 +23,8 @@ import {
 } from '@colanode/ui/contexts/database-view';
 import { RecordContext } from '@colanode/ui/contexts/record';
 import { DatabaseNode } from '@colanode/ui/editor/extensions/database';
-import {
-  boardRecordDragMime,
-  getBoardMoveValue,
-} from '@colanode/ui/lib/board-drag';
+import { getBoardMoveValue } from '@colanode/ui/lib/board-drag';
+import { databaseRecordDragMime } from '@colanode/ui/lib/database-drag';
 import { HTML5Backend } from '@colanode/ui/lib/dnd-backend';
 
 const state = vi.hoisted(() => ({
@@ -218,7 +216,7 @@ it('moves a card inside an embedded database and ignores cancelled and cross-vie
   const drag = async () => {
     const dataTransfer = transfer();
     expect(fireEvent.dragStart(card, { dataTransfer })).toBe(true);
-    expect(dataTransfer.types).toContain(boardRecordDragMime);
+    expect(dataTransfer.types).toContain(databaseRecordDragMime);
     await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
     return dataTransfer;
   };

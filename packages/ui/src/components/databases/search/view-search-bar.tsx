@@ -14,7 +14,7 @@ export const ViewSearchBar = () => {
 
   return (
     <div className="mt-3 flex flex-row items-center gap-2">
-      {view.sorts.length > 0 && (
+      {!view.manualSort && view.sorts.length > 0 && (
         <Fragment>
           <ViewSorts />
           <Separator orientation="vertical" className="mx-1 h-4" />

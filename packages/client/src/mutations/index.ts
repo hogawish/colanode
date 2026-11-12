@@ -22,6 +22,7 @@ export * from './nodes/node-interaction-seen';
 export * from './nodes/node-reaction-create';
 export * from './nodes/node-reaction-delete';
 export * from './nodes/board-card-reorder';
+export * from './nodes/table-order-update';
 export * from './servers/server-create';
 export * from './servers/server-delete';
 export * from './spaces/space-child-archive';

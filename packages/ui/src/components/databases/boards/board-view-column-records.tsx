@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { toast } from 'sonner';
 
-import { boardColumnOrderKey, orderBoardCardIds } from '@colanode/client/lib';
+import { boardColumnOrderKey, orderRecordIds } from '@colanode/client/lib';
 import { extractNodeRole } from '@colanode/core';
 import { BoardViewRecordCard } from '@colanode/ui/components/databases/boards/board-view-record-card';
 import { BoardViewRecordCreateCard } from '@colanode/ui/components/databases/boards/board-view-record-create-card';
@@ -29,7 +29,7 @@ export const BoardViewColumnRecords = () => {
   const records = useMemo(() => {
     if (!savedOrder?.length) return data;
     const byId = new Map(data.map((record) => [record.id, record]));
-    return orderBoardCardIds([...byId.keys()], savedOrder).map((id) =>
+    return orderRecordIds([...byId.keys()], savedOrder).map((id) =>
       byId.get(id)!
     );
   }, [data, savedOrder]);

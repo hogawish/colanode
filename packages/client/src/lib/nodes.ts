@@ -109,6 +109,9 @@ const operatorToSqlite = (operator: string): SqliteOperator | null => {
     case 'in':
     case 'inArray':
       return 'IN';
+    case 'not_in':
+    case 'not_inArray':
+      return 'NOT IN';
     default:
       return null;
   }

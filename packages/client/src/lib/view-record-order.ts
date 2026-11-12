@@ -1,7 +1,7 @@
 export const boardColumnOrderKey = (fieldId: string, column: string | null) =>
   JSON.stringify([fieldId, column]);
 
-export const orderBoardCardIds = (
+export const orderRecordIds = (
   ids: readonly string[],
   saved: readonly string[] = []
 ) => {
@@ -9,7 +9,7 @@ export const orderBoardCardIds = (
   return [...saved.filter((id) => remaining.delete(id)), ...remaining];
 };
 
-export const moveBoardCard = (
+export const moveRecordInOrder = (
   saved: readonly string[],
   visibleIds: readonly string[],
   recordId: string,

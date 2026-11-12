@@ -34,6 +34,7 @@ import { NodeReactionCreateMutationHandler } from './nodes/node-reaction-create'
 import { NodeReactionDeleteMutationHandler } from './nodes/node-reaction-delete';
 import { NodeUpdateMutationHandler } from './nodes/node-update';
 import { RecordFieldSetMutationHandler } from './nodes/record-field-set';
+import { TableOrderUpdateMutationHandler } from './nodes/table-order-update';
 import { ServerCreateMutationHandler } from './servers/server-create';
 import { ServerDeleteMutationHandler } from './servers/server-delete';
 import { ServerSyncMutationHandler } from './servers/server-sync';
@@ -62,6 +63,7 @@ export const buildMutationHandlerMap = (
     'node.create': new NodeCreateMutationHandler(app),
     'node.update': new NodeUpdateMutationHandler(app),
     'board.card.reorder': new BoardCardReorderMutationHandler(app),
+    'table.order.update': new TableOrderUpdateMutationHandler(app),
     'record.field.set': new RecordFieldSetMutationHandler(app),
     'chat.create': new ChatCreateMutationHandler(app),
     'message.create': new MessageCreateMutationHandler(app),

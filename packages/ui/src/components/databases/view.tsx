@@ -68,6 +68,8 @@ export const View = ({ view }: ViewProps) => {
         sorts: Object.values(view.sorts ?? {}),
         groupBy: view.groupBy,
         boardCardOrder: view.boardCardOrder,
+        manualSort: view.layout === 'table' && view.manualSort,
+        manualRowOrder: view.manualRowOrder,
         nameWidth: view.nameWidth ?? getDefaultNameWidth(),
         isSearchBarOpened: isSearchBarOpened || openedFieldFilters.length > 0,
         isSortsOpened,
@@ -114,7 +116,11 @@ export const View = ({ view }: ViewProps) => {
           }
 
           const existingSort = view.sorts?.[fieldId];
-          if (existingSort && existingSort.direction === direction) {
+          if (
+            existingSort &&
+            existingSort.direction === direction &&
+            !view.manualSort
+          ) {
             return;
           }
 
@@ -122,7 +128,11 @@ export const View = ({ view }: ViewProps) => {
             if (draft.type !== 'database_view') return;
 
             const existingSort = draft.sorts?.[fieldId];
-            if (existingSort && existingSort.direction === direction) {
+            if (
+              existingSort &&
+              existingSort.direction === direction &&
+              !draft.manualSort
+            ) {
               return;
             }
 
@@ -143,6 +153,7 @@ export const View = ({ view }: ViewProps) => {
               ...draft.sorts,
               [fieldId]: sort,
             };
+            if (draft.layout === 'table') draft.manualSort = false;
           });
         },
         openSearchBar: () => {

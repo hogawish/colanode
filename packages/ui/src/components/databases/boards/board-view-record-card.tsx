@@ -8,11 +8,14 @@ import { useDatabaseView } from '@colanode/ui/contexts/database-view';
 import { useRecord } from '@colanode/ui/contexts/record';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
 import {
-  boardRecordDragMime,
   boardRecordDragType,
   isEditableBoardGroup,
   type BoardRecordDrag,
 } from '@colanode/ui/lib/board-drag';
+import {
+  databaseRecordDragMime,
+  getRecordDropSide,
+} from '@colanode/ui/lib/database-drag';
 import { cn } from '@colanode/ui/lib/utils';
 
 export const BoardViewRecordCard = ({
@@ -67,12 +70,6 @@ export const BoardViewRecordCard = ({
     ]
   );
 
-  const getSide = (y: number | undefined) => {
-    const bounds = card.current?.getBoundingClientRect();
-    return bounds && y !== undefined && y > bounds.top + bounds.height / 2
-      ? 'after'
-      : 'before';
-  };
   const [{ isDropTarget }, drop] = useDrop<
     BoardRecordDrag,
     object,
@@ -89,13 +86,16 @@ export const BoardViewRecordCard = ({
         item.fieldId === field.id &&
         item.column === columnValue,
       hover: (_, monitor) => {
-        if (monitor.canDrop()) setSide(getSide(monitor.getClientOffset()?.y));
+        if (monitor.canDrop())
+          setSide(
+            getRecordDropSide(card.current, monitor.getClientOffset()?.y)
+          );
       },
       drop: (item, monitor) => {
         onReorder?.(
           item.recordId,
           record.id,
-          getSide(monitor.getClientOffset()?.y)
+          getRecordDropSide(card.current, monitor.getClientOffset()?.y)
         );
         return {};
       },
@@ -131,7 +131,7 @@ export const BoardViewRecordCard = ({
       role="presentation"
       key={record.id}
       onDragStart={(event) => {
-        if (canDrag) event.dataTransfer.setData(boardRecordDragMime, '1');
+        if (canDrag) event.dataTransfer.setData(databaseRecordDragMime, '1');
       }}
       className={cn(
         'relative animate-fade-in flex cursor-pointer flex-col gap-1 rounded-md border p-2 text-left hover:bg-accent',

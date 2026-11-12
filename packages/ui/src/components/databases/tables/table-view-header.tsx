@@ -8,14 +8,17 @@ import { useDatabaseView } from '@colanode/ui/contexts/database-view';
 
 export const TableViewHeader = ({
   selection,
+  showDragHandle,
 }: {
   selection?: React.ReactNode;
+  showDragHandle?: boolean;
 }) => {
   const database = useDatabase();
   const view = useDatabaseView();
 
   return (
     <div className="flex flex-row items-center gap-0.5">
+      {showDragHandle && <div className="w-7 shrink-0" />}
       <div
         className="flex justify-center"
         style={{ width: '30px', minWidth: '30px' }}

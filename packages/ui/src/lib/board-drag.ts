@@ -1,7 +1,6 @@
 import type { FieldType, FieldValue } from '@colanode/core';
 
 export const boardRecordDragType = 'board-record';
-export const boardRecordDragMime = 'application/x-colanode-board-record';
 export const boardGroupFields: FieldType[] = [
   'select',
   'multi_select',
@@ -18,10 +17,6 @@ export interface BoardRecordDrag {
   column: string | null;
   canMoveBetweenColumns?: boolean;
 }
-
-export const isBoardRecordDrag = (event: {
-  dataTransfer: DataTransfer | null;
-}) => event.dataTransfer?.types.includes(boardRecordDragMime) ?? false;
 
 export const isEditableBoardGroup = (type: FieldType) =>
   type === 'select' || type === 'multi_select' || type === 'collaborator';

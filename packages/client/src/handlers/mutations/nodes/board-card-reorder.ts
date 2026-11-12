@@ -1,9 +1,9 @@
 import { WorkspaceMutationHandlerBase } from '@colanode/client/handlers/mutations/workspace-mutation-handler-base';
+import type { MutationHandler } from '@colanode/client/lib/types';
 import {
   boardColumnOrderKey,
-  moveBoardCard,
-} from '@colanode/client/lib/board-card-order';
-import type { MutationHandler } from '@colanode/client/lib/types';
+  moveRecordInOrder,
+} from '@colanode/client/lib/view-record-order';
 import type { BoardCardReorderMutationInput } from '@colanode/client/mutations/nodes/board-card-reorder';
 import type { DatabaseViewAttributes } from '@colanode/core';
 
@@ -28,7 +28,7 @@ export class BoardCardReorderMutationHandler
           );
         }
         const current = view.boardCardOrder?.[key] ?? [];
-        const next = moveBoardCard(
+        const next = moveRecordInOrder(
           current,
           input.visibleIds,
           input.recordId,

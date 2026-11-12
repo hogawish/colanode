@@ -2,9 +2,9 @@ import { expect, it } from 'vitest';
 
 import {
   boardColumnOrderKey,
-  moveBoardCard,
-  orderBoardCardIds,
-} from '@colanode/client/lib/board-card-order';
+  moveRecordInOrder,
+  orderRecordIds,
+} from '@colanode/client/lib/view-record-order';
 import {
   databaseViewAttributesSchema,
   type DatabaseViewAttributes,
@@ -23,7 +23,7 @@ it('reopens a saved order and keeps filtered cards in their saved slots', () => 
     groupBy: 'status',
     boardCardOrder: { [key]: ['a', 'hidden', 'b', 'c'], [done]: ['d'] },
   };
-  const order = moveBoardCard(
+  const order = moveRecordInOrder(
     view.boardCardOrder![key]!,
     ['a', 'b', 'c'],
     'c',
@@ -48,7 +48,7 @@ it('reopens a saved order and keeps filtered cards in their saved slots', () => 
     legacy.getState()
   ).getObject<DatabaseViewAttributes>();
   expect(
-    orderBoardCardIds(
+    orderRecordIds(
       ['a', 'b', 'c', 'hidden', 'new'],
       reopened.boardCardOrder?.[key]
     )
