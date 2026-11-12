@@ -2,6 +2,12 @@ import type { FieldType, FieldValue } from '@colanode/core';
 
 export const boardRecordDragType = 'board-record';
 export const boardRecordDragMime = 'application/x-colanode-board-record';
+export const boardGroupFields: FieldType[] = [
+  'select',
+  'multi_select',
+  'collaborator',
+  'created_by',
+];
 
 export interface BoardRecordDrag {
   recordId: string;
@@ -10,6 +16,7 @@ export interface BoardRecordDrag {
   viewId: string;
   fieldId: string;
   column: string | null;
+  canMoveBetweenColumns?: boolean;
 }
 
 export const isBoardRecordDrag = (event: {

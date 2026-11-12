@@ -80,6 +80,11 @@ export const databaseViewAttributesSchema = z.object({
     .optional()
     .nullable(),
   groupBy: z.string().nullable().optional(),
+  // Each column order is replaced as a whole by the CRDT. Concurrent edits
+  // to a column converge on one sequence instead of merging array positions.
+  boardCardOrder: z
+    .record(z.string(), z.array(z.string()).readonly())
+    .optional(),
   nameWidth: z.number().nullable().optional(),
 });
 

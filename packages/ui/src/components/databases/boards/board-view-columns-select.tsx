@@ -12,7 +12,10 @@ import { useDatabase } from '@colanode/ui/contexts/database';
 import { useDatabaseView } from '@colanode/ui/contexts/database-view';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
 import { useLiveQuery } from '@colanode/ui/hooks/use-live-query';
-import { getSelectOptionLightColorClass } from '@colanode/ui/lib/databases';
+import {
+  getOrderedSelectOptions,
+  getSelectOptionLightColorClass,
+} from '@colanode/ui/lib/databases';
 
 interface BoardViewColumnsSelectProps {
   field: SelectFieldAttributes;
@@ -33,7 +36,7 @@ export const BoardViewColumnsSelect = ({
     userId: workspace.userId,
   });
 
-  const selectOptions = Object.values(field.options ?? {});
+  const selectOptions = getOrderedSelectOptions(field);
   const noValueFilter: DatabaseViewFilterAttributes = {
     id: '1',
     type: 'field',

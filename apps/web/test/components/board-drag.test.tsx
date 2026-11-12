@@ -1,5 +1,6 @@
 import {
   act,
+  createEvent,
   fireEvent,
   render,
   screen,
@@ -20,6 +21,7 @@ import {
   DatabaseViewContext,
   useDatabaseView,
 } from '@colanode/ui/contexts/database-view';
+import { RecordContext } from '@colanode/ui/contexts/record';
 import { DatabaseNode } from '@colanode/ui/editor/extensions/database';
 import {
   boardRecordDragMime,
@@ -29,6 +31,7 @@ import { HTML5Backend } from '@colanode/ui/lib/dnd-backend';
 
 const state = vi.hoisted(() => ({
   execute: vi.fn(),
+  reorder: vi.fn(),
   record: {
     id: 'record',
     type: 'record',
@@ -46,9 +49,6 @@ vi.mock('@colanode/ui/contexts/workspace', () => ({
 }));
 vi.mock('@colanode/ui/contexts/database', () => ({
   useDatabase: () => ({ id: 'database' }),
-}));
-vi.mock('@colanode/ui/contexts/record', () => ({
-  useRecord: () => ({ ...state.record, canEdit: true }),
 }));
 vi.mock('@colanode/ui/contexts/node', () => ({
   useNode: () => ({ node: { id: 'database', name: 'Tasks' }, role: 'editor' }),
@@ -115,7 +115,24 @@ const TestBoard = () => (
           header: null,
         }}
       >
-        <BoardViewRecordCard />
+        {[
+          state.record,
+          { ...state.record, id: 'anchor', name: 'Second task' },
+        ].map((record) => (
+          <RecordContext.Provider
+            key={record.id}
+            value={{
+              ...record,
+              fields: { status: { type: 'string', value: 'todo' } },
+              canEdit: true,
+              createdBy: 'member',
+              createdAt: '',
+              localRevision: '0',
+            }}
+          >
+            <BoardViewRecordCard onReorder={state.reorder} />
+          </RecordContext.Provider>
+        ))}
       </BoardViewContext.Provider>
       <BoardViewContext.Provider
         value={{
@@ -170,9 +187,10 @@ const transfer = () => {
 
 let editor: Editor | undefined;
 afterEach(() => {
-  editor?.destroy();
+  act(() => editor?.destroy());
   editor = undefined;
   state.execute.mockReset();
+  state.reorder.mockReset();
 });
 
 it('moves a card inside an embedded database and ignores cancelled and cross-view drags', async () => {
@@ -224,6 +242,25 @@ it('moves a card inside an embedded database and ignores cancelled and cross-vie
     value: { type: 'string', value: 'done' },
   });
   expect(editor.getJSON()).toEqual(content);
+
+  const anchor = screen.getByRole('link', {
+    name: 'Second task',
+  }).parentElement!;
+  anchor.getBoundingClientRect = () => new DOMRect(0, 10, 200, 40);
+  const reorderTransfer = await drag();
+  fireEvent.dragOver(anchor, { dataTransfer: reorderTransfer, clientY: 45 });
+  const dropEvent = createEvent.drop(anchor, { dataTransfer: reorderTransfer });
+  Object.defineProperties(dropEvent, {
+    clientX: { value: 50 },
+    clientY: { value: 45 },
+  });
+  fireEvent(anchor, dropEvent);
+  expect(state.reorder).toHaveBeenCalledExactlyOnceWith(
+    'record',
+    'anchor',
+    'after'
+  );
+  expect(state.execute).toHaveBeenCalledTimes(1);
 });
 
 it('moves the source tag while retaining other tags and ignores a stale source', () => {

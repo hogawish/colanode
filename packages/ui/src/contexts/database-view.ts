@@ -17,6 +17,7 @@ interface DatabaseViewContext {
   filters: DatabaseViewFilterAttributes[];
   sorts: DatabaseViewSortAttributes[];
   groupBy: string | null | undefined;
+  boardCardOrder?: Record<string, readonly string[]>;
   nameWidth: number;
   isSearchBarOpened: boolean;
   isSortsOpened: boolean;

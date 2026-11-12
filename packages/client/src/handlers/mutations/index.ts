@@ -22,6 +22,7 @@ import { FileCreateMutationHandler } from './files/file-create';
 import { FileDownloadMutationHandler } from './files/file-download';
 import { TempFileCreateMutationHandler } from './files/temp-file-create';
 import { MessageCreateMutationHandler } from './messages/message-create';
+import { BoardCardReorderMutationHandler } from './nodes/board-card-reorder';
 import { NodeCollaboratorCreateMutationHandler } from './nodes/node-collaborator-create';
 import { NodeCollaboratorDeleteMutationHandler } from './nodes/node-collaborator-delete';
 import { NodeCollaboratorUpdateMutationHandler } from './nodes/node-collaborator-update';
@@ -60,6 +61,7 @@ export const buildMutationHandlerMap = (
     'node.delete': new NodeDeleteMutationHandler(app),
     'node.create': new NodeCreateMutationHandler(app),
     'node.update': new NodeUpdateMutationHandler(app),
+    'board.card.reorder': new BoardCardReorderMutationHandler(app),
     'record.field.set': new RecordFieldSetMutationHandler(app),
     'chat.create': new ChatCreateMutationHandler(app),
     'message.create': new MessageCreateMutationHandler(app),

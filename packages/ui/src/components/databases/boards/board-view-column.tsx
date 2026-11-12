@@ -58,6 +58,7 @@ export const BoardViewColumn = () => {
       accept: boardRecordDragType,
       canDrop: (item) =>
         isEditableBoardGroup(field.type) &&
+        item.canMoveBetweenColumns !== false &&
         item.userId === workspace.userId &&
         item.databaseId === database.id &&
         item.viewId === view.id &&
@@ -68,7 +69,7 @@ export const BoardViewColumn = () => {
         return {};
       },
       collect: (monitor) => ({
-        isOver: monitor.isOver({ shallow: true }) && monitor.canDrop(),
+        isOver: monitor.isOver() && monitor.canDrop(),
       }),
     }),
     [workspace, database.id, view.id, field, columnValue]

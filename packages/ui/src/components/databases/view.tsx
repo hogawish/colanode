@@ -67,6 +67,7 @@ export const View = ({ view }: ViewProps) => {
         filters: Object.values(view.filters ?? {}),
         sorts: Object.values(view.sorts ?? {}),
         groupBy: view.groupBy,
+        boardCardOrder: view.boardCardOrder,
         nameWidth: view.nameWidth ?? getDefaultNameWidth(),
         isSearchBarOpened: isSearchBarOpened || openedFieldFilters.length > 0,
         isSortsOpened,
