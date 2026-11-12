@@ -80,4 +80,34 @@ describe('shared page blocks', () => {
       )
     );
   });
+
+  it('keeps the nested block selected from its left handle and copies its link', async () => {
+    render(<SharedPageDocument pageId="page" content={content} />);
+    const nested = screen.getByText('Nested content');
+    const toggle = nested.closest('details')!;
+    vi.spyOn(nested, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(116, 100, 400, 28)
+    );
+
+    fireEvent.mouseMove(nested, { clientX: 145, clientY: 110 });
+    const handle = screen.getByRole('button', { name: 'Block actions' });
+    vi.spyOn(handle, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(92, 102, 24, 24)
+    );
+    fireEvent.mouseMove(toggle, { clientX: 110, clientY: 110 });
+    fireEvent.pointerDown(handle, { button: 0, ctrlKey: false });
+
+    expect(nested).toHaveAttribute('data-shared-block-selected');
+    const menu = await screen.findByRole('menu');
+    expect(menu).toHaveTextContent('Copy link to block');
+    fireEvent.click(
+      screen.getByRole('menuitem', { name: 'Copy link to block' })
+    );
+    await waitFor(() =>
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        window.location.origin + '/workspace/page#block=nested'
+      )
+    );
+    expect(nested).not.toHaveAttribute('data-shared-block-selected');
+  });
 });
