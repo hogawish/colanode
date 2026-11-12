@@ -6,6 +6,7 @@ import { buildEditorContent } from '@colanode/client/lib';
 import type { SharedPage } from '@colanode/client/mutations';
 import type { RichTextContent } from '@colanode/core';
 import { SharedDatabasesContext } from '@colanode/ui/components/pages/shared-database';
+import { SharedFilesContext } from '@colanode/ui/components/pages/shared-file';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -36,6 +37,8 @@ export const SharedPageDocument = ({
   pagePlacements,
   databases,
   databasePlacements,
+  files,
+  filePlacements,
 }: {
   pageId: string;
   content: RichTextContent | null;
@@ -43,6 +46,8 @@ export const SharedPageDocument = ({
   pagePlacements?: SharedPage['pagePlacements'];
   databases?: SharedPage['databases'];
   databasePlacements?: SharedPage['databasePlacements'];
+  files?: SharedPage['files'];
+  filePlacements?: SharedPage['filePlacements'];
 }) => {
   const childPages = useMemo(
     () => new Map(pages?.map((page) => [page.id, page])),
@@ -51,6 +56,10 @@ export const SharedPageDocument = ({
   const childDatabases = useMemo(
     () => new Map(databases?.map((database) => [database.id, database])),
     [databases]
+  );
+  const childFiles = useMemo(
+    () => new Map(files?.map((file) => [file.id, file])),
+    [files]
   );
   const document = useMemo(() => {
     const blocks = { ...content?.blocks };
@@ -68,6 +77,11 @@ export const SharedPageDocument = ({
         };
       }
     }
+    for (const placement of filePlacements ?? []) {
+      if (childFiles.has(placement.id)) {
+        blocks[placement.id] = { ...placement, type: 'file' };
+      }
+    }
     return buildEditorContent(pageId, { type: 'rich_text', blocks });
   }, [
     pageId,
@@ -76,6 +90,8 @@ export const SharedPageDocument = ({
     childPages,
     databasePlacements,
     childDatabases,
+    filePlacements,
+    childFiles,
   ]);
   const root = useRef<HTMLDivElement>(null);
   const handle = useRef<HTMLButtonElement>(null);
@@ -160,7 +176,9 @@ export const SharedPageDocument = ({
             <SharedDatabasesContext.Provider
               value={{ pageId, databases: childDatabases }}
             >
-              <DocumentRenderer node={document} keyPrefix={pageId} />
+              <SharedFilesContext.Provider value={childFiles}>
+                <DocumentRenderer node={document} keyPrefix={pageId} />
+              </SharedFilesContext.Provider>
             </SharedDatabasesContext.Provider>
           </SharedChildPagesContext.Provider>
           {hovered && (

@@ -5,7 +5,7 @@ import { useWorkspace } from '@colanode/ui/contexts/workspace';
 import {
   highlightBlock,
   readBlockHash,
-  readLocalBlockLink,
+  readLocalDocumentLink,
 } from '@colanode/ui/lib/block-links';
 
 export const useFollowBlockLink = () => {
@@ -32,7 +32,7 @@ export const useFollowBlockLink = () => {
     ) {
       return;
     }
-    const link = readLocalBlockLink(anchor.href, window.location.href);
+    const link = readLocalDocumentLink(anchor.href, window.location.href);
     if (!link) return;
 
     event.preventDefault();
@@ -63,7 +63,7 @@ export const useFollowBlockLink = () => {
       if (block) highlightBlock(block);
       return;
     }
-    const options = { hash, resetScroll: false, hashScrollIntoView: false };
+    const options = { hash, resetScroll: !hash, hashScrollIntoView: false };
 
     if (shared) {
       const to = '/$workspaceId/shared/$pageId';

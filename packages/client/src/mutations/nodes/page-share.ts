@@ -2,6 +2,7 @@ import type {
   Block,
   DatabaseNode,
   DatabaseViewNode,
+  FileSubtype,
   RecordNode,
   RichTextContent,
 } from '@colanode/core';
@@ -13,6 +14,10 @@ export type SharedDatabase = {
   database: DatabaseNode;
   nodes: (DatabaseViewNode | RecordNode)[];
 };
+export type SharedFile = NamedItem & {
+  mimeType?: string;
+  subtype?: FileSubtype;
+};
 export type SharedPage = {
   name: string;
   content: RichTextContent | null;
@@ -22,7 +27,8 @@ export type SharedPage = {
   pagePlacements?: Placement[];
   databases?: SharedChild[];
   databasePlacements?: (Placement & { inline: boolean })[];
-  files: NamedItem[];
+  files: SharedFile[];
+  filePlacements?: Placement[];
 };
 export type PageShareRole = 'viewer' | 'editor';
 export type PageShareInvitation = { email: string; role: PageShareRole };

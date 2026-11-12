@@ -118,6 +118,34 @@ describe('stable block links', () => {
     );
   });
 
+  it('copies editable block content with no IDs carried into the paste', async () => {
+    const editor = mountHandle();
+    const write = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { write },
+    });
+    vi.stubGlobal(
+      'ClipboardItem',
+      class {
+        constructor(readonly formats: Record<string, Blob>) {}
+      }
+    );
+    const serializer = vi.spyOn(editor.view, 'serializeForClipboard');
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Block actions' })
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Copy block' })
+    );
+    await waitFor(() => expect(write).toHaveBeenCalledOnce());
+    expect(serializer.mock.results[0]?.value.dom.textContent).toBe('second');
+    expect(
+      serializer.mock.results[0]?.value.dom.querySelector('[data-id]')
+    ).toBeNull();
+    expect(findBlockElement(editor, 'second')).not.toBeNull();
+  });
+
   it('keeps a toggle child targeted while moving sideways to its handle, then can target the parent header', async () => {
     const Toggle = TiptapNode.create({
       name: 'toggle',

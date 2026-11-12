@@ -80,4 +80,16 @@ describe('in-tab block navigation', () => {
     expect(fireEvent.click(screen.getByText('Jump'))).toBe(true);
     expect(state.navigate).not.toHaveBeenCalled();
   });
+
+  it('opens a pasted page reference in the current tab', () => {
+    render(<Document href="/testwc/shared/otherpg" />);
+    expect(fireEvent.click(screen.getByText('Jump'))).toBe(false);
+    expect(state.navigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: '/workspace/$userId/shared/$pageId',
+        params: { userId: 'viewerus', pageId: 'otherpg' },
+        resetScroll: true,
+      })
+    );
+  });
 });

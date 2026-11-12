@@ -2,7 +2,7 @@ import { useFloating, shift, offset, FloatingPortal } from '@floating-ui/react';
 import { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { NodeSelection, TextSelection } from '@tiptap/pm/state';
 import { Editor } from '@tiptap/react';
-import { GripVertical, Link2, Plus } from 'lucide-react';
+import { Copy, GripVertical, Link2, Plus } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 
 import {
@@ -10,6 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@colanode/ui/components/ui/popover';
+import { copyBlock } from '@colanode/ui/editor/copy-block';
 import { BlockFormatControls } from '@colanode/ui/editor/menus/block-format-controls';
 import { useCopyBlockLink } from '@colanode/ui/hooks/use-copy-block-link';
 import { isInBlockHandleCorridor } from '@colanode/ui/lib/block-handle';
@@ -342,6 +343,19 @@ export const ActionMenu = ({ editor, documentId }: ActionMenuProps) => {
               blockId={selectedBlockId}
               onApplied={() => setMenuOpen(false)}
             />
+            <button
+              type="button"
+              role="menuitem"
+              disabled={!selectedBlockId}
+              className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent focus:bg-accent disabled:opacity-50"
+              onClick={() => {
+                void copyBlock(editor, selectedBlockId);
+                setMenuOpen(false);
+              }}
+            >
+              <Copy className="size-4" />
+              Copy block
+            </button>
             <button
               type="button"
               role="menuitem"

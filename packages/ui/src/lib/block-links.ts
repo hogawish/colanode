@@ -24,16 +24,17 @@ export const readBlockHash = (hash: string): string | null => {
   }
 };
 
-export const readLocalBlockLink = (href: string, base: string) => {
+export const readLocalDocumentLink = (href: string, base: string) => {
   try {
     const url = new URL(href, base);
-    if (url.origin !== new URL(base).origin || !readBlockHash(url.hash)) {
+    if (url.origin !== new URL(base).origin) {
       return null;
     }
     const path = /^\/([a-z0-9]+wc)\/(?:(shared)\/)?([a-z0-9]+)\/?$/.exec(
       url.pathname
     );
-    if (!path) return null;
+    if (!path || (url.hash ? !readBlockHash(url.hash) : path[2] !== 'shared'))
+      return null;
     return {
       workspaceId: path[1]!,
       documentId: path[3]!,

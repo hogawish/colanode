@@ -19,6 +19,13 @@ vi.mock(import('@tanstack/react-router'), async (original) => ({
 vi.mock('@colanode/ui/contexts/app', () => ({
   useApp: () => ({ type: 'web' }),
 }));
+vi.mock('react-intersection-observer', () => ({
+  useInView: () => ({ ref: () => {}, inView: true }),
+  InView: () => null,
+}));
+vi.mock('@colanode/ui/components/files/file-save-button', () => ({
+  FileSaveButton: () => <button type="button">Save</button>,
+}));
 vi.mock('@colanode/ui/contexts/workspace', () => ({
   useWorkspace: () => ({ workspaceId: 'workspace' }),
 }));
@@ -61,6 +68,49 @@ beforeEach(() => {
 });
 
 describe('shared page blocks', () => {
+  it('shows a shared image inline using its authenticated file request', async () => {
+    const query = vi
+      .fn()
+      .mockResolvedValue({
+        url: '/test-file',
+        headers: { authorization: 'test' },
+      });
+    const fetchFile = vi
+      .fn()
+      .mockResolvedValue({ ok: true, blob: () => Promise.resolve(new Blob()) });
+    vi.stubGlobal('colanode', { executeQuery: query });
+    vi.stubGlobal('fetch', fetchFile);
+    vi.stubGlobal(
+      'URL',
+      class extends URL {
+        static createObjectURL() {
+          return 'blob:preview';
+        }
+        static revokeObjectURL() {}
+      }
+    );
+    render(
+      <SharedPageDocument
+        pageId="page"
+        content={content}
+        files={[{ id: 'imagefi', name: 'Example image', subtype: 'image' }]}
+        filePlacements={[{ id: 'imagefi', parentId: 'toggle', index: 'a2' }]}
+      />
+    );
+    const image = await screen.findByRole('img', { name: 'Example image' });
+    expect(image.closest('details')).toBe(
+      screen.getByText('Nested content').closest('details')
+    );
+    expect(image).toHaveAttribute('src', 'blob:preview');
+    expect(fetchFile).toHaveBeenCalledWith(
+      '/test-file',
+      expect.objectContaining({
+        headers: { authorization: 'test' },
+        cache: 'no-store',
+      })
+    );
+  });
+
   it('renders a shared child page as a link in its saved position inside a toggle', () => {
     render(
       <SharedPageDocument

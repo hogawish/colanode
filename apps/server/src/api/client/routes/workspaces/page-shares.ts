@@ -5,6 +5,7 @@ import {
   ApiErrorCode,
   extractNodeRole,
   FileStatus,
+  type FileSubtype,
   hasNodeRole,
   hasWorkspaceRole,
   richTextContentSchema,
@@ -96,7 +97,12 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
 
     const pages: { id: string; name: string; avatar?: string }[] = [];
     const databases: typeof pages = [];
-    const files: { id: string; name: string }[] = [];
+    const files: {
+      id: string;
+      name: string;
+      mimeType: string;
+      subtype: FileSubtype;
+    }[] = [];
     const content = richTextContentSchema.safeParse(document?.content);
     for (const { id, attributes } of children) {
       if (attributes.type === 'page') {
@@ -113,7 +119,8 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         content.data &&
         isSharedFileBlock(content.data, pageId, id)
       ) {
-        files.push({ id, name: attributes.name });
+        const { name, mimeType, subtype } = attributes;
+        files.push({ id, name, mimeType, subtype });
       }
     }
     const body = content.data ? sharedPageBody(content.data) : null;
@@ -146,6 +153,12 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         },
       ];
     });
+    const filePlacements = files.flatMap(({ id }) => {
+      const block = content.data?.blocks[id];
+      return block
+        ? [{ id, parentId: block.parentId, index: block.index }]
+        : [];
+    });
     return {
       name: page.name,
       content: body,
@@ -156,6 +169,7 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
       pagePlacements,
       databases,
       databasePlacements,
+      filePlacements,
       files,
     };
   });

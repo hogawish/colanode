@@ -265,6 +265,7 @@ it('shares a single page and its children and attachments until access is remove
   expect((await readDatabase(unrelatedDb)).statusCode).toBe(404);
   expect((await read(childId)).json()).toMatchObject({
     files: [{ id: childFile, name: 'Child.txt' }],
+    filePlacements: [{ id: childFile, parentId: childId, index: 'a0' }],
   });
   expect((await read(pageId, outsideHeaders)).statusCode).toBe(404);
   expect((await read(siblingId)).statusCode).toBe(404);

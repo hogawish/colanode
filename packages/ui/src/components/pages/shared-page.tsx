@@ -78,6 +78,10 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
   const childDatabases = (page.databases ?? []).filter(
     ({ id }) => editing || !placedDatabases.has(id)
   );
+  const placedFiles = new Set(page.filePlacements?.map(({ id }) => id));
+  const attachments = page.files.filter(
+    ({ id }) => editing || !placedFiles.has(id)
+  );
 
   const save = async (content: RichTextContent) => {
     const result = await window.colanode.executeMutation({
@@ -137,6 +141,8 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
           pagePlacements={page.pagePlacements}
           databases={page.databases}
           databasePlacements={page.databasePlacements}
+          files={page.files}
+          filePlacements={page.filePlacements}
         />
       )}
       {childDatabases.length > 0 && (
@@ -173,11 +179,11 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
           </ul>
         </section>
       )}
-      {page.files.length > 0 && (
+      {attachments.length > 0 && (
         <section>
           <h2 className="mb-2 font-semibold">Attachments</h2>
           <ul className="space-y-2">
-            {page.files.map((file) => (
+            {attachments.map((file) => (
               <li
                 key={file.id}
                 className="flex items-center justify-between gap-3"
