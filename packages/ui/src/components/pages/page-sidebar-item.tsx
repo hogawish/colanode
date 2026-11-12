@@ -15,6 +15,7 @@ import {
   CollapsibleTrigger,
 } from '@colanode/ui/components/ui/collapsible';
 import { Link } from '@colanode/ui/components/ui/link';
+import { useSidebarVisibility } from '@colanode/ui/contexts/sidebar-visibility';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
 import { sortSpaceChildren } from '@colanode/ui/lib/spaces';
 import { cn } from '@colanode/ui/lib/utils';
@@ -25,6 +26,7 @@ interface PageSidebarItemProps {
 
 export const PageSidebarItem = ({ page }: PageSidebarItemProps) => {
   const workspace = useWorkspace();
+  const visibility = useSidebarVisibility();
   const [open, setOpen] = useState(false);
 
   const childrenQuery = useLiveQuery(
@@ -47,13 +49,16 @@ export const PageSidebarItem = ({ page }: PageSidebarItemProps) => {
         .findOne(),
     [workspace.userId, page.rootId]
   );
-  const children =
+  const orderedChildren =
     spaceQuery.data?.type === 'space'
       ? sortSpaceChildren(
           spaceQuery.data as LocalSpaceNode,
           (childrenQuery.data ?? []) as LocalNode[]
         )
       : ((childrenQuery.data ?? []) as LocalNode[]);
+  const children = orderedChildren.filter(
+    (child) => visibility?.isVisible(child.id) ?? true
+  );
   const hasChildren = children.length > 0;
 
   return (

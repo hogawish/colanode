@@ -1,6 +1,14 @@
 // Modified: discoverable page actions and persistent sibling ordering in the sidebar.
 import { eq, useLiveQuery } from '@tanstack/react-db';
-import { ArrowDown, ArrowUp, GripVertical, Pencil, Trash2 } from 'lucide-react';
+import {
+  Archive,
+  ArrowDown,
+  ArrowUp,
+  EyeOff,
+  GripVertical,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -15,6 +23,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@colanode/ui/components/ui/context-menu';
+import { useSidebarVisibility } from '@colanode/ui/contexts/sidebar-visibility';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
 import { sortSpaceChildren } from '@colanode/ui/lib/spaces';
 
@@ -28,6 +37,7 @@ export const SidebarNodeActions = ({
   children: ReactNode;
 }) => {
   const workspace = useWorkspace();
+  const visibility = useSidebarVisibility();
   const name = 'name' in node ? node.name : 'item';
   const [over, setOver] = useState<'before' | 'after' | null>(null);
   const [rename, setRename] = useState(false);
@@ -57,7 +67,9 @@ export const SidebarNodeActions = ({
   const canEdit = !!role && hasNodeRole(role, 'editor');
   const canDelete = !!role && hasNodeRole(role, 'admin');
   const siblings = space
-    ? sortSpaceChildren(space, siblingsQuery.data ?? [])
+    ? sortSpaceChildren(space, siblingsQuery.data ?? []).filter(
+        (sibling) => visibility?.isVisible(sibling.id) ?? true
+      )
     : [];
   const index = siblings.findIndex((sibling) => sibling.id === node.id);
 
@@ -191,6 +203,27 @@ export const SidebarNodeActions = ({
             <ArrowDown className="size-4" />
             Move down
           </ContextMenuItem>
+          {visibility && (
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                disabled={busy}
+                onSelect={() => void visibility.setHidden(node.id, true)}
+              >
+                <EyeOff className="size-4" />
+                Hide from my sidebar
+              </ContextMenuItem>
+              {visibility.canArchive && (
+                <ContextMenuItem
+                  disabled={busy}
+                  onSelect={() => void visibility.setArchived(node.id, true)}
+                >
+                  <Archive className="size-4" />
+                  Archive in this space
+                </ContextMenuItem>
+              )}
+            </>
+          )}
           {node.type === 'page' && (
             <>
               <ContextMenuSeparator />

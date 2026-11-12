@@ -23,6 +23,7 @@ export * from './nodes/node-reaction-create';
 export * from './nodes/node-reaction-delete';
 export * from './servers/server-create';
 export * from './servers/server-delete';
+export * from './spaces/space-child-archive';
 export * from './spaces/space-child-reorder';
 export * from './workspaces/workspace-create';
 export * from './workspaces/workspace-delete';

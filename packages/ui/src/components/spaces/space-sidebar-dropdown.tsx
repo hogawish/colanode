@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router';
 import {
+  Archive,
   Database,
   Ellipsis,
   Folder,
@@ -15,6 +16,7 @@ import { ChannelCreateDialog } from '@colanode/ui/components/channels/channel-cr
 import { DatabaseCreateDialog } from '@colanode/ui/components/databases/database-create-dialog';
 import { FolderCreateDialog } from '@colanode/ui/components/folders/folder-create-dialog';
 import { PageCreateDialog } from '@colanode/ui/components/pages/page-create-dialog';
+import { SpaceSidebarVisibilityDialog } from '@colanode/ui/components/spaces/space-sidebar-visibility-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +37,7 @@ export const SpaceSidebarDropdown = ({ space }: SpaceSidebarDropdownProps) => {
   const [openCreateChannel, setOpenCreateChannel] = useState(false);
   const [openCreateDatabase, setOpenCreateDatabase] = useState(false);
   const [openCreateFolder, setOpenCreateFolder] = useState(false);
+  const [openVisibility, setOpenVisibility] = useState(false);
 
   return (
     <Fragment>
@@ -77,6 +80,13 @@ export const SpaceSidebarDropdown = ({ space }: SpaceSidebarDropdownProps) => {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
+            onSelect={() => setOpenVisibility(true)}
+            className="flex flex-row items-center gap-2 cursor-pointer"
+          >
+            <Archive className="size-4" />
+            <span>Hidden and archived</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
             onClick={() =>
               navigate({
                 to: '$nodeId',
@@ -102,6 +112,11 @@ export const SpaceSidebarDropdown = ({ space }: SpaceSidebarDropdownProps) => {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      {openVisibility && (
+        <SpaceSidebarVisibilityDialog
+          onClose={() => setOpenVisibility(false)}
+        />
+      )}
       {openCreateChannel && (
         <ChannelCreateDialog
           spaceId={space.id}

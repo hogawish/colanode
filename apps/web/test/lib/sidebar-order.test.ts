@@ -1,7 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod/v4';
 
+import { SpaceChildArchiveMutationHandler } from '@colanode/client/handlers/mutations/spaces/space-child-archive';
 import { SpaceChildReorderMutationHandler } from '@colanode/client/handlers/mutations/spaces/space-child-reorder';
 import type { LocalNode, LocalSpaceNode } from '@colanode/client/types';
+import type { SpaceAttributes } from '@colanode/core';
+import {
+  spaceAttributesSchema,
+  spaceChildAttributesSchema,
+} from '@colanode/core';
+import { YDoc } from '@colanode/crdt';
 import { sortSpaceChildren } from '@colanode/ui/lib/spaces';
 
 const fixture = vi.hoisted(() => ({
@@ -78,5 +86,93 @@ describe('sidebar sibling ordering', () => {
       })
     ).rejects.toThrow('same parent');
     expect(fixture.workspace.nodes.updateNode).not.toHaveBeenCalled();
+  });
+
+  it('archives and restores one item while the previous schema can still reorder it', async () => {
+    const previousSchema = spaceAttributesSchema.extend({
+      children: z
+        .record(z.string(), spaceChildAttributesSchema.omit({ archived: true }))
+        .optional(),
+    });
+    const document = new YDoc();
+    document.update(previousSchema, {
+      type: 'space',
+      name: 'Work',
+      visibility: 'public',
+      collaborators: { human: 'admin' },
+      children: { a: { id: 'a', index: 'Zz' }, b: { id: 'b', index: 'a1' } },
+    });
+    const clauses: unknown[][] = [];
+    const query = {
+      where: (...args: unknown[]) => {
+        clauses.push(args);
+        return query;
+      },
+      select: () => query,
+      executeTakeFirst: async () => ({ id: 'a' }),
+      orderBy: () => query,
+      selectAll: () => query,
+      execute: async () => [{ id: 'a' }, { id: 'b' }],
+    };
+    let schema: z.ZodType = spaceAttributesSchema;
+    fixture.workspace = {
+      database: { selectFrom: () => query },
+      nodes: {
+        updateNode: vi.fn(
+          async (
+            _id: string,
+            update: (attributes: SpaceAttributes) => SpaceAttributes
+          ) => {
+            document.update(
+              schema,
+              update(document.getObject<SpaceAttributes>())
+            );
+            return 'success';
+          }
+        ),
+      },
+    };
+    const archive = new SpaceChildArchiveMutationHandler(
+      {} as ConstructorParameters<typeof SpaceChildArchiveMutationHandler>[0]
+    );
+    const reorder = new SpaceChildReorderMutationHandler(
+      {} as ConstructorParameters<typeof SpaceChildReorderMutationHandler>[0]
+    );
+    const input = {
+      type: 'space.child.archive',
+      userId: 'human',
+      spaceId: 'space',
+      childId: 'a',
+      archived: true,
+    } as const;
+    await archive.handleMutation(input);
+    expect(clauses).toContainEqual(['root_id', '=', 'space']);
+    expect(document.getObject<SpaceAttributes>().children?.a).toEqual({
+      id: 'a',
+      index: 'Zz',
+      archived: true,
+    });
+
+    schema = previousSchema;
+    await reorder.handleMutation({
+      type: 'space.child.reorder',
+      userId: 'human',
+      spaceId: 'space',
+      childId: 'a',
+      after: 'b',
+    });
+    const reordered = document.getObject<SpaceAttributes>();
+    expect(reordered.children?.a?.archived).toBe(true);
+    expect(reordered.children?.a?.index).not.toBe('Zz');
+
+    schema = spaceAttributesSchema;
+    await archive.handleMutation({ ...input, archived: false });
+    expect(document.getObject<SpaceAttributes>()).toEqual({
+      ...reordered,
+      children: {
+        ...reordered.children,
+        a: { id: 'a', index: reordered.children?.a?.index },
+      },
+    });
   });
 });
