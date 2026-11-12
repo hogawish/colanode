@@ -9,6 +9,7 @@ import {
 } from '@colanode/core';
 import { database } from '@colanode/server/data/database';
 import { fetchNodeTree, mapNode } from '@colanode/server/lib/nodes';
+import { canViewSharedPage } from '@colanode/server/lib/page-shares';
 import { storage } from '@colanode/server/lib/storage';
 
 export const fileDownloadRoute: FastifyPluginCallbackZod = (
@@ -29,7 +30,7 @@ export const fileDownloadRoute: FastifyPluginCallbackZod = (
       const fileId = request.params.fileId;
 
       const tree = await fetchNodeTree(fileId);
-      if (tree.length === 0) {
+      if (tree.at(-1)?.workspace_id !== request.workspace.id) {
         return reply.code(400).send({
           code: ApiErrorCode.FileNotFound,
           message: 'File not found.',
@@ -60,7 +61,14 @@ export const fileDownloadRoute: FastifyPluginCallbackZod = (
       }
 
       const role = extractNodeRole(nodes, request.workspace.user.id);
-      if (role === null || !hasNodeRole(role, 'viewer')) {
+      const allowedBySpace = role !== null && hasNodeRole(role, 'viewer');
+      const allowedByPage =
+        !allowedBySpace &&
+        (await canViewSharedPage(
+          nodes.slice(0, -1),
+          request.workspace.user.id
+        ));
+      if (!allowedBySpace && !allowedByPage) {
         return reply.code(403).send({
           code: ApiErrorCode.FileNoAccess,
           message: 'You do not have access to this file.',
@@ -87,6 +95,7 @@ export const fileDownloadRoute: FastifyPluginCallbackZod = (
           reply.header('Content-Type', contentType);
         }
 
+        if (allowedByPage) reply.header('Cache-Control', 'private, no-store');
         return reply.send(stream);
       } catch {
         return reply.code(404).send({

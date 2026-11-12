@@ -1,10 +1,18 @@
-import { Copy, Image, LetterText, Settings, Trash2 } from 'lucide-react';
+import {
+  Copy,
+  Image,
+  LetterText,
+  Settings,
+  Share2,
+  Trash2,
+} from 'lucide-react';
 import { Fragment, useState } from 'react';
 
 import { LocalPageNode } from '@colanode/client/types';
 import { NodeRole, hasNodeRole } from '@colanode/core';
 import { NodeCollaboratorAudit } from '@colanode/ui/components/collaborators/node-collaborator-audit';
 import { NodeDeleteDialog } from '@colanode/ui/components/nodes/node-delete-dialog';
+import { PageShareDialog } from '@colanode/ui/components/pages/page-share-dialog';
 import { PageUpdateDialog } from '@colanode/ui/components/pages/page-update-dialog';
 import {
   DropdownMenu,
@@ -14,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@colanode/ui/components/ui/dropdown-menu';
+import { useApp } from '@colanode/ui/contexts/app';
 
 interface PageSettingsProps {
   page: LocalPageNode;
@@ -23,6 +32,10 @@ interface PageSettingsProps {
 export const PageSettings = ({ page, role }: PageSettingsProps) => {
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteModal] = useState(false);
+
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const app = useApp();
+  const canShare = app.type === 'web' && hasNodeRole(role, 'admin');
 
   const canEdit = hasNodeRole(role, 'editor');
   const canDelete = hasNodeRole(role, 'editor');
@@ -35,6 +48,11 @@ export const PageSettings = ({ page, role }: PageSettingsProps) => {
         </DropdownMenuTrigger>
         <DropdownMenuContent side="bottom" className="mr-2 w-80">
           <DropdownMenuLabel>{page.name}</DropdownMenuLabel>
+          {canShare && (
+            <DropdownMenuItem onSelect={() => setShowShareDialog(true)}>
+              <Share2 className="size-4" /> Share page
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="flex items-center gap-2 cursor-pointer"
@@ -107,6 +125,12 @@ export const PageSettings = ({ page, role }: PageSettingsProps) => {
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+      {showShareDialog && (
+        <PageShareDialog
+          pageId={page.id}
+          onClose={() => setShowShareDialog(false)}
+        />
+      )}
       <NodeDeleteDialog
         id={page.id}
         title="Are you sure you want delete this page?"

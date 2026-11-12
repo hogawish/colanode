@@ -43,6 +43,10 @@ import {
   workspaceSettingsRoute,
 } from '@colanode/ui/routes/workspace/settings';
 import {
+  sharedPageMaskRoute,
+  sharedPageRoute,
+} from '@colanode/ui/routes/workspace/shared-page';
+import {
   workspaceUploadsMaskRoute,
   workspaceUploadsRoute,
 } from '@colanode/ui/routes/workspace/uploads';
@@ -59,6 +63,7 @@ export const routeTree = rootRoute.addChildren([
     workspaceRedirectRoute,
     workspaceHomeRoute,
     nodeRoute.addChildren([modalNodeRoute]),
+    sharedPageRoute,
     workspaceDownloadsRoute,
     workspaceUploadsRoute,
     workspaceUsersRoute,
@@ -72,6 +77,7 @@ export const routeTree = rootRoute.addChildren([
     workspaceRedirectMaskRoute,
     workspaceHomeMaskRoute,
     nodeMaskRoute,
+    sharedPageMaskRoute,
     workspaceSettingsMaskRoute,
     workspaceUsersMaskRoute,
     workspaceUploadsMaskRoute,

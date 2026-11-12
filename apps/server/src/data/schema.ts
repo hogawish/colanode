@@ -306,6 +306,11 @@ interface CounterTable {
   updated_at: ColumnType<Date | null, Date | null, Date | null>;
 }
 
+interface PageShareTable {
+  page_id: ColumnType<string, string, never>;
+  viewer_id: ColumnType<string, string, never>;
+}
+
 export interface DatabaseSchema {
   accounts: AccountTable;
   devices: DeviceTable;
@@ -318,6 +323,7 @@ export interface DatabaseSchema {
   node_paths: NodePathTable;
   node_tombstones: NodeTombstoneTable;
   collaborations: CollaborationTable;
+  page_shares: PageShareTable;
   documents: DocumentTable;
   document_updates: DocumentUpdateTable;
   uploads: UploadTable;

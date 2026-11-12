@@ -11,10 +11,14 @@ import { useWorkspace } from '@colanode/ui/contexts/workspace';
 import { useMutation } from '@colanode/ui/hooks/use-mutation';
 
 interface FileSaveButtonProps {
-  file: LocalFileNode;
+  file: Pick<LocalFileNode, 'id' | 'name'>;
+  remoteOnly?: boolean;
 }
 
-export const FileSaveButton = ({ file }: FileSaveButtonProps) => {
+export const FileSaveButton = ({
+  file,
+  remoteOnly = false,
+}: FileSaveButtonProps) => {
   const app = useApp();
   const workspace = useWorkspace();
   const mutation = useMutation();
@@ -52,11 +56,13 @@ export const FileSaveButton = ({ file }: FileSaveButtonProps) => {
     setIsSaving(true);
 
     try {
-      const localFile = await window.colanode.executeQuery({
-        type: 'local.file.get',
-        fileId: file.id,
-        userId: workspace.userId,
-      });
+      const localFile = remoteOnly
+        ? null
+        : await window.colanode.executeQuery({
+            type: 'local.file.get',
+            fileId: file.id,
+            userId: workspace.userId,
+          });
 
       if (localFile && localFile.url) {
         // the file is already downloaded locally, so we can just trigger a download
@@ -85,6 +91,7 @@ export const FileSaveButton = ({ file }: FileSaveButtonProps) => {
       const response = await fetch(request.url, {
         method: 'GET',
         headers: request.headers,
+        cache: remoteOnly ? 'no-store' : 'default',
       });
 
       if (!response.ok) {
@@ -114,7 +121,9 @@ export const FileSaveButton = ({ file }: FileSaveButtonProps) => {
   };
 
   const handleDownload = () => {
-    if (app.type === 'desktop') {
+    if (remoteOnly) {
+      handleDownloadWeb();
+    } else if (app.type === 'desktop') {
       handleDownloadDesktop();
     } else if (app.type === 'web') {
       handleDownloadWeb();

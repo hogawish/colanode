@@ -19,7 +19,8 @@ self.__WB_DISABLE_DEV_LOGS = true;
 precacheAndRoute(self.__WB_MANIFEST);
 
 registerRoute(
-  ({ url }) => url.origin === self.location.origin,
+  ({ url }) =>
+    url.origin === self.location.origin && url.pathname.startsWith('/assets/'),
   new StaleWhileRevalidate({
     cacheName: 'same-origin-assets',
   })
