@@ -18,10 +18,31 @@ export const ParagraphRenderer = ({
   keyPrefix,
 }: ParagraphRendererProps) => {
   if (readExternalReference(node.attrs?.externalRef)) {
-    return <div><ExternalReferencePreview value={node.attrs?.externalRef} /><p className={cn(defaultClasses.paragraph, 'py-0.5', blockBackgroundClass(node.attrs?.blockBackground))}><NodeChildrenRenderer node={node} keyPrefix={keyPrefix} /></p></div>;
+    return (
+      <div>
+        <ExternalReferencePreview value={node.attrs?.externalRef} />
+        <p
+          data-document-block={node.attrs?.id}
+          className={cn(
+            defaultClasses.paragraph,
+            'py-0.5',
+            blockBackgroundClass(node.attrs?.blockBackground)
+          )}
+        >
+          <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
+        </p>
+      </div>
+    );
   }
   return (
-    <p className={cn(defaultClasses.paragraph, 'py-0.5', blockBackgroundClass(node.attrs?.blockBackground))}>
+    <p
+      data-document-block={node.attrs?.id}
+      className={cn(
+        defaultClasses.paragraph,
+        'py-0.5',
+        blockBackgroundClass(node.attrs?.blockBackground)
+      )}
+    >
       <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
     </p>
   );

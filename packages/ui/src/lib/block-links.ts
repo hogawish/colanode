@@ -58,3 +58,16 @@ export const findBlockElement = (
   });
   return element;
 };
+
+export const highlightBlock = (element: HTMLElement) => {
+  element.scrollIntoView({ block: 'center', behavior: 'auto' });
+  // Avoid DOM class/style mutations that ProseMirror can interpret as edits.
+  return element.animate?.(
+    [
+      { outline: '2px solid #3b82f6', outlineOffset: '3px' },
+      { outline: '2px solid #3b82f6', outlineOffset: '3px', offset: 0.8 },
+      { outline: '2px solid transparent', outlineOffset: '3px' },
+    ],
+    { duration: 2000 }
+  );
+};

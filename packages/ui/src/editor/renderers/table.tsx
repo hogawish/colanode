@@ -10,8 +10,13 @@ interface TableRendererProps {
 
 export const TableRenderer = ({ node, keyPrefix }: TableRendererProps) => {
   return (
-    <table className={defaultClasses.table}>
-      <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
+    <table
+      data-document-block={node.attrs?.id}
+      className={defaultClasses.table}
+    >
+      <tbody>
+        <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
+      </tbody>
     </table>
   );
 };

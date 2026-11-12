@@ -13,7 +13,10 @@ export const TaskListRenderer = ({
   keyPrefix,
 }: TaskListRendererProps) => {
   return (
-    <ul className={defaultClasses.taskList}>
+    <ul
+      data-document-block={node.attrs?.id}
+      className={defaultClasses.taskList}
+    >
       <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
     </ul>
   );

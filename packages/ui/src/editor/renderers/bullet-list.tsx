@@ -13,7 +13,10 @@ export const BulletListRenderer = ({
   keyPrefix,
 }: BulletListRendererProps) => {
   return (
-    <ul className={defaultClasses.bulletList}>
+    <ul
+      data-document-block={node.attrs?.id}
+      className={defaultClasses.bulletList}
+    >
       <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
     </ul>
   );

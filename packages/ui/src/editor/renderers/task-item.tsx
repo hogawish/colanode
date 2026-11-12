@@ -14,7 +14,13 @@ export const TaskItemRenderer = ({
   keyPrefix,
 }: TaskItemRendererProps) => {
   return (
-    <li className={[defaultClasses.taskItem, blockBackgroundClass(node.attrs?.blockBackground)].join(' ')}>
+    <li
+      data-document-block={node.attrs?.id}
+      className={[
+        defaultClasses.taskItem,
+        blockBackgroundClass(node.attrs?.blockBackground),
+      ].join(' ')}
+    >
       <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
     </li>
   );

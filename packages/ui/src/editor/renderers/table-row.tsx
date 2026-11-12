@@ -14,7 +14,10 @@ export const TableRowRenderer = ({
   keyPrefix,
 }: TableRowRendererProps) => {
   return (
-    <tr className={cn(defaultClasses.tableRow)}>
+    <tr
+      data-document-block={node.attrs?.id}
+      className={cn(defaultClasses.tableRow)}
+    >
       <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
     </tr>
   );

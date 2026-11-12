@@ -14,7 +14,13 @@ export const BlockquoteRenderer = ({
   keyPrefix,
 }: BlockquoteRendererProps) => {
   return (
-    <blockquote className={[defaultClasses.blockquote, blockBackgroundClass(node.attrs?.blockBackground)].join(' ')}>
+    <blockquote
+      data-document-block={node.attrs?.id}
+      className={[
+        defaultClasses.blockquote,
+        blockBackgroundClass(node.attrs?.blockBackground),
+      ].join(' ')}
+    >
       <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
     </blockquote>
   );

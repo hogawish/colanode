@@ -19,14 +19,19 @@ export const sharedPageRoute = createRoute({
 export const sharedPageMaskRoute = createRoute({
   getParentRoute: () => workspaceMaskRoute,
   path: '/shared/$pageId',
-  beforeLoad: ({ params }) => {
+  beforeLoad: ({ params, location }) => {
     const userId = getWorkspaceUserId(params.workspaceId);
     if (userId) {
       throw redirect({
         to: '/workspace/$userId/shared/$pageId',
         params: { userId, pageId: params.pageId },
         replace: true,
-        mask: { to: '/$workspaceId/shared/$pageId', params },
+        hash: location.hash,
+        mask: {
+          to: '/$workspaceId/shared/$pageId',
+          params,
+          hash: location.hash,
+        },
       });
     }
   },

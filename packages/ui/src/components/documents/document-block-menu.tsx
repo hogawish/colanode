@@ -14,6 +14,7 @@ import { useCopyBlockLink } from '@colanode/ui/hooks/use-copy-block-link';
 import {
   blockAtTarget,
   findBlockElement,
+  highlightBlock,
   readBlockHash,
 } from '@colanode/ui/lib/block-links';
 
@@ -49,16 +50,7 @@ export const DocumentBlockMenu = ({
       reached = element;
       observer.disconnect();
       resize?.disconnect();
-      element.scrollIntoView({ block: 'center', behavior: 'auto' });
-      // DOM class/style mutations inside ProseMirror can be interpreted as edits.
-      highlight = element.animate?.(
-        [
-          { outline: '2px solid #3b82f6', outlineOffset: '3px' },
-          { outline: '2px solid #3b82f6', outlineOffset: '3px', offset: 0.8 },
-          { outline: '2px solid transparent', outlineOffset: '3px' },
-        ],
-        { duration: 2000 }
-      );
+      highlight = highlightBlock(element);
     };
     const schedule = () => {
       if (reached || editor.isDestroyed) return;

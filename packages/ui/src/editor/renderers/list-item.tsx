@@ -14,7 +14,13 @@ export const ListItemRenderer = ({
   keyPrefix,
 }: ListItemRendererProps) => {
   return (
-    <li className={[defaultClasses.listItem, blockBackgroundClass(node.attrs?.blockBackground)].join(' ')}>
+    <li
+      data-document-block={node.attrs?.id}
+      className={[
+        defaultClasses.listItem,
+        blockBackgroundClass(node.attrs?.blockBackground),
+      ].join(' ')}
+    >
       <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
     </li>
   );

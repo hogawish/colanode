@@ -24,6 +24,7 @@ import { TableRowRenderer } from '@colanode/ui/editor/renderers/table-row';
 import { TaskItemRenderer } from '@colanode/ui/editor/renderers/task-item';
 import { TaskListRenderer } from '@colanode/ui/editor/renderers/task-list';
 import { TextRenderer } from '@colanode/ui/editor/renderers/text';
+import { ToggleRenderer } from '@colanode/ui/editor/renderers/toggle';
 
 interface NodeRendererProps {
   node: JSONContent;
@@ -76,6 +77,12 @@ export const NodeRenderer = ({
         ))
         .with('codeBlock', () => (
           <CodeBlockRenderer node={node} keyPrefix={keyPrefix} />
+        ))
+        .with('horizontalRule', () => (
+          <hr data-document-block={node.attrs?.id} className="my-4" />
+        ))
+        .with('toggle', () => (
+          <ToggleRenderer node={node} keyPrefix={keyPrefix} />
         ))
         .with('file', () => <FileRenderer node={node} keyPrefix={keyPrefix} />)
         .with('mention', () => (

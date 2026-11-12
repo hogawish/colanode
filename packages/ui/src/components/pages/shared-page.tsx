@@ -1,14 +1,13 @@
 import { Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
-import { buildEditorContent } from '@colanode/client/lib';
 import type { SharedPage } from '@colanode/client/mutations';
 import type { RichTextContent } from '@colanode/core';
 import { FileSaveButton } from '@colanode/ui/components/files/file-save-button';
+import { SharedPageDocument } from '@colanode/ui/components/pages/shared-page-document';
 import { SharedPageEditor } from '@colanode/ui/components/pages/shared-page-editor';
 import { Button } from '@colanode/ui/components/ui/button';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
-import { DocumentRenderer } from '@colanode/ui/editor/renderers/document';
 
 export const SharedPageView = ({ pageId }: { pageId: string }) => {
   const { userId, workspaceId } = useWorkspace();
@@ -72,7 +71,7 @@ export const SharedPageView = ({ pageId }: { pageId: string }) => {
   };
 
   return (
-    <article className="mx-auto max-w-3xl space-y-6 px-6 py-10">
+    <article className="mx-auto w-full min-w-0 max-w-3xl space-y-6 px-6 py-10">
       <header className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-1 text-sm text-muted-foreground">
@@ -106,12 +105,7 @@ export const SharedPageView = ({ pageId }: { pageId: string }) => {
           onCancel={() => setEditing(false)}
         />
       ) : (
-        <div className="space-y-2">
-          <DocumentRenderer
-            node={buildEditorContent(pageId, page.content)}
-            keyPrefix={pageId}
-          />
-        </div>
+        <SharedPageDocument pageId={pageId} content={page.content} />
       )}
       {page.pages.length > 0 && (
         <section>

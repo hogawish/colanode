@@ -13,7 +13,10 @@ export const OrderedListRenderer = ({
   keyPrefix,
 }: OrderedListRendererProps) => {
   return (
-    <ol className={defaultClasses.orderedList}>
+    <ol
+      data-document-block={node.attrs?.id}
+      className={defaultClasses.orderedList}
+    >
       <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
     </ol>
   );

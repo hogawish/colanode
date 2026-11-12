@@ -14,7 +14,13 @@ export const Heading3Renderer = ({
   keyPrefix,
 }: Heading3RendererProps) => {
   return (
-    <h3 className={[defaultClasses.heading3, blockBackgroundClass(node.attrs?.blockBackground)].join(' ')}>
+    <h3
+      data-document-block={node.attrs?.id}
+      className={[
+        defaultClasses.heading3,
+        blockBackgroundClass(node.attrs?.blockBackground),
+      ].join(' ')}
+    >
       <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
     </h3>
   );

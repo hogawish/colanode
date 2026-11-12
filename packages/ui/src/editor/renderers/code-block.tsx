@@ -29,7 +29,13 @@ export const CodeBlockRenderer = ({
   const languageName = languageItem?.name ?? language ?? ' ';
 
   return (
-    <pre className={[defaultClasses.codeBlock, blockBackgroundClass(node.attrs?.blockBackground)].join(' ')}>
+    <pre
+      data-document-block={node.attrs?.id}
+      className={[
+        defaultClasses.codeBlock,
+        blockBackgroundClass(node.attrs?.blockBackground),
+      ].join(' ')}
+    >
       <div className={defaultClasses.codeBlockHeader}>
         {<p>{languageName}</p>}
         <div
