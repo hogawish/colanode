@@ -8,7 +8,6 @@ import { useState } from 'react';
 
 import type { SharedPage } from '@colanode/client/mutations';
 import { SidebarHeader } from '@colanode/ui/components/layouts/sidebars/sidebar-header';
-import { SharedDatabaseDialog } from '@colanode/ui/components/pages/shared-database';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
 import { useQuery } from '@colanode/ui/hooks/use-query';
 import { cn } from '@colanode/ui/lib/utils';
@@ -62,6 +61,7 @@ const SharedPageBranch = ({ page }: { page: SharedPage['pages'][number] }) => {
         )}
         <Link
           className={cn(rowClass, 'flex-1')}
+          activeOptions={{ exact: true }}
           activeProps={{ className: 'bg-sidebar-accent' }}
           to="/workspace/$userId/shared/$pageId"
           params={{ userId, pageId: page.id }}
@@ -96,22 +96,26 @@ const SharedPageBranch = ({ page }: { page: SharedPage['pages'][number] }) => {
             ))}
             {children.data?.databases.map((database) => (
               <li key={database.id} className="pl-5">
-                <SharedDatabaseDialog
-                  pageId={page.id}
-                  database={database}
-                  trigger={
-                    <button
-                      type="button"
-                      title={database.name}
-                      className={cn(rowClass, 'w-full text-left')}
-                    >
-                      <Database className="size-4 shrink-0 text-muted-foreground" />
-                      <span className="min-w-0 flex-1 truncate">
-                        {database.name}
-                      </span>
-                    </button>
-                  }
-                />
+                <Link
+                  className={rowClass}
+                  activeProps={{ className: 'bg-sidebar-accent' }}
+                  to="/workspace/$userId/shared/$pageId/database/$databaseId"
+                  params={{ userId, pageId: page.id, databaseId: database.id }}
+                  mask={{
+                    to: '/$workspaceId/shared/$pageId/database/$databaseId',
+                    params: {
+                      workspaceId,
+                      pageId: page.id,
+                      databaseId: database.id,
+                    },
+                  }}
+                  title={database.name}
+                >
+                  <Database className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1 truncate">
+                    {database.name}
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>

@@ -3,19 +3,15 @@ import {
   createCollection,
   localOnlyCollectionOptions,
 } from '@tanstack/react-db';
-import {
-  createContext,
-  type ReactElement,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { Link } from '@tanstack/react-router';
+import { Fullscreen } from 'lucide-react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 import type { SharedDatabase, SharedPage } from '@colanode/client/mutations';
 import type { LocalNode } from '@colanode/client/types';
 import { Database } from '@colanode/ui/components/databases/database';
 import { DatabaseViews } from '@colanode/ui/components/databases/database-views';
+import { Container } from '@colanode/ui/components/layouts/containers/container';
 import { PageLinkContent } from '@colanode/ui/components/pages/page-link-content';
 import { Button } from '@colanode/ui/components/ui/button';
 import {
@@ -70,38 +66,67 @@ export const SharedDatabaseBlock = ({
   );
 };
 
-export const SharedDatabaseDialog = ({
+const SharedDatabaseDialog = ({
   pageId,
   database,
-  trigger,
 }: {
   pageId: string;
   database: ChildDatabase;
-  trigger?: ReactElement;
-}) => (
-  <Dialog>
-    <DialogTrigger asChild>
-      {trigger ?? (
+}) => {
+  const { userId, workspaceId } = useWorkspace();
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
         <button type="button" className="block w-full text-left">
           <PageLinkContent {...database} />
         </button>
-      )}
-    </DialogTrigger>
-    <DialogContent className="max-h-[85dvh] w-[95vw] max-w-none overflow-auto sm:max-w-6xl">
-      <DialogTitle>{database.name}</DialogTitle>
-      <SharedDatabaseView pageId={pageId} databaseId={database.id} />
-    </DialogContent>
-  </Dialog>
+      </DialogTrigger>
+      <DialogContent className="max-h-[85dvh] w-[95vw] max-w-none overflow-auto sm:max-w-6xl">
+        <div className="flex items-center gap-2 pr-8">
+          <Button asChild variant="ghost" size="icon">
+            <Link
+              to="/workspace/$userId/shared/$pageId/database/$databaseId"
+              params={{ userId, pageId, databaseId: database.id }}
+              mask={{
+                to: '/$workspaceId/shared/$pageId/database/$databaseId',
+                params: { workspaceId, pageId, databaseId: database.id },
+              }}
+              aria-label="Open as full page"
+              title="Open as full page"
+            >
+              <Fullscreen />
+            </Link>
+          </Button>
+          <DialogTitle>{database.name}</DialogTitle>
+        </div>
+        <SharedDatabaseView pageId={pageId} databaseId={database.id} />
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export const SharedDatabasePage = ({
+  pageId,
+  databaseId,
+}: {
+  pageId: string;
+  databaseId: string;
+}) => (
+  <Container type="full">
+    <SharedDatabaseView pageId={pageId} databaseId={databaseId} fullPage />
+  </Container>
 );
 
 const SharedDatabaseView = ({
   pageId,
   databaseId,
   linked = false,
+  fullPage = false,
 }: {
   pageId: string;
   databaseId: string;
   linked?: boolean;
+  fullPage?: boolean;
 }) => {
   const { userId } = useWorkspace();
   const [attempt, setAttempt] = useState(0);
@@ -153,10 +178,15 @@ const SharedDatabaseView = ({
     );
   }
   return (
-    <SharedDatabaseContent
-      data={result}
-      instanceId={linked ? databaseId : undefined}
-    />
+    <>
+      {fullPage && (
+        <h1 className="mb-4 text-3xl font-semibold">{result.database.name}</h1>
+      )}
+      <SharedDatabaseContent
+        data={result}
+        instanceId={linked ? databaseId : undefined}
+      />
+    </>
   );
 };
 

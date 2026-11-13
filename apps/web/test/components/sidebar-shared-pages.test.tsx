@@ -10,9 +10,15 @@ vi.mock(import('@tanstack/react-router'), async (original) => ({
     params,
     children,
   }: {
-    params: { pageId: string };
+    params: { pageId: string; databaseId?: string };
     children: React.ReactNode;
-  }) => <a href={`/shared/${params.pageId}`}>{children}</a>,
+  }) => (
+    <a
+      href={`/shared/${params.pageId}${params.databaseId ? `/database/${params.databaseId}` : ''}`}
+    >
+      {children}
+    </a>
+  ),
 }));
 vi.mock('@colanode/ui/contexts/workspace', () => ({
   useWorkspace: () => ({ userId: 'exampleus', workspaceId: 'examplewc' }),
@@ -20,10 +26,6 @@ vi.mock('@colanode/ui/contexts/workspace', () => ({
 vi.mock('@colanode/ui/hooks/use-query', () => ({
   useQuery: () => ({ data: [{ id: 'parentpg', name: 'Shared parent' }] }),
 }));
-vi.mock('@colanode/ui/components/pages/shared-database', () => ({
-  SharedDatabaseDialog: ({ trigger }: { trigger: React.ReactNode }) => trigger,
-}));
-
 describe('shared page sidebar', () => {
   it('loads children on demand, nests them, and collapses the branch', async () => {
     const read = vi.fn().mockImplementation(({ pageId }) => ({
@@ -53,7 +55,10 @@ describe('shared page sidebar', () => {
     expect(
       await screen.findByRole('link', { name: 'Shared child' })
     ).toHaveAttribute('href', '/shared/childpg');
-    expect(screen.getByRole('button', { name: 'Shared table' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Shared table' })).toHaveAttribute(
+      'href',
+      '/shared/parentpg/database/tabledb'
+    );
     fireEvent.click(
       screen.getByRole('button', { name: 'Expand Shared child' })
     );
