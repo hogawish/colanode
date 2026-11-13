@@ -1,19 +1,12 @@
 import { useCallback } from 'react';
 
-import { FieldType } from '@colanode/core';
 import { FieldCreatePopover } from '@colanode/ui/components/databases/fields/field-create-popover';
 import { FieldSelect } from '@colanode/ui/components/databases/fields/field-select';
 import { Button } from '@colanode/ui/components/ui/button';
 import { useDatabase } from '@colanode/ui/contexts/database';
 import { useDatabaseView } from '@colanode/ui/contexts/database-view';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
-
-const boardGroupFields: FieldType[] = [
-  'select',
-  'multi_select',
-  'collaborator',
-  'created_by',
-];
+import { boardGroupFields } from '@colanode/ui/lib/board-drag';
 
 export const BoardViewNoGroup = () => {
   const workspace = useWorkspace();

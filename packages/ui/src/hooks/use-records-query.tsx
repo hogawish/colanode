@@ -70,7 +70,8 @@ const DEFAULT_ORDERING: OrderByDefinition = {
 export const useRecordsQuery = (
   filters: DatabaseViewFilterAttributes[],
   sorts: DatabaseViewSortAttributes[],
-  count?: number
+  count?: number,
+  ids?: { mode: 'include' | 'exclude'; values: readonly string[] }
 ) => {
   const workspace = useWorkspace();
   const database = useDatabase();
@@ -108,6 +109,16 @@ export const useRecordsQuery = (
         });
       }
 
+      if (ids?.mode === 'include') {
+        query = ids.values.length
+          ? query.where(({ nodes }) => inArray(nodes.id, [...ids.values]))
+          : query.where(({ nodes }) => eq(nodes.id, ''));
+      } else if (ids?.values.length) {
+        query = query.where(({ nodes }) =>
+          not(inArray(nodes.id, [...ids.values]))
+        );
+      }
+
       const orderings = buildSortDefinitions(sorts, fieldsById);
       const effectiveOrderings =
         orderings.length > 0 ? orderings : [DEFAULT_ORDERING];
@@ -126,7 +137,15 @@ export const useRecordsQuery = (
       getNextPageParam: (lastPage, allPages) =>
         lastPage.length === pageSize ? allPages.length : undefined,
     },
-    [database.id, database.fields, pageSize, filters, sorts]
+    [
+      database.id,
+      database.fields,
+      pageSize,
+      filters,
+      sorts,
+      ids?.mode,
+      ids?.values,
+    ]
   );
 
   return {

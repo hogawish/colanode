@@ -1,6 +1,7 @@
 import { Lock, LockOpen, Trash2 } from 'lucide-react';
 import { Fragment, useState } from 'react';
 
+import { BoardGroupingSettings } from '@colanode/ui/components/databases/boards/board-grouping-settings';
 import { ViewAvatarInput } from '@colanode/ui/components/databases/view-avatar-input';
 import { ViewFieldSettings } from '@colanode/ui/components/databases/view-field-settings';
 import { ViewRenameInput } from '@colanode/ui/components/databases/view-rename-input';
@@ -28,7 +29,7 @@ export const BoardViewSettings = () => {
         <PopoverTrigger>
           <ViewSettingsButton />
         </PopoverTrigger>
-        <PopoverContent className="mr-4 flex w-90 flex-col gap-1.5 p-2">
+        <PopoverContent className="mr-4 flex max-h-[75vh] w-90 flex-col gap-1.5 overflow-y-auto p-2">
           <div className="flex flex-row items-center gap-2">
             <ViewAvatarInput
               id={view.id}
@@ -44,6 +45,12 @@ export const BoardViewSettings = () => {
             />
           </div>
           <Separator />
+          {database.canEdit && !database.isLocked && (
+            <>
+              <BoardGroupingSettings />
+              <Separator />
+            </>
+          )}
           <ViewFieldSettings />
           {database.canEdit && (
             <Fragment>

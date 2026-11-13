@@ -39,7 +39,7 @@ export const ViewSortAddPopover = ({ children }: ViewSortAddPopoverProps) => {
     (sort) => sort.fieldId === SpecialId.Name
   );
 
-  if (sortableFields.length === 0) {
+  if (sortableFields.length === 0 && isSortedByName) {
     return null;
   }
 

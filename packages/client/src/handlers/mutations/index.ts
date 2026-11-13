@@ -22,6 +22,7 @@ import { FileCreateMutationHandler } from './files/file-create';
 import { FileDownloadMutationHandler } from './files/file-download';
 import { TempFileCreateMutationHandler } from './files/temp-file-create';
 import { MessageCreateMutationHandler } from './messages/message-create';
+import { BoardCardReorderMutationHandler } from './nodes/board-card-reorder';
 import { NodeCollaboratorCreateMutationHandler } from './nodes/node-collaborator-create';
 import { NodeCollaboratorDeleteMutationHandler } from './nodes/node-collaborator-delete';
 import { NodeCollaboratorUpdateMutationHandler } from './nodes/node-collaborator-update';
@@ -32,9 +33,12 @@ import { NodeInteractionSeenMutationHandler } from './nodes/node-interaction-see
 import { NodeReactionCreateMutationHandler } from './nodes/node-reaction-create';
 import { NodeReactionDeleteMutationHandler } from './nodes/node-reaction-delete';
 import { NodeUpdateMutationHandler } from './nodes/node-update';
+import { RecordFieldSetMutationHandler } from './nodes/record-field-set';
+import { TableOrderUpdateMutationHandler } from './nodes/table-order-update';
 import { ServerCreateMutationHandler } from './servers/server-create';
 import { ServerDeleteMutationHandler } from './servers/server-delete';
 import { ServerSyncMutationHandler } from './servers/server-sync';
+import { SpaceChildArchiveMutationHandler } from './spaces/space-child-archive';
 import { SpaceChildReorderMutationHandler } from './spaces/space-child-reorder';
 import { UserRoleUpdateMutationHandler } from './users/user-role-update';
 import { UserStorageUpdateMutationHandler } from './users/user-storage-update';
@@ -58,6 +62,9 @@ export const buildMutationHandlerMap = (
     'node.delete': new NodeDeleteMutationHandler(app),
     'node.create': new NodeCreateMutationHandler(app),
     'node.update': new NodeUpdateMutationHandler(app),
+    'board.card.reorder': new BoardCardReorderMutationHandler(app),
+    'table.order.update': new TableOrderUpdateMutationHandler(app),
+    'record.field.set': new RecordFieldSetMutationHandler(app),
     'chat.create': new ChatCreateMutationHandler(app),
     'message.create': new MessageCreateMutationHandler(app),
     'node.collaborator.create': new NodeCollaboratorCreateMutationHandler(app),
@@ -78,6 +85,7 @@ export const buildMutationHandlerMap = (
     'account.logout': new AccountLogoutMutationHandler(app),
     'file.create': new FileCreateMutationHandler(app),
     'file.download': new FileDownloadMutationHandler(app),
+    'space.child.archive': new SpaceChildArchiveMutationHandler(app),
     'space.child.reorder': new SpaceChildReorderMutationHandler(app),
     'account.update': new AccountUpdateMutationHandler(app),
     'document.update': new DocumentUpdateMutationHandler(app),

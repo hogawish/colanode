@@ -24,6 +24,7 @@ import {
 } from '@colanode/client/types';
 import { RichTextContent, richTextContentSchema } from '@colanode/core';
 import { encodeState, YDoc } from '@colanode/crdt';
+import { DocumentBlockMenu } from '@colanode/ui/components/documents/document-block-menu';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
 import {
   BlockquoteCommand,
@@ -43,6 +44,7 @@ import {
   DatabaseCommand,
   DatabaseInlineCommand,
 } from '@colanode/ui/editor/commands';
+import { createExternalReferenceCommand, ExternalReferenceDialog, type ExternalReferenceRequest } from '@colanode/ui/editor/commands/external-reference';
 import {
   BlockquoteNode,
   BoldMark,
@@ -88,7 +90,6 @@ import {
   Markdown,
 } from '@colanode/ui/editor/extensions';
 import { ToolbarMenu, ActionMenu } from '@colanode/ui/editor/menus';
-import { createExternalReferenceCommand, ExternalReferenceDialog, type ExternalReferenceRequest } from '@colanode/ui/editor/commands/external-reference';
 
 interface DocumentEditorProps {
   node: LocalNode;
@@ -442,10 +443,12 @@ export const DocumentEditor = ({
       {editor && canEdit && (
         <Fragment>
           <ToolbarMenu editor={editor} />
-          <ActionMenu editor={editor} />
+          <ActionMenu editor={editor} documentId={node.id} />
         </Fragment>
       )}
-      <EditorContent editor={editor} />
+      <DocumentBlockMenu editor={editor} documentId={node.id}>
+        <EditorContent editor={editor} />
+      </DocumentBlockMenu>
       {externalReferenceRequest && <ExternalReferenceDialog request={externalReferenceRequest} onClose={() => setExternalReferenceRequest(null)} />}
     </>
   );

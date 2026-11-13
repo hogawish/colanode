@@ -2,6 +2,7 @@ import { JSONContent } from '@tiptap/core';
 
 import { defaultClasses } from '@colanode/ui/editor/classes';
 import { NodeChildrenRenderer } from '@colanode/ui/editor/renderers/node-children';
+import { blockBackgroundClass } from '@colanode/ui/lib/block-formatting';
 
 interface ListItemRendererProps {
   node: JSONContent;
@@ -13,7 +14,7 @@ export const ListItemRenderer = ({
   keyPrefix,
 }: ListItemRendererProps) => {
   return (
-    <li className={defaultClasses.listItem}>
+    <li className={[defaultClasses.listItem, blockBackgroundClass(node.attrs?.blockBackground)].join(' ')}>
       <NodeChildrenRenderer node={node} keyPrefix={keyPrefix} />
     </li>
   );

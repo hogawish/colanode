@@ -1,44 +1,157 @@
-import { useRef } from 'react';
-import { useDrag } from 'react-dnd';
+import { useCallback, useRef, useState } from 'react';
+import { useDrag, useDrop } from 'react-dnd';
 
-import { FieldValue } from '@colanode/core';
 import { RecordFieldValue } from '@colanode/ui/components/records/record-field-value';
 import { Link } from '@colanode/ui/components/ui/link';
 import { useBoardView } from '@colanode/ui/contexts/board-view';
 import { useDatabaseView } from '@colanode/ui/contexts/database-view';
 import { useRecord } from '@colanode/ui/contexts/record';
+import { useWorkspace } from '@colanode/ui/contexts/workspace';
+import {
+  boardRecordDragType,
+  isEditableBoardGroup,
+  type BoardRecordDrag,
+} from '@colanode/ui/lib/board-drag';
+import {
+  databaseRecordDragMime,
+  getRecordDropSide,
+} from '@colanode/ui/lib/database-drag';
+import { cn } from '@colanode/ui/lib/utils';
 
-export const BoardViewRecordCard = () => {
+export const BoardViewRecordCard = ({
+  onReorder,
+}: {
+  onReorder?: (
+    recordId: string,
+    anchorId: string,
+    side: 'before' | 'after'
+  ) => void;
+}) => {
   const view = useDatabaseView();
   const boardView = useBoardView();
   const record = useRecord();
+  const workspace = useWorkspace();
+  const canMoveBetweenColumns =
+    record.canEdit && isEditableBoardGroup(boardView.field.type);
+  const canReorder = !!onReorder;
+  const canDrag = canMoveBetweenColumns || canReorder;
+  const card = useRef<HTMLDivElement | null>(null);
+  const [side, setSide] = useState<'before' | 'after'>('before');
+  const { columnValue, field } = boardView;
 
-  const [, drag] = useDrag({
-    type: 'board-record',
-    canDrag: () => boardView.canDrag(record),
-    item: record,
-    end: (item, monitor) => {
-      const value = monitor.getDropResult() as { value: FieldValue | null };
-      return boardView.onDragEnd(item, value.value);
+  const [{ isDragging }, drag] = useDrag<
+    BoardRecordDrag,
+    unknown,
+    { isDragging: boolean }
+  >(
+    () => ({
+      type: boardRecordDragType,
+      canDrag,
+      item: {
+        recordId: record.id,
+        userId: workspace.userId,
+        databaseId: record.databaseId,
+        viewId: view.id,
+        fieldId: boardView.field.id,
+        column: boardView.columnValue,
+        canMoveBetweenColumns,
+      },
+      collect: (monitor) => ({ isDragging: monitor.isDragging() }),
+    }),
+    [
+      canDrag,
+      canMoveBetweenColumns,
+      record.id,
+      record.databaseId,
+      workspace.userId,
+      view.id,
+      boardView.field.id,
+      boardView.columnValue,
+    ]
+  );
+
+  const [{ isDropTarget }, drop] = useDrop<
+    BoardRecordDrag,
+    object,
+    { isDropTarget: boolean }
+  >(
+    () => ({
+      accept: boardRecordDragType,
+      canDrop: (item) =>
+        !!onReorder &&
+        item.recordId !== record.id &&
+        item.userId === workspace.userId &&
+        item.databaseId === record.databaseId &&
+        item.viewId === view.id &&
+        item.fieldId === field.id &&
+        item.column === columnValue,
+      hover: (_, monitor) => {
+        if (monitor.canDrop())
+          setSide(
+            getRecordDropSide(card.current, monitor.getClientOffset()?.y)
+          );
+      },
+      drop: (item, monitor) => {
+        onReorder?.(
+          item.recordId,
+          record.id,
+          getRecordDropSide(card.current, monitor.getClientOffset()?.y)
+        );
+        return {};
+      },
+      collect: (monitor) => ({
+        isDropTarget: monitor.isOver({ shallow: true }) && monitor.canDrop(),
+      }),
+    }),
+    [
+      onReorder,
+      record.id,
+      record.databaseId,
+      workspace.userId,
+      view.id,
+      field.id,
+      columnValue,
+    ]
+  );
+
+  const setCardRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      card.current = node;
+      drag(canDrag ? node : null);
+      drop(canReorder ? node : null);
     },
-  });
-
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const dragRef = drag(buttonRef);
+    [canDrag, canReorder, drag, drop]
+  );
   const name = record.name;
   const hasName = name !== null && name !== '';
 
   return (
     <div
-      ref={dragRef as React.Ref<HTMLDivElement>}
+      ref={setCardRef}
       role="presentation"
       key={record.id}
-      className="animate-fade-in flex cursor-pointer flex-col gap-1 rounded-md border p-2 text-left hover:bg-accent"
+      onDragStart={(event) => {
+        if (canDrag) event.dataTransfer.setData(databaseRecordDragMime, '1');
+      }}
+      className={cn(
+        'relative animate-fade-in flex cursor-pointer flex-col gap-1 rounded-md border p-2 text-left hover:bg-accent',
+        canDrag && 'cursor-grab active:cursor-grabbing',
+        isDragging && 'opacity-50'
+      )}
     >
+      {isDropTarget && (
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-x-0 z-10 border-t-2 border-primary',
+            side === 'before' ? '-top-1' : '-bottom-1'
+          )}
+        />
+      )}
       <Link
         from="/workspace/$userId/$nodeId"
         to="modal/$modalNodeId"
         params={{ modalNodeId: record.id }}
+        draggable={false}
       >
         <p className={hasName ? '' : 'text-muted-foreground'}>
           {hasName ? name : 'Unnamed'}

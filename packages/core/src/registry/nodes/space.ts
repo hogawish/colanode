@@ -7,6 +7,7 @@ import { NodeModel, nodeRoleEnum } from '@colanode/core/registry/nodes/core';
 export const spaceChildAttributesSchema = z.object({
   id: z.string(),
   index: z.string().optional().nullable(),
+  archived: z.boolean().optional(),
 });
 
 export type SpaceChildAttributes = z.infer<typeof spaceChildAttributesSchema>;

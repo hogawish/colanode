@@ -21,8 +21,11 @@ export * from './nodes/node-interaction-opened';
 export * from './nodes/node-interaction-seen';
 export * from './nodes/node-reaction-create';
 export * from './nodes/node-reaction-delete';
+export * from './nodes/board-card-reorder';
+export * from './nodes/table-order-update';
 export * from './servers/server-create';
 export * from './servers/server-delete';
+export * from './spaces/space-child-archive';
 export * from './spaces/space-child-reorder';
 export * from './workspaces/workspace-create';
 export * from './workspaces/workspace-delete';
@@ -38,6 +41,7 @@ export * from './apps/tab-delete';
 export * from './nodes/node-delete';
 export * from './nodes/node-create';
 export * from './nodes/node-update';
+export * from './nodes/record-field-set';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface MutationMap {}

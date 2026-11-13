@@ -11,3 +11,4 @@ export * from './types';
 export * from './utils';
 export * from './features';
 export * from './record-activity';
+export * from './view-record-order';

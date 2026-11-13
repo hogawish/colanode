@@ -5,6 +5,8 @@ import {
   FieldType,
   FieldValue,
   generateFractionalIndex,
+  generateId,
+  IdType,
   isStringArray,
   MultiSelectFieldAttributes,
   SelectFieldAttributes,
@@ -13,6 +15,27 @@ import {
   DatabaseViewLayout,
   DatabaseViewFieldFilterAttributes,
 } from '@colanode/core';
+
+export const getOrderedSelectOptions = (
+  field: SelectFieldAttributes | MultiSelectFieldAttributes
+) =>
+  Object.values(field.options ?? {}).sort((a, b) =>
+    compareString(a.index, b.index)
+  );
+
+export const createSelectOption = (
+  field: SelectFieldAttributes | MultiSelectFieldAttributes,
+  name: string,
+  color: string
+) => ({
+  id: generateId(IdType.SelectOption),
+  index: generateFractionalIndex(
+    getOrderedSelectOptions(field).at(-1)?.index,
+    null
+  ),
+  name,
+  color,
+});
 
 export const getDefaultFieldWidth = (type: FieldType): number => {
   if (!type) return 0;

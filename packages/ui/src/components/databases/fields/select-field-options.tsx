@@ -2,10 +2,6 @@ import { Check, Plus, X } from 'lucide-react';
 import { Fragment, useState } from 'react';
 
 import {
-  compareString,
-  generateFractionalIndex,
-  generateId,
-  IdType,
   MultiSelectFieldAttributes,
   SelectFieldAttributes,
 } from '@colanode/core';
@@ -21,7 +17,11 @@ import {
 } from '@colanode/ui/components/ui/command';
 import { useDatabase } from '@colanode/ui/contexts/database';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
-import { getRandomSelectOptionColor } from '@colanode/ui/lib/databases';
+import {
+  createSelectOption,
+  getOrderedSelectOptions,
+  getRandomSelectOptionColor,
+} from '@colanode/ui/lib/databases';
 
 interface SelectFieldOptionsProps {
   field: SelectFieldAttributes | MultiSelectFieldAttributes;
@@ -39,7 +39,7 @@ export const SelectFieldOptions = ({
   const workspace = useWorkspace();
   const database = useDatabase();
 
-  const selectOptions = Object.values(field.options ?? {});
+  const selectOptions = getOrderedSelectOptions(field);
 
   const [inputValue, setInputValue] = useState('');
   const [color, setColor] = useState(getRandomSelectOptionColor());
@@ -109,7 +109,7 @@ export const SelectFieldOptions = ({
                   return;
                 }
 
-                const id = generateId(IdType.SelectOption);
+                let createdId: string | undefined;
                 const nodes = workspace.collections.nodes;
                 nodes.update(database.id, (draft) => {
                   if (draft.type !== 'database') {
@@ -128,29 +128,19 @@ export const SelectFieldOptions = ({
                     return;
                   }
 
-                  const selectOptions = {
-                    ...(fieldAttributes.options ?? {}),
+                  const option = createSelectOption(
+                    fieldAttributes,
+                    inputValue.trim(),
+                    color
+                  );
+                  fieldAttributes.options = {
+                    ...fieldAttributes.options,
+                    [option.id]: option,
                   };
-
-                  const maxIndex = Object.values(selectOptions)
-                    .map((selectOption) => selectOption.index)
-                    .sort((a, b) => -compareString(a, b))[0];
-
-                  const index = generateFractionalIndex(maxIndex, null);
-                  selectOptions[id] = {
-                    id,
-                    index,
-                    name: inputValue.trim(),
-                    color,
-                  };
-
-                  draft.fields[field.id] = {
-                    ...fieldAttributes,
-                    options: selectOptions,
-                  };
+                  createdId = option.id;
                 });
 
-                onSelect(id);
+                if (createdId) onSelect(createdId);
                 setInputValue('');
                 setColor(getRandomSelectOptionColor());
               }}
