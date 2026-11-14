@@ -20,6 +20,7 @@ export const spaceAttributesSchema = z.object({
   collaborators: z.record(z.string(), nodeRoleEnum),
   visibility: z.enum(['public', 'private']).default('private'),
   children: z.record(z.string(), spaceChildAttributesSchema).optional(),
+  pageReferences: z.record(z.string(), z.literal(true)).optional(),
 });
 
 export type SpaceAttributes = z.infer<typeof spaceAttributesSchema>;

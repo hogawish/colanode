@@ -4,6 +4,7 @@ import {
   Database,
   Ellipsis,
   Folder,
+  Link2,
   MessageCircle,
   Plus,
   Settings,
@@ -16,6 +17,7 @@ import { ChannelCreateDialog } from '@colanode/ui/components/channels/channel-cr
 import { DatabaseCreateDialog } from '@colanode/ui/components/databases/database-create-dialog';
 import { FolderCreateDialog } from '@colanode/ui/components/folders/folder-create-dialog';
 import { PageCreateDialog } from '@colanode/ui/components/pages/page-create-dialog';
+import { ManageSpacePageReferences } from '@colanode/ui/components/spaces/space-page-references';
 import { SpaceSidebarVisibilityDialog } from '@colanode/ui/components/spaces/space-sidebar-visibility-dialog';
 import {
   DropdownMenu,
@@ -25,6 +27,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@colanode/ui/components/ui/dropdown-menu';
+import { useApp } from '@colanode/ui/contexts/app';
+import { useWorkspace } from '@colanode/ui/contexts/workspace';
 
 interface SpaceSidebarDropdownProps {
   space: LocalSpaceNode;
@@ -32,12 +36,15 @@ interface SpaceSidebarDropdownProps {
 
 export const SpaceSidebarDropdown = ({ space }: SpaceSidebarDropdownProps) => {
   const navigate = useNavigate({ from: '/workspace/$userId' });
+  const app = useApp();
+  const { userId } = useWorkspace();
 
   const [openCreatePage, setOpenCreatePage] = useState(false);
   const [openCreateChannel, setOpenCreateChannel] = useState(false);
   const [openCreateDatabase, setOpenCreateDatabase] = useState(false);
   const [openCreateFolder, setOpenCreateFolder] = useState(false);
   const [openVisibility, setOpenVisibility] = useState(false);
+  const [openReferences, setOpenReferences] = useState(false);
 
   return (
     <Fragment>
@@ -50,6 +57,11 @@ export const SpaceSidebarDropdown = ({ space }: SpaceSidebarDropdownProps) => {
         <DropdownMenuContent className="ml-1 w-72">
           <DropdownMenuLabel>{space.name ?? 'Unnamed'}</DropdownMenuLabel>
           <DropdownMenuSeparator />
+          {app.type === 'web' && space.collaborators[userId] === 'admin' && (
+            <DropdownMenuItem onSelect={() => setOpenReferences(true)}>
+              <Link2 className="size-4" /> Page references
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             onSelect={() => setOpenCreatePage(true)}
             className="flex flex-row items-center gap-2 cursor-pointer"
@@ -112,6 +124,12 @@ export const SpaceSidebarDropdown = ({ space }: SpaceSidebarDropdownProps) => {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      {openReferences && (
+        <ManageSpacePageReferences
+          space={space}
+          onClose={() => setOpenReferences(false)}
+        />
+      )}
       {openVisibility && (
         <SpaceSidebarVisibilityDialog
           onClose={() => setOpenVisibility(false)}

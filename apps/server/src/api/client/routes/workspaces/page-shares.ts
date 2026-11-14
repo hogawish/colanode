@@ -17,7 +17,7 @@ import {
 import { database } from '@colanode/server/data/database';
 import type { SelectNode } from '@colanode/server/data/schema';
 import { updateDocument } from '@colanode/server/lib/documents';
-import { fetchNodeTree, mapNode } from '@colanode/server/lib/nodes';
+import { fetchNode, fetchNodeTree, mapNode } from '@colanode/server/lib/nodes';
 import { inviteToPage } from '@colanode/server/lib/page-invitations';
 import {
   getPageAncestors,
@@ -99,6 +99,40 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
   _,
   done
 ) => {
+  instance.get(
+    '/space-references/:spaceId',
+    {
+      schema: {
+        params: z.object({ workspaceId: z.string(), spaceId: z.string() }),
+      },
+    },
+    async (request, reply) => {
+      reply.header('Cache-Control', 'private, no-store');
+      const { id: workspaceId, user } = request.workspace;
+      const row = await fetchNode(request.params.spaceId);
+      const space = row?.workspace_id === workspaceId ? mapNode(row) : null;
+      if (space?.type !== 'space' || !extractNodeRole(space, user.id)) {
+        return reply.code(404).send({
+          code: ApiErrorCode.NotFound,
+          message: 'Space is unavailable.',
+        });
+      }
+      const pages = [];
+      for (const pageId of Object.keys(space.pageReferences ?? {})) {
+        const tree = await getPageTree(workspaceId, pageId);
+        const page = tree.at(-1);
+        if (
+          page?.type === 'page' &&
+          (extractNodeRole(tree, user.id) ||
+            (await getSharedPageRole(tree, user.id)))
+        ) {
+          pages.push({ id: page.id, name: page.name });
+        }
+      }
+      return { pages };
+    }
+  );
+
   instance.get('/mine', async (request, reply) => {
     reply.header('Cache-Control', 'private, no-store');
     const { id: workspaceId, user } = request.workspace;

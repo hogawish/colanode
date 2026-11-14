@@ -24,6 +24,12 @@ export class PageShareMutationHandler
     const base = `v1/workspaces/${workspace.workspaceId}/page-shares`;
 
     try {
+      if (input.action === 'list-space-references') {
+        const result = await client
+          .get(`${base}/space-references/${encodeURIComponent(input.spaceId)}`)
+          .json<{ pages: { id: string; name: string }[] }>();
+        return { action: 'list-space-references', pages: result.pages };
+      }
       if (input.action === 'list-user') {
         const { pages } = await client
           .get(`${base}/by-user/${encodeURIComponent(input.viewerId)}`)

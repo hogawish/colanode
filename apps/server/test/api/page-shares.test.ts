@@ -62,6 +62,22 @@ it('shares a single page and its children and attachments until access is remove
     parentId: rootId,
     name: 'Private sibling',
   });
+  const destinationId = generateId(IdType.Space);
+  expect(
+    await createNode({
+      workspaceId: workspace.id,
+      userId: admin.id,
+      nodeId: destinationId,
+      rootId: destinationId,
+      attributes: {
+        type: 'space',
+        name: 'Partner Space',
+        visibility: 'private',
+        collaborators: { [admin.id]: 'admin', [viewer.id]: 'viewer' },
+        pageReferences: { [pageId]: true, [siblingId]: true },
+      },
+    })
+  ).toBeTruthy();
   const blockId = generateId(IdType.Block);
   const dbId = generateId(IdType.Database);
   const unrelatedDb = generateId(IdType.Database);
@@ -226,6 +242,11 @@ it('shares a single page and its children and attachments until access is remove
     app.inject({ url: `${endpoint}/files/${id}`, headers: viewerHeaders });
   const sharedPages = (headers = viewerHeaders) =>
     app.inject({ url: `${endpoint}/page-shares/mine`, headers });
+  const references = (headers = viewerHeaders) =>
+    app.inject({
+      url: `${endpoint}/page-shares/space-references/${destinationId}`,
+      headers,
+    });
   const managedPages = (headers = adminHeaders) =>
     app.inject({
       url: `${endpoint}/page-shares/by-user/${viewer.id}`,
@@ -237,9 +258,14 @@ it('shares a single page and its children and attachments until access is remove
     app.inject({ url: `${url}/linked-databases/${linkedBlockId}`, headers });
 
   expect((await sharedPages()).json()).toEqual({ pages: [] });
+  expect((await references()).json()).toEqual({ pages: [] });
+  expect((await references(outsideHeaders)).statusCode).toBe(404);
   expect((await read(pageId)).statusCode).toBe(404);
   expect((await setAccess(viewerHeaders, true)).statusCode).toBe(404);
   expect((await setAccess(adminHeaders, true)).statusCode).toBe(200);
+  expect((await references()).json()).toEqual({
+    pages: [{ id: pageId, name: 'Shared original' }],
+  });
   expect((await managedPages()).json()).toEqual({
     pages: [
       {
@@ -345,6 +371,7 @@ it('shares a single page and its children and attachments until access is remove
   expect((await download(privateFile)).statusCode).toBe(403);
 
   expect((await setAccess(adminHeaders, false)).statusCode).toBe(200);
+  expect((await references()).json()).toEqual({ pages: [] });
   expect((await managedPages()).json()).toEqual({ pages: [] });
   expect((await setAccess(adminHeaders, true, 'editor')).statusCode).toBe(404);
   expect((await sharedPages()).json()).toEqual({ pages: [] });

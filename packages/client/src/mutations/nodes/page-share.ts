@@ -60,6 +60,7 @@ export type PageShareMutationInput = {
   userId: string;
 } & (
   | { action: 'list-user'; viewerId: string }
+  | { action: 'list-space-references'; spaceId: string }
   | ({ pageId: string } & PageShareAction)
 );
 
@@ -67,6 +68,7 @@ export type PageShareMutationOutput =
   | { action: 'read'; page: SharedPage }
   | { action: 'read-database'; database: SharedDatabase }
   | { action: 'list-user'; pages: ManagedPageShare[] }
+  | { action: 'list-space-references'; pages: NamedItem[] }
   | {
       action: 'list';
       viewers: PageShareViewer[];

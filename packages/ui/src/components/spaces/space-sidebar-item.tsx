@@ -4,12 +4,14 @@ import { ChevronRight } from 'lucide-react';
 import { LocalSpaceNode } from '@colanode/client/types';
 import { Avatar } from '@colanode/ui/components/avatars/avatar';
 import { SidebarItem } from '@colanode/ui/components/layouts/sidebars/sidebar-item';
+import { SpacePageReferenceLinks } from '@colanode/ui/components/spaces/space-page-references';
 import { SpaceSidebarDropdown } from '@colanode/ui/components/spaces/space-sidebar-dropdown';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@colanode/ui/components/ui/collapsible';
+import { useApp } from '@colanode/ui/contexts/app';
 import {
   SidebarVisibilityContext,
   useSpaceSidebarVisibility,
@@ -23,6 +25,7 @@ interface SpaceSidebarItemProps {
 
 export const SpaceSidebarItem = ({ space }: SpaceSidebarItemProps) => {
   const workspace = useWorkspace();
+  const app = useApp();
   const visibility = useSpaceSidebarVisibility(space);
 
   const nodeChildrenGetQuery = useLiveQuery(
@@ -66,6 +69,7 @@ export const SpaceSidebarItem = ({ space }: SpaceSidebarItemProps) => {
                 <SidebarItem node={child} />
               </li>
             ))}
+            {app.type === 'web' && <SpacePageReferenceLinks space={space} />}
           </ul>
         </CollapsibleContent>
       </Collapsible>
