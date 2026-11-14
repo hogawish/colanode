@@ -20,6 +20,7 @@ import { updateDocument } from '@colanode/server/lib/documents';
 import { fetchNodeTree, mapNode } from '@colanode/server/lib/nodes';
 import { inviteToPage } from '@colanode/server/lib/page-invitations';
 import {
+  getPageAncestors,
   getSharedPageGrants,
   getSharedPageRole,
   isInSharedPageBody,
@@ -110,9 +111,16 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
       .where('nodes.type', '=', 'page')
       .execute();
 
-    const pages = grants.flatMap(({ id, attributes }) =>
-      attributes.type === 'page' ? [{ id, name: attributes.name }] : []
-    );
+    const sharedIds = new Set(grants.map(({ id }) => id));
+    const pages = [];
+    for (const { id, attributes } of grants) {
+      if (attributes.type !== 'page') continue;
+      const ancestors = getPageAncestors(await getPageTree(workspaceId, id));
+      if (ancestors.slice(1).some((ancestor) => sharedIds.has(ancestor))) {
+        continue;
+      }
+      pages.push({ id, name: attributes.name });
+    }
     pages.sort(
       (a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id)
     );
@@ -593,20 +601,20 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         });
       }
       const { revision, content } = request.body;
-      const updated = await updateDocument({
+      const savedRevision = await updateDocument({
         documentId: pageId,
         userId: user.id,
         workspaceId,
         expectedRevision: revision,
         updater: (current) => mergeSharedPageBody(pageId, current, content),
       });
-      if (!updated)
+      if (savedRevision === null)
         return reply.code(409).send({
           code: ApiErrorCode.BadRequest,
           message:
             'Could not save this version. Copy your changes and reload the page.',
         });
-      return {};
+      return { revision: savedRevision };
     }
   );
 

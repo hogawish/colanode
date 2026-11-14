@@ -289,25 +289,25 @@ const tryUpdateDocumentFromMutation = async (
 
 export const updateDocument = async (
   input: UpdateDocumentInput
-): Promise<boolean> => {
+): Promise<string | null> => {
   for (let count = 0; count < UPDATE_RETRIES_LIMIT; count++) {
     const result = await tryUpdateDocument(input);
 
     if (result.type === 'success') {
-      return true;
+      return result.output;
     }
 
     if (result.type === 'error') {
-      return false;
+      return null;
     }
   }
 
-  return false;
+  return null;
 };
 
 const tryUpdateDocument = async (
   input: UpdateDocumentInput
-): Promise<ConcurrentUpdateResult<boolean>> => {
+): Promise<ConcurrentUpdateResult<string>> => {
   const node = await fetchNode(input.documentId);
   if (!node) {
     return { type: 'error', error: 'Node not found' };
@@ -445,7 +445,7 @@ const tryUpdateDocument = async (
 
     return {
       type: 'success',
-      output: true,
+      output: updatedDocument.revision,
     };
   } catch (error) {
     logger.error(error, `Failed to update document`);

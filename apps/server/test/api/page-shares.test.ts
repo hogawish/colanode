@@ -452,9 +452,11 @@ it('invites a new guest and edits the original body only for a page editor', asy
   const initial = (await read()).json();
   expect(initial.canEdit).toBe(true);
   expect(initial.content.blocks[childId]).toBeUndefined();
-  expect((await edit(initial.revision, 'Edited by guest')).statusCode).toBe(
-    200
-  );
+  const firstSave = await edit(initial.revision, 'First draft');
+  expect(firstSave.statusCode).toBe(200);
+  expect(
+    (await edit(firstSave.json().revision, 'Edited by guest')).statusCode
+  ).toBe(200);
   expect((await edit(initial.revision, 'Stale save')).statusCode).toBe(409);
   expect((await read()).json().content.blocks[blockId].content[0].text).toBe(
     'Edited by guest'
@@ -472,11 +474,26 @@ it('invites a new guest and edits the original body only for a page editor', asy
   });
   const member = await database
     .selectFrom('users')
-    .select('role')
+    .select(['id', 'role'])
     .where('account_id', '=', recipient.id)
     .where('workspace_id', '=', workspace.id)
     .executeTakeFirstOrThrow();
   expect(member.role).toBe('guest');
+
+  const setChildShare = (enabled: boolean) =>
+    app.inject({
+      method: 'PUT',
+      url: `${endpoint}/${childId}/viewers`,
+      headers: adminHeaders,
+      payload: { viewerId: member.id, enabled },
+    });
+  const readSharedRoots = () =>
+    app.inject({ url: `${endpoint}/mine`, headers: recipientHeaders });
+  expect((await setChildShare(true)).statusCode).toBe(200);
+  expect(
+    (await readSharedRoots()).json().pages.map(({ id }: { id: string }) => id)
+  ).toEqual([pageId]);
+  expect((await setChildShare(false)).statusCode).toBe(200);
 
   expect((await invite('viewer')).json()).toEqual({ type: 'shared' });
   expect((await read()).json()).toMatchObject({ canEdit: false });

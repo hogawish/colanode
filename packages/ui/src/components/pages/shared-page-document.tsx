@@ -1,6 +1,6 @@
 import { useRouterState } from '@tanstack/react-router';
 import { GripVertical, Link2 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import { buildEditorContent } from '@colanode/client/lib';
 import type { SharedPage } from '@colanode/client/mutations';
@@ -40,6 +40,7 @@ export const SharedPageDocument = ({
   linkedDatabasePlacements,
   files,
   filePlacements,
+  renderEditor,
 }: {
   pageId: string;
   content: RichTextContent | null;
@@ -50,6 +51,7 @@ export const SharedPageDocument = ({
   linkedDatabasePlacements?: SharedPage['linkedDatabasePlacements'];
   files?: SharedPage['files'];
   filePlacements?: SharedPage['filePlacements'];
+  renderEditor?: (content: RichTextContent) => ReactNode;
 }) => {
   const childPages = useMemo(
     () => new Map(pages?.map((page) => [page.id, page])),
@@ -91,9 +93,8 @@ export const SharedPageDocument = ({
         blocks[placement.id] = { ...placement, type: 'file' };
       }
     }
-    return buildEditorContent(pageId, { type: 'rich_text', blocks });
+    return { type: 'rich_text' as const, blocks };
   }, [
-    pageId,
     content,
     pagePlacements,
     childPages,
@@ -117,6 +118,10 @@ export const SharedPageDocument = ({
     select: (state) =>
       state.location.maskedLocation?.hash || state.location.hash,
   });
+  const editorContent = useMemo(
+    () => buildEditorContent(pageId, document),
+    [pageId, document]
+  );
 
   useEffect(() => {
     const targetId = readBlockHash(hash);
@@ -136,6 +141,20 @@ export const SharedPageDocument = ({
       highlight?.cancel();
     };
   }, [document, hash]);
+
+  const renderWithReferences = (children: ReactNode) => (
+    <SharedChildPagesContext.Provider value={childPages}>
+      <SharedDatabasesContext.Provider
+        value={{ pageId, databases: childDatabases }}
+      >
+        <SharedFilesContext.Provider value={childFiles}>
+          {children}
+        </SharedFilesContext.Provider>
+      </SharedDatabasesContext.Provider>
+    </SharedChildPagesContext.Provider>
+  );
+
+  if (renderEditor) return renderWithReferences(renderEditor(document));
 
   return (
     <ContextMenu>
@@ -182,15 +201,9 @@ export const SharedPageDocument = ({
             if (!menuOpen) setHovered(null);
           }}
         >
-          <SharedChildPagesContext.Provider value={childPages}>
-            <SharedDatabasesContext.Provider
-              value={{ pageId, databases: childDatabases }}
-            >
-              <SharedFilesContext.Provider value={childFiles}>
-                <DocumentRenderer node={document} keyPrefix={pageId} />
-              </SharedFilesContext.Provider>
-            </SharedDatabasesContext.Provider>
-          </SharedChildPagesContext.Provider>
+          {renderWithReferences(
+            <DocumentRenderer node={editorContent} keyPrefix={pageId} />
+          )}
           {hovered && (
             <DropdownMenu
               open={menuOpen}

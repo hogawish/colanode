@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { SharedPage } from '@colanode/client/mutations';
 import type { RichTextContent } from '@colanode/core';
@@ -24,7 +24,8 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
   const { userId } = useWorkspace();
   const [page, setPage] = useState<SharedPage | null>(null);
   const [busy, setBusy] = useState(true);
-  const [editing, setEditing] = useState(false);
+  const revision = useRef<string | null>(null);
+  const [unsupported, setUnsupported] = useState(false);
   const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
@@ -40,6 +41,7 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
           pageId,
         });
         if (current && result.success && result.output.action === 'read') {
+          revision.current = result.output.page.revision;
           setPage(result.output.page);
         }
       } finally {
@@ -74,11 +76,16 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
       userId,
       pageId,
       content,
-      revision: page.revision,
+      revision: revision.current,
     });
     if (!result.success) throw new Error(result.error.message);
-    setEditing(false);
-    setRefresh((value) => value + 1);
+    if (
+      result.output.action !== 'edit' ||
+      result.output.revision === undefined
+    ) {
+      throw new Error('The server did not confirm the saved revision.');
+    }
+    revision.current = result.output.revision;
   };
 
   return (
@@ -102,41 +109,42 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
           </p>
           <h1 className="text-3xl font-semibold">{page.name}</h1>
         </div>
-        {!editing && (
-          <div className="flex gap-2">
-            {page.canEdit && (
-              <Button variant="outline" onClick={() => setEditing(true)}>
-                Edit page
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              onClick={() => setRefresh((value) => value + 1)}
-            >
-              Reload
-            </Button>
-          </div>
+        {!page.canEdit && (
+          <Button
+            variant="ghost"
+            onClick={() => setRefresh((value) => value + 1)}
+          >
+            Reload
+          </Button>
         )}
       </header>
-      {editing ? (
-        <SharedPageEditor
-          pageId={pageId}
-          content={page.content}
-          onSave={save}
-          onCancel={() => setEditing(false)}
-        />
-      ) : (
-        <SharedPageDocument
-          pageId={pageId}
-          content={page.content}
-          pages={page.pages}
-          pagePlacements={page.pagePlacements}
-          databases={page.databases}
-          databasePlacements={page.databasePlacements}
-          linkedDatabasePlacements={page.linkedDatabasePlacements}
-          files={page.files}
-          filePlacements={page.filePlacements}
-        />
+      <SharedPageDocument
+        pageId={pageId}
+        content={page.content}
+        pages={page.pages}
+        pagePlacements={page.pagePlacements}
+        databases={page.databases}
+        databasePlacements={page.databasePlacements}
+        linkedDatabasePlacements={page.linkedDatabasePlacements}
+        files={page.files}
+        filePlacements={page.filePlacements}
+        renderEditor={
+          page.canEdit && !unsupported
+            ? (content) => (
+                <SharedPageEditor
+                  pageId={pageId}
+                  content={content}
+                  onSave={save}
+                  onUnsupported={() => setUnsupported(true)}
+                />
+              )
+            : undefined
+        }
+      />
+      {unsupported && (
+        <p role="alert" className="text-sm text-muted-foreground">
+          Some blocks on this page cannot be edited in the shared view.
+        </p>
       )}
     </article>
   );

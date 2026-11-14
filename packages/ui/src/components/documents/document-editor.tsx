@@ -27,6 +27,7 @@ import { RichTextContent, richTextContentSchema } from '@colanode/core';
 import { encodeState, YDoc } from '@colanode/crdt';
 import { DocumentBlockMenu } from '@colanode/ui/components/documents/document-block-menu';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
+import { sharedDocumentEditorClass } from '@colanode/ui/editor/classes';
 import {
   BlockquoteCommand,
   BulletListCommand,
@@ -343,8 +344,7 @@ export const DocumentEditor = ({
       ],
       editorProps: {
         attributes: {
-          class:
-            'prose-lg prose-stone dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full text-foreground',
+          class: sharedDocumentEditorClass,
           spellCheck: 'false',
         },
         handleKeyDown: (_, event) => {

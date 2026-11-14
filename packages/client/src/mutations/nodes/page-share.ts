@@ -73,7 +73,8 @@ export type PageShareMutationOutput =
       invitations: PageShareInvitation[];
     }
   | { action: 'invite'; token?: string }
-  | { action: 'set' | 'cancel-invitation' | 'edit' };
+  | { action: 'set' | 'cancel-invitation' }
+  | { action: 'edit'; revision?: string };
 
 declare module '@colanode/client/mutations' {
   interface MutationMap {

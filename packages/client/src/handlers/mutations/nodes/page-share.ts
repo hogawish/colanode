@@ -84,11 +84,14 @@ export class PageShareMutationHandler
             json: { email: input.email },
           });
           return { action: 'cancel-invitation' };
-        case 'edit':
-          await client.put(path, {
-            json: { revision: input.revision, content: input.content },
-          });
-          return { action: 'edit' };
+        case 'edit': {
+          const { revision } = await client
+            .put(path, {
+              json: { revision: input.revision, content: input.content },
+            })
+            .json<{ revision?: string }>();
+          return { action: 'edit', revision };
+        }
       }
     } catch (error) {
       const apiError = await parseApiError(error);

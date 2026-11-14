@@ -27,3 +27,5 @@ export const defaultClasses = {
   tableHeaderWrapper: 'border',
   tableHeader: 'flex p-1 px-2 items-center font-semibold bg-muted',
 };
+export const sharedDocumentEditorClass =
+  'prose-lg prose-stone dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full text-foreground';
