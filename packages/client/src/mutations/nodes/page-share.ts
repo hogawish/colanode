@@ -35,25 +35,30 @@ export type SharedPage = {
 export type PageShareRole = 'viewer' | 'editor';
 export type PageShareInvitation = { email: string; role: PageShareRole };
 export type PageShareViewer = NamedItem & PageShareInvitation;
+export type ManagedPageShare = NamedItem & { role: PageShareRole };
 
-export type PageShareMutationInput = {
-  type: 'page.share';
-  userId: string;
-  pageId: string;
-} & (
+type PageShareAction =
   | { action: 'read' }
   | { action: 'read-database'; databaseId: string }
   | { action: 'read-linked-database'; blockId: string }
   | { action: 'list' }
-  | { action: 'set'; viewerId: string; enabled: boolean }
+  | { action: 'set'; viewerId: string; enabled: boolean; role?: PageShareRole }
   | ({ action: 'invite' } & PageShareInvitation)
   | { action: 'cancel-invitation'; email: string }
-  | { action: 'edit'; revision: string | null; content: RichTextContent }
+  | { action: 'edit'; revision: string | null; content: RichTextContent };
+
+export type PageShareMutationInput = {
+  type: 'page.share';
+  userId: string;
+} & (
+  | { action: 'list-user'; viewerId: string }
+  | ({ pageId: string } & PageShareAction)
 );
 
 export type PageShareMutationOutput =
   | { action: 'read'; page: SharedPage }
   | { action: 'read-database'; database: SharedDatabase }
+  | { action: 'list-user'; pages: ManagedPageShare[] }
   | {
       action: 'list';
       viewers: PageShareViewer[];

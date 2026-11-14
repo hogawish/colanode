@@ -30,7 +30,7 @@ it('shares a single page and its children and attachments until access is remove
   const [admin, viewer] = await Promise.all([
     createUser({ account: owner, workspaceId: workspace.id, role: 'owner' }),
     createUser({ account: reader, workspaceId: workspace.id, role: 'guest' }),
-    createUser({ account: other, workspaceId: workspace.id, role: 'guest' }),
+    createUser({ account: other, workspaceId: workspace.id, role: 'admin' }),
   ]);
   const [adminDevice, viewerDevice, outsideDevice] = await Promise.all([
     createDevice({ accountId: owner.id }),
@@ -208,12 +208,16 @@ it('shares a single page and its children and attachments until access is remove
   const privateFile = await addAttachment(siblingId, 'Private.txt');
 
   const url = `${endpoint}/page-shares/${pageId}`;
-  const setAccess = (headers: Record<string, string>, enabled: boolean) =>
+  const setAccess = (
+    headers: Record<string, string>,
+    enabled: boolean,
+    role?: 'viewer' | 'editor'
+  ) =>
     app.inject({
       method: 'PUT',
       url: `${url}/viewers`,
       headers,
-      payload: { viewerId: viewer.id, enabled },
+      payload: { viewerId: viewer.id, enabled, role },
     });
   const read = (id: string, headers = viewerHeaders) =>
     app.inject({ url: `${endpoint}/page-shares/${id}`, headers });
@@ -221,6 +225,11 @@ it('shares a single page and its children and attachments until access is remove
     app.inject({ url: `${endpoint}/files/${id}`, headers: viewerHeaders });
   const sharedPages = (headers = viewerHeaders) =>
     app.inject({ url: `${endpoint}/page-shares/mine`, headers });
+  const managedPages = (headers = adminHeaders) =>
+    app.inject({
+      url: `${endpoint}/page-shares/by-user/${viewer.id}`,
+      headers,
+    });
   const readDatabase = (id: string, headers = viewerHeaders) =>
     app.inject({ url: `${url}/databases/${id}`, headers });
   const readLinkedDatabase = (headers = viewerHeaders) =>
@@ -230,6 +239,19 @@ it('shares a single page and its children and attachments until access is remove
   expect((await read(pageId)).statusCode).toBe(404);
   expect((await setAccess(viewerHeaders, true)).statusCode).toBe(404);
   expect((await setAccess(adminHeaders, true)).statusCode).toBe(200);
+  expect((await managedPages()).json()).toEqual({
+    pages: [{ id: pageId, name: 'Shared original', role: 'viewer' }],
+  });
+  expect((await managedPages()).headers['cache-control']).toBe(
+    'private, no-store'
+  );
+  expect((await managedPages(viewerHeaders)).statusCode).toBe(404);
+  expect((await managedPages(outsideHeaders)).json()).toEqual({ pages: [] });
+  expect((await setAccess(adminHeaders, true, 'editor')).statusCode).toBe(200);
+  expect((await managedPages()).json().pages[0].role).toBe('editor');
+  expect((await read(childId)).json().canEdit).toBe(true);
+  expect((await setAccess(adminHeaders, true, 'viewer')).statusCode).toBe(200);
+  expect((await read(childId)).json().canEdit).toBe(false);
   const list = await sharedPages();
   expect(list.headers['cache-control']).toBe('private, no-store');
   expect(list.json()).toEqual({
@@ -313,6 +335,8 @@ it('shares a single page and its children and attachments until access is remove
   expect((await download(privateFile)).statusCode).toBe(403);
 
   expect((await setAccess(adminHeaders, false)).statusCode).toBe(200);
+  expect((await managedPages()).json()).toEqual({ pages: [] });
+  expect((await setAccess(adminHeaders, true, 'editor')).statusCode).toBe(404);
   expect((await sharedPages()).json()).toEqual({ pages: [] });
   expect((await read(pageId)).statusCode).toBe(404);
   expect((await read(childId)).statusCode).toBe(404);

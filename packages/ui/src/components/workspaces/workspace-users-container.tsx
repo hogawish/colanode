@@ -1,20 +1,29 @@
 import { useLiveInfiniteQuery } from '@tanstack/react-db';
+import { useState } from 'react';
 import { InView } from 'react-intersection-observer';
 
 import { WorkspaceRole } from '@colanode/core';
 import { Avatar } from '@colanode/ui/components/avatars/avatar';
 import { Container } from '@colanode/ui/components/layouts/containers/container';
+import { Button } from '@colanode/ui/components/ui/button';
 import { Separator } from '@colanode/ui/components/ui/separator';
 import { WorkspaceUserInvite } from '@colanode/ui/components/workspaces/workspace-user-invite';
+import { WorkspaceUserPageAccess } from '@colanode/ui/components/workspaces/workspace-user-page-access';
 import { WorkspaceUserRoleDropdown } from '@colanode/ui/components/workspaces/workspace-user-role-dropdown';
 import { WorkspaceUsersBreadcrumb } from '@colanode/ui/components/workspaces/workspace-users-breadcrumb';
+import { useApp } from '@colanode/ui/contexts/app';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
 
 const USERS_PER_PAGE = 50;
 
 export const WorkspaceUsersContainer = () => {
   const workspace = useWorkspace();
+  const app = useApp();
   const canEditUsers = workspace.role === 'owner' || workspace.role === 'admin';
+  const [pageAccess, setPageAccess] = useState<{
+    viewerId: string;
+    name: string;
+  } | null>(null);
 
   const usersQuery = useLiveInfiniteQuery(
     (q) =>
@@ -75,6 +84,16 @@ export const WorkspaceUsersContainer = () => {
                     value={role}
                     canEdit={canEditUsers}
                   />
+                  {canEditUsers && app.type === 'web' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      aria-label={`Page access for ${name}`}
+                      onClick={() => setPageAccess({ viewerId: user.id, name })}
+                    >
+                      Page access
+                    </Button>
+                  )}
                 </div>
               );
             })}
@@ -89,6 +108,12 @@ export const WorkspaceUsersContainer = () => {
           </div>
         </div>
       </div>
+      {pageAccess && (
+        <WorkspaceUserPageAccess
+          {...pageAccess}
+          onClose={() => setPageAccess(null)}
+        />
+      )}
     </Container>
   );
 };

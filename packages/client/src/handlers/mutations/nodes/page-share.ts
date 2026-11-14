@@ -3,6 +3,7 @@ import { parseApiError } from '@colanode/client/lib/ky';
 import type { MutationHandler } from '@colanode/client/lib/types';
 import { MutationError, MutationErrorCode } from '@colanode/client/mutations';
 import type {
+  ManagedPageShare,
   PageShareInvitation,
   PageShareMutationInput,
   PageShareMutationOutput,
@@ -20,9 +21,16 @@ export class PageShareMutationHandler
   ): Promise<PageShareMutationOutput> {
     const workspace = this.getWorkspace(input.userId);
     const client = workspace.account.client;
-    const path = `v1/workspaces/${workspace.workspaceId}/page-shares/${encodeURIComponent(input.pageId)}`;
+    const base = `v1/workspaces/${workspace.workspaceId}/page-shares`;
 
     try {
+      if (input.action === 'list-user') {
+        const { pages } = await client
+          .get(`${base}/by-user/${encodeURIComponent(input.viewerId)}`)
+          .json<{ pages: ManagedPageShare[] }>();
+        return { action: 'list-user', pages };
+      }
+      const path = `${base}/${encodeURIComponent(input.pageId)}`;
       switch (input.action) {
         case 'read':
           return {
@@ -56,7 +64,11 @@ export class PageShareMutationHandler
         }
         case 'set':
           await client.put(`${path}/viewers`, {
-            json: { viewerId: input.viewerId, enabled: input.enabled },
+            json: {
+              viewerId: input.viewerId,
+              enabled: input.enabled,
+              role: input.role,
+            },
           });
           return { action: 'set' };
         case 'invite': {

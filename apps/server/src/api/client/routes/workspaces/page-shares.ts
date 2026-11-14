@@ -90,6 +90,52 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
     return { pages };
   });
 
+  instance.get(
+    '/by-user/:viewerId',
+    {
+      schema: {
+        params: z.object({ workspaceId: z.string(), viewerId: z.string() }),
+      },
+    },
+    async (request, reply) => {
+      reply.header('Cache-Control', 'private, no-store');
+      const { id: workspaceId, user } = request.workspace;
+      if (!hasWorkspaceRole(user.role, 'admin')) {
+        return reply.code(404).send({
+          code: ApiErrorCode.NotFound,
+          message: 'Page sharing is unavailable.',
+        });
+      }
+      const grants = await database
+        .selectFrom('page_shares')
+        .innerJoin('nodes', 'nodes.id', 'page_shares.page_id')
+        .innerJoin('users', 'users.id', 'page_shares.viewer_id')
+        .select(['nodes.id', 'page_shares.role'])
+        .where('users.id', '=', request.params.viewerId)
+        .where('users.workspace_id', '=', workspaceId)
+        .where('nodes.workspace_id', '=', workspaceId)
+        .where('nodes.type', '=', 'page')
+        .execute();
+
+      const pages = [];
+      for (const grant of grants) {
+        const tree = await getPageTree(workspaceId, grant.id);
+        const page = tree.at(-1);
+        if (
+          page?.type !== 'page' ||
+          extractNodeRole(tree, user.id) !== 'admin'
+        ) {
+          continue;
+        }
+        pages.push({ id: page.id, name: page.name, role: grant.role });
+      }
+      pages.sort(
+        (a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id)
+      );
+      return { pages };
+    }
+  );
+
   instance.get('/:pageId', { schema: { params } }, async (request, reply) => {
     reply.header('Cache-Control', 'private, no-store');
     const { pageId } = request.params;
@@ -348,12 +394,16 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
     {
       schema: {
         params,
-        body: z.object({ viewerId: z.string(), enabled: z.boolean() }),
+        body: z.object({
+          viewerId: z.string(),
+          enabled: z.boolean(),
+          role: z.enum(['viewer', 'editor']).optional(),
+        }),
       },
     },
     async (request, reply) => {
       const { pageId } = request.params;
-      const { viewerId, enabled } = request.body;
+      const { viewerId, enabled, role: pageRole } = request.body;
       const { id: workspaceId, user } = request.workspace;
       const role = extractNodeRole(
         await getPageTree(workspaceId, pageId),
@@ -381,13 +431,29 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
             message: 'Choose an active workspace member.',
           });
         }
-        await database
-          .insertInto('page_shares')
-          .values({ page_id: pageId, viewer_id: viewer.id })
-          .onConflict((conflict) =>
-            conflict.columns(['page_id', 'viewer_id']).doNothing()
-          )
-          .execute();
+        if (pageRole) {
+          const updated = await database
+            .updateTable('page_shares')
+            .set({ role: pageRole })
+            .where('page_id', '=', pageId)
+            .where('viewer_id', '=', viewer.id)
+            .returning('viewer_id')
+            .executeTakeFirst();
+          if (!updated) {
+            return reply.code(404).send({
+              code: ApiErrorCode.NotFound,
+              message: 'This direct page share no longer exists.',
+            });
+          }
+        } else {
+          await database
+            .insertInto('page_shares')
+            .values({ page_id: pageId, viewer_id: viewer.id })
+            .onConflict((conflict) =>
+              conflict.columns(['page_id', 'viewer_id']).doNothing()
+            )
+            .execute();
+        }
       } else {
         await database
           .deleteFrom('page_shares')
