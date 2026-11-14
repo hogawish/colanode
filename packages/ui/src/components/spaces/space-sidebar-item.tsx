@@ -1,5 +1,5 @@
 import { eq, useLiveQuery } from '@tanstack/react-db';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Pin } from 'lucide-react';
 
 import { LocalSpaceNode } from '@colanode/client/types';
 import { Avatar } from '@colanode/ui/components/avatars/avatar';
@@ -21,9 +21,17 @@ import { sortSpaceChildren } from '@colanode/ui/lib/spaces';
 
 interface SpaceSidebarItemProps {
   space: LocalSpaceNode;
+  pinned?: boolean;
+  onTogglePin?: () => void;
+  onOpenReference?: () => void;
 }
 
-export const SpaceSidebarItem = ({ space }: SpaceSidebarItemProps) => {
+export const SpaceSidebarItem = ({
+  space,
+  pinned,
+  onTogglePin,
+  onOpenReference,
+}: SpaceSidebarItemProps) => {
   const workspace = useWorkspace();
   const app = useApp();
   const visibility = useSpaceSidebarVisibility(space);
@@ -57,10 +65,17 @@ export const SpaceSidebarItem = ({ space }: SpaceSidebarItemProps) => {
                 className="size-4 group-hover/space-row:hidden shrink-0"
               />
               <ChevronRight className="hidden size-4 transition-transform duration-200 group-hover/space-row:block group-data-[state=open]/sidebar-space:rotate-90 cursor-pointer rounded hover:bg-sidebar-accent/50" />
-              <span>{space.name}</span>
+              <span className="truncate">{space.name}</span>
+              {pinned && (
+                <Pin aria-label="Pinned" className="size-3 shrink-0" />
+              )}
             </button>
           </CollapsibleTrigger>
-          <SpaceSidebarDropdown space={space} />
+          <SpaceSidebarDropdown
+            space={space}
+            pinned={pinned}
+            onTogglePin={onTogglePin}
+          />
         </div>
         <CollapsibleContent>
           <ul className="ml-3 flex min-w-0 flex-col gap-0.5 py-0.5">
@@ -69,7 +84,9 @@ export const SpaceSidebarItem = ({ space }: SpaceSidebarItemProps) => {
                 <SidebarItem node={child} />
               </li>
             ))}
-            {app.type === 'web' && <SpacePageReferenceLinks space={space} />}
+            {app.type === 'web' && (
+              <SpacePageReferenceLinks space={space} onOpen={onOpenReference} />
+            )}
           </ul>
         </CollapsibleContent>
       </Collapsible>

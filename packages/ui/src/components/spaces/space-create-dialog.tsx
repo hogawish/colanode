@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from '@colanode/ui/components/ui/dialog';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
+import { parseSpaceTags } from '@colanode/ui/lib/spaces';
 
 interface SpaceCreateDialogProps {
   open: boolean;
@@ -38,6 +39,7 @@ export const SpaceCreateDialog = ({
         type: 'space',
         name: values.name,
         description: values.description,
+        tags: parseSpaceTags(values.tags),
         avatar: values.avatar,
         collaborators: {
           [workspace.userId]: 'admin',

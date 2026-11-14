@@ -17,8 +17,10 @@ import { useWorkspace } from '@colanode/ui/contexts/workspace';
 
 export const SpacePageReferenceLinks = ({
   space,
+  onOpen,
 }: {
   space: LocalSpaceNode;
+  onOpen?: () => void;
 }) => {
   const { userId, workspaceId } = useWorkspace();
   const ids = Object.keys(space.pageReferences ?? {}).sort();
@@ -53,6 +55,7 @@ export const SpacePageReferenceLinks = ({
         }}
         className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-sidebar-accent"
         aria-label={page.name + ' (page reference)'}
+        onClick={onOpen}
       >
         <Link2 className="size-4 shrink-0 text-muted-foreground" />
         <span className="truncate">{page.name}</span>

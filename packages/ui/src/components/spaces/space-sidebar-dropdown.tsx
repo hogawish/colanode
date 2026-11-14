@@ -6,6 +6,8 @@ import {
   Folder,
   Link2,
   MessageCircle,
+  Pin,
+  PinOff,
   Plus,
   Settings,
   StickyNote,
@@ -32,9 +34,15 @@ import { useWorkspace } from '@colanode/ui/contexts/workspace';
 
 interface SpaceSidebarDropdownProps {
   space: LocalSpaceNode;
+  pinned?: boolean;
+  onTogglePin?: () => void;
 }
 
-export const SpaceSidebarDropdown = ({ space }: SpaceSidebarDropdownProps) => {
+export const SpaceSidebarDropdown = ({
+  space,
+  pinned,
+  onTogglePin,
+}: SpaceSidebarDropdownProps) => {
   const navigate = useNavigate({ from: '/workspace/$userId' });
   const app = useApp();
   const { userId } = useWorkspace();
@@ -50,13 +58,26 @@ export const SpaceSidebarDropdown = ({ space }: SpaceSidebarDropdownProps) => {
     <Fragment>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="text-muted-foreground opacity-0 transition-opacity group-hover/sidebar-space:opacity-100 flex items-center justify-center p-0 mr-1 size-4 focus-visible:outline-none focus-visible:ring-0 cursor-pointer">
+          <button
+            aria-label={space.name + ' options'}
+            className="text-muted-foreground opacity-0 transition-opacity group-hover/sidebar-space:opacity-100 focus-visible:opacity-100 flex items-center justify-center p-0 mr-1 size-4 cursor-pointer"
+          >
             <Ellipsis />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="ml-1 w-72">
           <DropdownMenuLabel>{space.name ?? 'Unnamed'}</DropdownMenuLabel>
           <DropdownMenuSeparator />
+          {onTogglePin && (
+            <DropdownMenuItem onSelect={onTogglePin}>
+              {pinned ? (
+                <PinOff className="size-4" />
+              ) : (
+                <Pin className="size-4" />
+              )}
+              {pinned ? 'Unpin Space' : 'Pin Space'}
+            </DropdownMenuItem>
+          )}
           {app.type === 'web' && space.collaborators[userId] === 'admin' && (
             <DropdownMenuItem onSelect={() => setOpenReferences(true)}>
               <Link2 className="size-4" /> Page references

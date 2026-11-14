@@ -1,9 +1,11 @@
-import { useRouter } from '@tanstack/react-router';
+import { and, eq, useLiveQuery } from '@tanstack/react-db';
+import { useRouter, useRouterState } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
 import { collections } from '@colanode/ui/collections';
 import { buildMetadataKey } from '@colanode/ui/collections/metadata';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
+import { recordSpaceVisit } from '@colanode/ui/lib/space-visits';
 
 const upsertMetadata = (namespace: string, key: string, value: unknown) => {
   const metadataKey = buildMetadataKey(namespace, key);
@@ -26,6 +28,43 @@ const upsertMetadata = (namespace: string, key: string, value: unknown) => {
 export const WorkspaceLocationTracker = () => {
   const router = useRouter();
   const workspace = useWorkspace();
+  const nodeId = useRouterState({
+    select: ({ matches }) => {
+      for (const match of matches) {
+        if (match.routeId === '/workspace/$userId/$nodeId') {
+          return match.params.nodeId;
+        }
+      }
+    },
+  });
+  const node = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: workspace.collections.nodes })
+        .where(({ nodes }) => eq(nodes.id, nodeId))
+        .select(({ nodes }) => ({ rootId: nodes.rootId }))
+        .findOne(),
+    [workspace.userId, nodeId]
+  ).data;
+  const rootId = node?.rootId;
+  const space = useLiveQuery(
+    (q) =>
+      q
+        .from({ nodes: workspace.collections.nodes })
+        .where(({ nodes }) =>
+          and(eq(nodes.id, rootId), eq(nodes.type, 'space'))
+        )
+        .select(({ nodes }) => ({ id: nodes.id }))
+        .findOne(),
+    [workspace.userId, rootId]
+  ).data;
+  const spaceId = nodeId && space?.id === rootId ? space?.id : undefined;
+
+  useEffect(() => {
+    if (spaceId) {
+      recordSpaceVisit(workspace.userId, spaceId);
+    }
+  }, [workspace.userId, spaceId]);
 
   useEffect(() => {
     router.subscribe('onLoad', (event) => {

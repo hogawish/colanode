@@ -16,6 +16,7 @@ export const spaceAttributesSchema = z.object({
   type: z.literal('space'),
   name: z.string(),
   description: z.string().nullable().optional(),
+  tags: z.array(z.string()).optional(),
   avatar: z.string().nullable().optional(),
   collaborators: z.record(z.string(), nodeRoleEnum),
   visibility: z.enum(['public', 'private']).default('private'),

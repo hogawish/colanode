@@ -21,6 +21,7 @@ import { cn } from '@colanode/ui/lib/utils';
 const formSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters long.'),
   description: z.string(),
+  tags: z.string(),
   avatar: z.string().optional().nullable(),
 });
 
@@ -29,6 +30,7 @@ export type SpaceFormValues = z.infer<typeof formSchema>;
 const defaultValues: SpaceFormValues = {
   name: '',
   description: '',
+  tags: '',
   avatar: null,
 };
 
@@ -158,6 +160,23 @@ export const SpaceForm = ({
                   </Field>
                 );
               }}
+            />
+            <form.Field
+              name="tags"
+              children={(field) => (
+                <Field>
+                  <FieldLabel htmlFor={field.name}>Tags</FieldLabel>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    readOnly={readOnly}
+                    placeholder="Separate tags with commas"
+                  />
+                </Field>
+              )}
             />
           </FieldGroup>
         </div>

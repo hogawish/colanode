@@ -1,6 +1,16 @@
 import { LocalNode, LocalSpaceNode } from '@colanode/client/types';
 import { compareString, generateFractionalIndex } from '@colanode/core';
 
+export const parseSpaceTags = (value: string) =>
+  Array.from(
+    new Set(
+      value
+        .split(/[,、，]/)
+        .map((tag) => tag.trim().normalize())
+        .filter(Boolean)
+    )
+  );
+
 export const sortSpaceChildren = (
   space: LocalSpaceNode,
   children: LocalNode[]

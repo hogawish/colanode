@@ -8,6 +8,7 @@ import {
 } from '@colanode/ui/components/spaces/space-form';
 import { Separator } from '@colanode/ui/components/ui/separator';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
+import { parseSpaceTags } from '@colanode/ui/lib/spaces';
 
 interface SpaceContainerProps {
   space: LocalSpaceNode;
@@ -33,6 +34,7 @@ export const SpaceContainer = ({ space, role }: SpaceContainerProps) => {
 
       draft.name = values.name;
       draft.description = values.description;
+      draft.tags = parseSpaceTags(values.tags);
       draft.avatar = values.avatar;
     });
   };
@@ -48,6 +50,7 @@ export const SpaceContainer = ({ space, role }: SpaceContainerProps) => {
           values={{
             name: space.name,
             description: space.description ?? '',
+            tags: space.tags?.join(', ') ?? '',
             avatar: space.avatar ?? null,
           }}
           readOnly={!canEdit}
