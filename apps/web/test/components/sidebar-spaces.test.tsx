@@ -175,7 +175,22 @@ it('builds filter options only from the current member’s Spaces and combines s
   fireEvent.click(screen.getByRole('button', { name: 'Alpha' }));
   expect(order()).toEqual(['Alpha', 'Zebra']);
 
+  fireEvent.click(filters.getByLabelText('Company A'));
+  fireEvent.click(filters.getByLabelText('Project editor'));
+  fireEvent.click(filters.getByLabelText('Shared'));
   fireEvent.click(filters.getByLabelText('Delivery'));
+  expect(order()).toEqual(['Zebra']);
+  fireEvent.change(filters.getByLabelText('Tags match mode'), {
+    target: { value: 'any' },
+  });
+  // The separate member condition still has to match.
+  expect(order()).toEqual(['Zebra']);
+  fireEvent.change(filters.getByLabelText('Members match mode'), {
+    target: { value: 'any' },
+  });
+  expect(order()).toEqual(['Alpha', 'Zebra']);
+  fireEvent.click(filters.getByLabelText('Project editor'));
+  fireEvent.click(filters.getByLabelText('Company A'));
   fireEvent.change(filters.getByLabelText('View name'), {
     target: { value: 'アニメーター用' },
   });
@@ -184,6 +199,11 @@ it('builds filter options only from the current member’s Spaces and combines s
   fireEvent.change(viewList, { target: { value: '' } });
   expect(order()).toEqual(['Alpha', 'Zebra']);
   fireEvent.change(viewList, { target: { value: 'アニメーター用' } });
+  expect(filters.getByLabelText('Tags match mode')).toHaveValue('any');
+  expect(order()).toEqual(['Alpha', 'Zebra']);
+  fireEvent.change(filters.getByLabelText('Tags match mode'), {
+    target: { value: 'all' },
+  });
   expect(order()).toEqual(['Zebra']);
   fireEvent.click(screen.getByRole('button', { name: 'Hide Zebra' }));
   expect(screen.queryByRole('button', { name: 'Zebra' })).toBeNull();
@@ -198,7 +218,7 @@ it('builds filter options only from the current member’s Spaces and combines s
     name: 'アニメーター用',
     search: '',
     members: [],
-    tags: ['Delivery'],
+    tags: ['Delivery', 'Shared'],
     sort: 'name',
   });
   fixture.hash = new URL(shareLink).hash;
@@ -215,10 +235,25 @@ it('builds filter options only from the current member’s Spaces and combines s
     screen.getByRole('button', { name: 'Sort and filter Spaces' })
   );
   const companyBFilters = within(await screen.findByRole('dialog'));
+  expect(companyBFilters.getByLabelText('Tags match mode')).toHaveValue('all');
   expect(companyBFilters.getByLabelText('B internal')).toBeInTheDocument();
   expect(
     companyBFilters.queryByLabelText(/Include my hidden Spaces/)
   ).toBeNull();
+
+  const anyViewLink = buildSpaceViewLink('http://localhost:18400', 'demo', {
+    name: '作画または共通',
+    search: '',
+    members: [],
+    tags: ['Unavailable', 'Shared'],
+    tagMatch: 'any',
+    sort: 'name',
+  });
+  fixture.hash = new URL(anyViewLink).hash;
+  rerender(<SidebarSpaces />);
+  expect(companyBFilters.getByLabelText('Tags match mode')).toHaveValue('any');
+  expect(order()).toEqual(['Alpha', 'Zebra']);
+  expect(screen.queryByRole('button', { name: 'Private B' })).toBeNull();
 
   fixture.hash = new URL(
     buildSpaceViewLink('http://localhost:18400', 'demo', {

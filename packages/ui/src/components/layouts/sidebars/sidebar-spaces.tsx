@@ -22,7 +22,9 @@ import { useWorkspace } from '@colanode/ui/contexts/workspace';
 import { useMetadata } from '@colanode/ui/hooks/use-metadata';
 import {
   buildSpaceViewLink,
+  matchesSpaceFilter,
   readSpaceViewHash,
+  type SpaceMatchMode,
   type SpaceView,
 } from '@colanode/ui/lib/space-views';
 import {
@@ -44,15 +46,32 @@ const FilterOptions = ({
   title,
   options,
   selected,
+  mode,
   onToggle,
+  onModeChange,
 }: {
   title: string;
   options: { id: string; label: string }[];
   selected: string[];
+  mode: SpaceMatchMode;
   onToggle: (id: string) => void;
+  onModeChange: (mode: SpaceMatchMode) => void;
 }) => (
   <fieldset className="min-w-0">
     <legend className="mb-1 text-sm font-medium">{title}</legend>
+    {(options.length > 1 || selected.length > 1) && (
+      <select
+        aria-label={title + ' match mode'}
+        className="mb-1 h-7 max-w-full rounded-md border bg-background px-2 text-xs"
+        value={mode}
+        onChange={(event) =>
+          onModeChange(event.target.value === 'any' ? 'any' : 'all')
+        }
+      >
+        <option value="all">Match all</option>
+        <option value="any">Match any</option>
+      </select>
+    )}
     {options.length ? (
       <div className="max-h-36 space-y-0.5 overflow-y-auto">
         {options.map(({ id, label }) => (
@@ -93,6 +112,8 @@ const WorkspaceSpaces = () => {
   const [search, setSearch] = useState('');
   const [members, setMembers] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
+  const [memberMatch, setMemberMatch] = useState<SpaceMatchMode>('all');
+  const [tagMatch, setTagMatch] = useState<SpaceMatchMode>('all');
   const [viewName, setViewName] = useState('');
   const [viewSort, setViewSort] = useState<SpaceView['sort']>();
   const [showHidden, setShowHidden] = useState(false);
@@ -119,6 +140,8 @@ const WorkspaceSpaces = () => {
     setSearch(view.search);
     setMembers(view.members);
     setTags(view.tags);
+    setMemberMatch(view.memberMatch ?? 'all');
+    setTagMatch(view.tagMatch ?? 'all');
     setViewSort(view.sort);
   };
 
@@ -132,6 +155,8 @@ const WorkspaceSpaces = () => {
     search: search.trim(),
     members,
     tags,
+    memberMatch,
+    tagMatch,
     sort: selectedSort,
   });
 
@@ -207,8 +232,12 @@ const WorkspaceSpaces = () => {
     (space) =>
       (showHidden || !hiddenIds.has(space.id)) &&
       space.name.normalize('NFKC').toLocaleLowerCase().includes(searchTerm) &&
-      members.every((id) => space.collaborators[id]) &&
-      tags.every((tag) => space.tags?.includes(tag))
+      matchesSpaceFilter(members, memberMatch, (id) =>
+        Object.hasOwn(space.collaborators, id)
+      ) &&
+      matchesSpaceFilter(tags, tagMatch, (tag) =>
+        (space.tags ?? []).includes(tag)
+      )
   );
   visibleSpaces.sort((a, b) => {
     const pinOrder = Number(pinned.has(b.id)) - Number(pinned.has(a.id));
@@ -309,13 +338,17 @@ const WorkspaceSpaces = () => {
               title="Members"
               options={memberOptions}
               selected={members}
+              mode={memberMatch}
               onToggle={(id) => setMembers(toggle(members, id))}
+              onModeChange={setMemberMatch}
             />
             <FilterOptions
               title="Tags"
               options={tagOptions}
               selected={tags}
+              mode={tagMatch}
               onToggle={(tag) => setTags(toggle(tags, tag))}
+              onModeChange={setTagMatch}
             />
             {missingFilter && (
               <p className="text-xs text-muted-foreground">
@@ -329,6 +362,8 @@ const WorkspaceSpaces = () => {
                 onClick={() => {
                   setMembers([]);
                   setTags([]);
+                  setMemberMatch('all');
+                  setTagMatch('all');
                 }}
               >
                 Clear filters

@@ -1,14 +1,27 @@
 import { z } from 'zod/v4';
 
+const matchMode = z.enum(['all', 'any']);
+
 const spaceViewSchema = z.object({
   name: z.string().trim().min(1),
   search: z.string(),
   members: z.array(z.string()),
   tags: z.array(z.string()),
+  memberMatch: matchMode.optional(),
+  tagMatch: matchMode.optional(),
   sort: z.enum(['created', 'name', 'recent']),
 });
 
 export type SpaceView = z.infer<typeof spaceViewSchema>;
+export type SpaceMatchMode = z.infer<typeof matchMode>;
+
+export const matchesSpaceFilter = (
+  selected: string[],
+  mode: SpaceMatchMode,
+  hasValue: (value: string) => boolean
+) =>
+  selected.length === 0 ||
+  (mode === 'any' ? selected.some(hasValue) : selected.every(hasValue));
 
 const prefix = 'space-view=';
 
