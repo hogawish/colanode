@@ -114,7 +114,15 @@ export const WorkspaceUserPageAccess = ({ viewerId, name, onClose }: Props) => {
                       onClick={onClose}
                       className="min-w-24 flex-1 break-words text-sm underline-offset-2 hover:underline"
                     >
-                      {page.name}
+                      {page.location && (
+                        <span className="block text-xs text-muted-foreground">
+                          {[
+                            page.location.spaceName ?? 'Private Space',
+                            ...page.location.ancestorNames,
+                          ].join(' › ')}
+                        </span>
+                      )}
+                      <span>{page.name}</span>
                     </Link>
                     <select
                       aria-label={`Access to ${page.name}`}

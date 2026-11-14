@@ -4,11 +4,13 @@ import { z } from 'zod/v4';
 import {
   ApiErrorCode,
   type Block,
+  extractNodeName,
   extractNodeRole,
   FileStatus,
   type FileSubtype,
   hasNodeRole,
   hasWorkspaceRole,
+  type Node,
   richTextContentSchema,
   UserStatus,
 } from '@colanode/core';
@@ -18,10 +20,12 @@ import { updateDocument } from '@colanode/server/lib/documents';
 import { fetchNodeTree, mapNode } from '@colanode/server/lib/nodes';
 import { inviteToPage } from '@colanode/server/lib/page-invitations';
 import {
+  getSharedPageGrants,
   getSharedPageRole,
   isInSharedPageBody,
   isSharedFileBlock,
   mergeSharedPageBody,
+  resolveSharedPageRole,
   sharedPageBody,
 } from '@colanode/server/lib/page-shares';
 
@@ -38,6 +42,31 @@ const getPageTree = async (workspaceId: string, pageId: string) => {
     return [];
   }
   return rows.map(mapNode);
+};
+
+const getPageLocation = (
+  tree: Node[],
+  userId: string,
+  shares: readonly { page_id: string }[] = []
+) => {
+  const space = tree.find((node) => node.type === 'space');
+  const sharedIds = new Set(shares.map(({ page_id }) => page_id));
+  let sharedAncestor = false;
+  const ancestorNames = tree.slice(0, -1).flatMap((node, index) => {
+    if (sharedIds.has(node.id)) sharedAncestor = true;
+    if (
+      (node.type !== 'page' && node.type !== 'folder') ||
+      (!sharedAncestor && !extractNodeRole(tree.slice(0, index + 1), userId))
+    ) {
+      return [];
+    }
+    const name = extractNodeName(node);
+    return name ? [name] : [];
+  });
+  return {
+    spaceName: space && extractNodeRole(space, userId) ? space.name : null,
+    ancestorNames,
+  };
 };
 
 const linkedDatabaseId = (block?: Block) =>
@@ -127,7 +156,12 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         ) {
           continue;
         }
-        pages.push({ id: page.id, name: page.name, role: grant.role });
+        pages.push({
+          id: page.id,
+          name: page.name,
+          role: grant.role,
+          location: getPageLocation(tree, user.id),
+        });
       }
       pages.sort(
         (a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id)
@@ -143,7 +177,8 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
     const tree = await getPageTree(workspaceId, pageId);
     const page = tree.at(-1);
     const role = extractNodeRole(tree, user.id);
-    const shareRole = await getSharedPageRole(tree, user.id);
+    const shares = await getSharedPageGrants(tree, user.id);
+    const shareRole = resolveSharedPageRole(shares);
     if (page?.type !== 'page' || (!role && !shareRole)) {
       return reply
         .code(404)
@@ -244,6 +279,7 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         : [];
     return {
       name: page.name,
+      location: getPageLocation(tree, user.id, shares),
       content: body,
       revision: document?.revision ?? null,
       canEdit:

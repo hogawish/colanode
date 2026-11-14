@@ -44,6 +44,7 @@ it('shares a single page and its children and attachments until access is remove
   const rootId = await createSpaceNode({
     workspaceId: workspace.id,
     userId: admin.id,
+    name: 'Production Space',
   });
   const fixture = { workspaceId: workspace.id, userId: admin.id, rootId };
   const pageId = await createPageNode({
@@ -240,7 +241,14 @@ it('shares a single page and its children and attachments until access is remove
   expect((await setAccess(viewerHeaders, true)).statusCode).toBe(404);
   expect((await setAccess(adminHeaders, true)).statusCode).toBe(200);
   expect((await managedPages()).json()).toEqual({
-    pages: [{ id: pageId, name: 'Shared original', role: 'viewer' }],
+    pages: [
+      {
+        id: pageId,
+        name: 'Shared original',
+        role: 'viewer',
+        location: { spaceName: 'Production Space', ancestorNames: [] },
+      },
+    ],
   });
   expect((await managedPages()).headers['cache-control']).toBe(
     'private, no-store'
@@ -271,6 +279,7 @@ it('shares a single page and its children and attachments until access is remove
   expect(shared.headers['cache-control']).toBe('private, no-store');
   expect(shared.json()).toMatchObject({
     name: 'Shared original',
+    location: { spaceName: null, ancestorNames: [] },
     pages: [{ id: childId, name: 'Child' }],
     pagePlacements: [{ id: childId, parentId: pageId, index: 'a1' }],
     databasePlacements: [
@@ -314,6 +323,7 @@ it('shares a single page and its children and attachments until access is remove
   expect((await setSourceAccess(false)).statusCode).toBe(200);
   expect((await readLinkedDatabase()).statusCode).toBe(404);
   expect((await read(childId)).json()).toMatchObject({
+    location: { spaceName: null, ancestorNames: ['Shared original'] },
     files: [{ id: childFile, name: 'Child.txt' }],
     filePlacements: [{ id: childFile, parentId: childId, index: 'a0' }],
   });

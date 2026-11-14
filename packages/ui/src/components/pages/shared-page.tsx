@@ -86,7 +86,15 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
       className={`mx-auto w-full min-w-0 space-y-6 px-6 py-10 ${page.linkedDatabasePlacements?.length || page.databasePlacements?.some(({ inline }) => inline) ? '' : 'max-w-3xl'}`}
     >
       <header className="flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
+          {page.location && (
+            <p className="mb-1 break-words text-sm text-muted-foreground">
+              {[
+                page.location.spaceName ?? 'Private Space',
+                ...page.location.ancestorNames,
+              ].join(' › ')}
+            </p>
+          )}
           <p className="mb-1 text-sm text-muted-foreground">
             {page.canEdit
               ? 'Shared page · Can edit'

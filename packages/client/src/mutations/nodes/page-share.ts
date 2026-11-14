@@ -21,6 +21,7 @@ export type SharedFile = NamedItem & {
 };
 export type SharedPage = {
   name: string;
+  location?: SharedPageLocation;
   content: RichTextContent | null;
   revision: string | null;
   canEdit: boolean;
@@ -35,7 +36,14 @@ export type SharedPage = {
 export type PageShareRole = 'viewer' | 'editor';
 export type PageShareInvitation = { email: string; role: PageShareRole };
 export type PageShareViewer = NamedItem & PageShareInvitation;
-export type ManagedPageShare = NamedItem & { role: PageShareRole };
+export type SharedPageLocation = {
+  spaceName: string | null;
+  ancestorNames: string[];
+};
+export type ManagedPageShare = NamedItem & {
+  role: PageShareRole;
+  location?: SharedPageLocation;
+};
 
 type PageShareAction =
   | { action: 'read' }

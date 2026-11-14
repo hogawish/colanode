@@ -13,21 +13,32 @@ export const getPageAncestors = (nodes: readonly Node[]): string[] => {
 
 export type PageShareRole = 'viewer' | 'editor';
 
-export const getSharedPageRole = async (
+export const getSharedPageGrants = async (
   nodes: readonly Node[],
   viewerId: string
-): Promise<PageShareRole | null> => {
+) => {
   const pageIds = getPageAncestors(nodes);
-  if (!pageIds.length) return null;
-  const shares = await database
+  if (!pageIds.length) return [];
+  return database
     .selectFrom('page_shares')
-    .select('role')
+    .select(['page_id', 'role'])
     .where('viewer_id', '=', viewerId)
     .where('page_id', 'in', pageIds)
     .execute();
+};
+
+export const resolveSharedPageRole = (
+  shares: readonly { role: PageShareRole }[]
+): PageShareRole | null => {
   if (shares.some((share) => share.role === 'editor')) return 'editor';
   return shares.length ? 'viewer' : null;
 };
+
+export const getSharedPageRole = async (
+  nodes: readonly Node[],
+  viewerId: string
+): Promise<PageShareRole | null> =>
+  resolveSharedPageRole(await getSharedPageGrants(nodes, viewerId));
 
 export const canViewSharedPage = async (
   nodes: readonly Node[],
