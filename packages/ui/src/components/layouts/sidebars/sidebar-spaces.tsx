@@ -8,6 +8,7 @@ import { LocalSpaceNode } from '@colanode/client/types';
 import { collections } from '@colanode/ui/collections';
 import { SidebarHeader } from '@colanode/ui/components/layouts/sidebars/sidebar-header';
 import { SidebarSharedPages } from '@colanode/ui/components/layouts/sidebars/sidebar-shared-pages';
+import { SpaceAdvancedFilter } from '@colanode/ui/components/spaces/space-advanced-filter';
 import { SpaceCreateButton } from '@colanode/ui/components/spaces/space-create-button';
 import { SpaceSidebarItem } from '@colanode/ui/components/spaces/space-sidebar-item';
 import { Button } from '@colanode/ui/components/ui/button';
@@ -22,7 +23,9 @@ import { useWorkspace } from '@colanode/ui/contexts/workspace';
 import { useMetadata } from '@colanode/ui/hooks/use-metadata';
 import {
   buildSpaceViewLink,
+  matchesAdvancedSpaceFilter,
   matchesSpaceFilter,
+  normalizeSpaceName,
   readSpaceViewHash,
   type SpaceMatchMode,
   type SpaceView,
@@ -114,6 +117,10 @@ const WorkspaceSpaces = () => {
   const [tags, setTags] = useState<string[]>([]);
   const [memberMatch, setMemberMatch] = useState<SpaceMatchMode>('all');
   const [tagMatch, setTagMatch] = useState<SpaceMatchMode>('all');
+  const [advancedFilter, setAdvancedFilter] =
+    useState<SpaceView['advancedFilter']>();
+  const [editingAdvanced, setEditingAdvanced] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [viewName, setViewName] = useState('');
   const [viewSort, setViewSort] = useState<SpaceView['sort']>();
   const [showHidden, setShowHidden] = useState(false);
@@ -142,6 +149,7 @@ const WorkspaceSpaces = () => {
     setTags(view.tags);
     setMemberMatch(view.memberMatch ?? 'all');
     setTagMatch(view.tagMatch ?? 'all');
+    setAdvancedFilter(view.advancedFilter);
     setViewSort(view.sort);
   };
 
@@ -157,6 +165,7 @@ const WorkspaceSpaces = () => {
     tags,
     memberMatch,
     tagMatch,
+    advancedFilter,
     sort: selectedSort,
   });
 
@@ -219,11 +228,11 @@ const WorkspaceSpaces = () => {
     .map((tag) => ({ id: tag, label: tag }));
   const availableMembers = new Set(memberOptions.map(({ id }) => id));
   const availableTags = new Set(tagOptions.map(({ id }) => id));
-  const filterCount = members.length + tags.length;
+  const filterCount = members.length + tags.length + Number(!!advancedFilter);
   const missingFilter =
     members.some((id) => !availableMembers.has(id)) ||
     tags.some((tag) => !availableTags.has(tag));
-  const searchTerm = search.trim().normalize('NFKC').toLocaleLowerCase();
+  const searchTerm = normalizeSpaceName(search);
   const visitDates = new Map(visits.map((item) => [item.key, item.value]));
   const pinned = new Set(pins);
   const hiddenIds = new Set(hidden);
@@ -231,13 +240,14 @@ const WorkspaceSpaces = () => {
   const visibleSpaces = spaces.filter(
     (space) =>
       (showHidden || !hiddenIds.has(space.id)) &&
-      space.name.normalize('NFKC').toLocaleLowerCase().includes(searchTerm) &&
+      normalizeSpaceName(space.name).includes(searchTerm) &&
       matchesSpaceFilter(members, memberMatch, (id) =>
         Object.hasOwn(space.collaborators, id)
       ) &&
       matchesSpaceFilter(tags, tagMatch, (tag) =>
         (space.tags ?? []).includes(tag)
-      )
+      ) &&
+      (!advancedFilter || matchesAdvancedSpaceFilter(advancedFilter, space))
   );
   visibleSpaces.sort((a, b) => {
     const pinOrder = Number(pinned.has(b.id)) - Number(pinned.has(a.id));
@@ -301,7 +311,7 @@ const WorkspaceSpaces = () => {
             onChange={(event) => setSearch(event.target.value)}
           />
         </div>
-        <Popover>
+        <Popover open={filterOpen} onOpenChange={setFilterOpen}>
           <PopoverTrigger asChild>
             <Button
               variant={filterCount ? 'secondary' : 'ghost'}
@@ -350,6 +360,16 @@ const WorkspaceSpaces = () => {
               onToggle={(tag) => setTags(toggle(tags, tag))}
               onModeChange={setTagMatch}
             />
+            <Button
+              size="sm"
+              variant={advancedFilter ? 'secondary' : 'outline'}
+              onClick={() => {
+                setFilterOpen(false);
+                setEditingAdvanced(true);
+              }}
+            >
+              {advancedFilter ? 'Edit advanced filter' : 'Advanced filter'}
+            </Button>
             {missingFilter && (
               <p className="text-xs text-muted-foreground">
                 Some conditions are unavailable in your Spaces.
@@ -364,6 +384,7 @@ const WorkspaceSpaces = () => {
                   setTags([]);
                   setMemberMatch('all');
                   setTagMatch('all');
+                  setAdvancedFilter(undefined);
                 }}
               >
                 Clear filters
@@ -432,6 +453,22 @@ const WorkspaceSpaces = () => {
           </PopoverContent>
         </Popover>
       </div>
+      {editingAdvanced && (
+        <SpaceAdvancedFilter
+          filter={advancedFilter}
+          memberOptions={memberOptions}
+          tagOptions={tagOptions}
+          onApply={(next) => {
+            setAdvancedFilter(next);
+            setEditingAdvanced(false);
+            setFilterOpen(true);
+          }}
+          onClose={() => {
+            setEditingAdvanced(false);
+            setFilterOpen(true);
+          }}
+        />
+      )}
       <div className="flex w-full min-w-0 flex-col gap-1">
         {visibleSpaces.map((space) => (
           <SpaceSidebarItem

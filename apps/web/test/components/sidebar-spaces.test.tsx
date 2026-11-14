@@ -10,7 +10,7 @@ import {
   within,
 } from '@testing-library/react';
 import { useState } from 'react';
-import { expect, it, vi } from 'vitest';
+import { beforeEach, expect, it, vi } from 'vitest';
 
 import type { LocalSpaceNode, Metadata, User } from '@colanode/client/types';
 import { SidebarSpaces } from '@colanode/ui/components/layouts/sidebars/sidebar-spaces';
@@ -19,6 +19,8 @@ import { buildSpaceViewLink } from '@colanode/ui/lib/space-views';
 const fixture = vi.hoisted(() => ({
   userId: 'a',
   hash: '',
+  appType: 'desktop',
+  preferences: new Map<string, unknown>(),
   nodes: null as unknown,
   users: null as unknown,
   metadata: null as unknown,
@@ -45,18 +47,23 @@ vi.mock('@colanode/ui/contexts/workspace', () => ({
   }),
 }));
 vi.mock('@colanode/ui/contexts/app', () => ({
-  useApp: () => ({ type: 'desktop' }),
+  useApp: () => ({ type: fixture.appType }),
 }));
+vi.mock(
+  '@colanode/ui/components/layouts/sidebars/sidebar-shared-pages',
+  () => ({
+    SidebarSharedPages: () => null,
+  })
+);
 vi.mock('@colanode/ui/hooks/use-metadata', () => {
-  const preferences = new Map<string, unknown>();
   return {
     useMetadata: (namespace: string, key: string) => {
       const id = namespace + '/' + key;
-      const [value, setValue] = useState(() => preferences.get(id));
+      const [value, setValue] = useState(() => fixture.preferences.get(id));
       return [
         value,
         (next: unknown) => {
-          preferences.set(id, next);
+          fixture.preferences.set(id, next);
           setValue(next);
         },
       ];
@@ -88,7 +95,11 @@ vi.mock('@colanode/ui/components/spaces/space-sidebar-item', () => ({
   ),
 }));
 
-it('builds filter options only from the current member’s Spaces and combines search, members and tags', async () => {
+beforeEach(() => {
+  fixture.userId = 'a';
+  fixture.hash = '';
+  fixture.appType = 'desktop';
+  fixture.preferences.clear();
   fixture.nodes = createCollection(
     localOnlyCollectionOptions<LocalSpaceNode>({
       getKey: (space) => space.id,
@@ -138,7 +149,9 @@ it('builds filter options only from the current member’s Spaces and combines s
       ],
     })
   );
+});
 
+it('builds filter options only from the current member’s Spaces and combines search, members and tags', async () => {
   const { rerender } = render(<SidebarSpaces />);
   await screen.findByRole('button', { name: 'Zebra' });
   const filterButton = screen.getByRole('button', {
@@ -267,4 +280,78 @@ it('builds filter options only from the current member’s Spaces and combines s
   rerender(<SidebarSpaces />);
   expect(screen.getByText('No matching Spaces')).toBeInTheDocument();
   expect(companyBFilters.queryByLabelText('Unavailable')).toBeNull();
+});
+
+it('restores a saved AND/OR group and copies its conditions for another member', async () => {
+  fixture.appType = 'web';
+  const writeText = vi
+    .fn<(text: string) => Promise<void>>()
+    .mockResolvedValue();
+  const clipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText },
+  });
+
+  try {
+    const { rerender } = render(<SidebarSpaces />);
+    await screen.findByRole('button', { name: 'Alpha' });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sort and filter Spaces' })
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Advanced filter' }));
+    const editor = within(
+      await screen.findByRole('dialog', { name: 'Advanced Space filter' })
+    );
+
+    fireEvent.click(editor.getByRole('button', { name: 'Add condition' }));
+    fireEvent.change(editor.getByLabelText('Filter field'), {
+      target: { value: 'tag' },
+    });
+    fireEvent.change(editor.getByLabelText('Filter value'), {
+      target: { value: 'Shared' },
+    });
+    fireEvent.click(editor.getByRole('button', { name: 'Add group' }));
+    const group = within(
+      editor.getByRole('group', { name: 'Group', exact: true })
+    );
+    fireEvent.change(group.getByLabelText('Group match mode'), {
+      target: { value: 'any' },
+    });
+    fireEvent.change(group.getByLabelText('Filter value'), {
+      target: { value: 'Zebra' },
+    });
+    fireEvent.click(group.getByRole('button', { name: 'Add condition' }));
+    fireEvent.change(group.getAllByLabelText('Filter value')[1]!, {
+      target: { value: 'Private B' },
+    });
+    fireEvent.click(editor.getByRole('button', { name: 'Apply filter' }));
+    expect(screen.getByRole('button', { name: 'Zebra' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Alpha' })).toBeNull();
+
+    fireEvent.change(await screen.findByLabelText('View name'), {
+      target: { value: '制作ビュー' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save view' }));
+    const viewSelect = screen.getByRole('combobox', { name: 'Space view' });
+    fireEvent.change(viewSelect, { target: { value: '' } });
+    expect(screen.getByRole('button', { name: 'Alpha' })).toBeInTheDocument();
+    fireEvent.change(viewSelect, { target: { value: '制作ビュー' } });
+    expect(screen.queryByRole('button', { name: 'Alpha' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy view link' }));
+    expect(writeText).toHaveBeenCalledOnce();
+    fixture.hash = new URL(writeText.mock.calls[0]![0]).hash;
+    fixture.userId = 'b';
+    rerender(<SidebarSpaces />);
+    expect(
+      await screen.findByRole('combobox', { name: 'Space view' })
+    ).toHaveValue('制作ビュー');
+    expect(screen.getByRole('button', { name: 'Zebra' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Alpha' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Private B' })).toBeNull();
+  } finally {
+    if (clipboard) Object.defineProperty(navigator, 'clipboard', clipboard);
+    else Reflect.deleteProperty(navigator, 'clipboard');
+  }
 });
