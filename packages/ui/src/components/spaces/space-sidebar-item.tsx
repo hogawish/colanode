@@ -1,5 +1,5 @@
 import { eq, useLiveQuery } from '@tanstack/react-db';
-import { ChevronRight, Pin } from 'lucide-react';
+import { ChevronRight, EyeOff, Pin } from 'lucide-react';
 
 import { LocalSpaceNode } from '@colanode/client/types';
 import { Avatar } from '@colanode/ui/components/avatars/avatar';
@@ -23,6 +23,8 @@ interface SpaceSidebarItemProps {
   space: LocalSpaceNode;
   pinned?: boolean;
   onTogglePin?: () => void;
+  hidden?: boolean;
+  onToggleHidden?: () => void;
   onOpenReference?: () => void;
 }
 
@@ -30,6 +32,8 @@ export const SpaceSidebarItem = ({
   space,
   pinned,
   onTogglePin,
+  hidden,
+  onToggleHidden,
   onOpenReference,
 }: SpaceSidebarItemProps) => {
   const workspace = useWorkspace();
@@ -69,12 +73,20 @@ export const SpaceSidebarItem = ({
               {pinned && (
                 <Pin aria-label="Pinned" className="size-3 shrink-0" />
               )}
+              {hidden && (
+                <EyeOff
+                  aria-label="Hidden"
+                  className="size-3 shrink-0 text-muted-foreground"
+                />
+              )}
             </button>
           </CollapsibleTrigger>
           <SpaceSidebarDropdown
             space={space}
             pinned={pinned}
             onTogglePin={onTogglePin}
+            hidden={hidden}
+            onToggleHidden={onToggleHidden}
           />
         </div>
         <CollapsibleContent>

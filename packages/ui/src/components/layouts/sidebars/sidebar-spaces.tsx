@@ -1,6 +1,8 @@
 import { eq, useLiveQuery } from '@tanstack/react-db';
+import { useRouterState } from '@tanstack/react-router';
 import { ListFilter, Search } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 import { LocalSpaceNode } from '@colanode/client/types';
 import { collections } from '@colanode/ui/collections';
@@ -19,11 +21,14 @@ import { useApp } from '@colanode/ui/contexts/app';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
 import { useMetadata } from '@colanode/ui/hooks/use-metadata';
 import {
+  buildSpaceViewLink,
+  readSpaceViewHash,
+  type SpaceView,
+} from '@colanode/ui/lib/space-views';
+import {
   recordSpaceVisit,
   spaceVisitsNamespace,
 } from '@colanode/ui/lib/space-visits';
-
-type SpaceSort = 'created' | 'name' | 'recent';
 
 const compareNames = new Intl.Collator(undefined, {
   numeric: true,
@@ -82,10 +87,16 @@ export const SidebarSpaces = () => {
 const WorkspaceSpaces = () => {
   const workspace = useWorkspace();
   const app = useApp();
+  const hash = useRouterState({
+    select: ({ location }) => location.maskedLocation?.hash || location.hash,
+  });
   const [search, setSearch] = useState('');
   const [members, setMembers] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-  const [sort, setSort] = useMetadata<SpaceSort>(
+  const [viewName, setViewName] = useState('');
+  const [viewSort, setViewSort] = useState<SpaceView['sort']>();
+  const [showHidden, setShowHidden] = useState(false);
+  const [sort, setSort] = useMetadata<SpaceView['sort']>(
     workspace.userId,
     'space-sort'
   );
@@ -93,6 +104,52 @@ const WorkspaceSpaces = () => {
     workspace.userId,
     'space-pins'
   );
+  const [hidden = [], setHidden] = useMetadata<string[]>(
+    workspace.userId,
+    'space-hidden'
+  );
+  const [savedViews = [], setSavedViews] = useMetadata<SpaceView[]>(
+    workspace.userId,
+    'space-views'
+  );
+  const selectedSort = viewSort ?? sort ?? 'created';
+
+  const applyView = (view: SpaceView) => {
+    setViewName(view.name);
+    setSearch(view.search);
+    setMembers(view.members);
+    setTags(view.tags);
+    setViewSort(view.sort);
+  };
+
+  useEffect(() => {
+    const view = readSpaceViewHash(hash);
+    if (view) applyView(view);
+  }, [hash]);
+
+  const currentView = (): SpaceView => ({
+    name: viewName.trim(),
+    search: search.trim(),
+    members,
+    tags,
+    sort: selectedSort,
+  });
+
+  const copyViewLink = async () => {
+    try {
+      await navigator.clipboard.writeText(
+        buildSpaceViewLink(
+          window.location.origin,
+          workspace.workspaceId,
+          currentView()
+        )
+      );
+      toast.success('Space view link copied.');
+    } catch {
+      toast.error('Could not copy the Space view link.');
+    }
+  };
+
   const visitsNamespace = spaceVisitsNamespace(workspace.userId);
   const canCreateSpace =
     workspace.role !== 'guest' && workspace.role !== 'none';
@@ -135,24 +192,29 @@ const WorkspaceSpaces = () => {
   )
     .sort(compareNames)
     .map((tag) => ({ id: tag, label: tag }));
-  const activeMembers = members.filter((id) => memberIds.has(id));
+  const availableMembers = new Set(memberOptions.map(({ id }) => id));
   const availableTags = new Set(tagOptions.map(({ id }) => id));
-  const activeTags = tags.filter((tag) => availableTags.has(tag));
-  const filterCount = activeMembers.length + activeTags.length;
+  const filterCount = members.length + tags.length;
+  const missingFilter =
+    members.some((id) => !availableMembers.has(id)) ||
+    tags.some((tag) => !availableTags.has(tag));
   const searchTerm = search.trim().normalize('NFKC').toLocaleLowerCase();
   const visitDates = new Map(visits.map((item) => [item.key, item.value]));
   const pinned = new Set(pins);
+  const hiddenIds = new Set(hidden);
+  const hiddenCount = spaces.filter((space) => hiddenIds.has(space.id)).length;
   const visibleSpaces = spaces.filter(
     (space) =>
+      (showHidden || !hiddenIds.has(space.id)) &&
       space.name.normalize('NFKC').toLocaleLowerCase().includes(searchTerm) &&
-      activeMembers.every((id) => space.collaborators[id]) &&
-      activeTags.every((tag) => space.tags?.includes(tag))
+      members.every((id) => space.collaborators[id]) &&
+      tags.every((tag) => space.tags?.includes(tag))
   );
   visibleSpaces.sort((a, b) => {
     const pinOrder = Number(pinned.has(b.id)) - Number(pinned.has(a.id));
     if (pinOrder) return pinOrder;
-    if (sort === 'name') return compareNames(a.name, b.name);
-    if (sort === 'recent') {
+    if (selectedSort === 'name') return compareNames(a.name, b.name);
+    if (selectedSort === 'recent') {
       return (visitDates.get(b.id) ?? '').localeCompare(
         visitDates.get(a.id) ?? ''
       );
@@ -166,6 +228,38 @@ const WorkspaceSpaces = () => {
         title="Spaces"
         actions={canCreateSpace && <SpaceCreateButton />}
       />
+      {(viewName || savedViews.length > 0) && (
+        <label className="mb-2 block px-1">
+          <select
+            aria-label="Space view"
+            className="h-8 w-full truncate rounded-md border bg-background px-2 text-sm"
+            value={viewName}
+            onChange={(event) => {
+              const view = savedViews.find(
+                (item) => item.name === event.target.value
+              );
+              applyView(
+                view ?? {
+                  name: '',
+                  search: '',
+                  members: [],
+                  tags: [],
+                  sort: sort ?? 'created',
+                }
+              );
+              if (!view) setViewSort(undefined);
+            }}
+          >
+            <option value="">All Spaces</option>
+            {savedViews.map((view) => (
+              <option key={view.name}>{view.name}</option>
+            ))}
+            {viewName && !savedViews.some((view) => view.name === viewName) && (
+              <option>{viewName}</option>
+            )}
+          </select>
+        </label>
+      )}
       <div className="mb-2 flex items-center gap-1 px-1">
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute top-2 left-2 size-4 text-muted-foreground" />
@@ -191,13 +285,20 @@ const WorkspaceSpaces = () => {
               {filterCount > 0 && <span>{filterCount}</span>}
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="space-y-3">
+          <PopoverContent
+            align="end"
+            className="max-h-(--radix-popover-content-available-height) space-y-3 overflow-y-auto"
+          >
             <label className="flex flex-col gap-1 text-sm font-medium">
               Sort Spaces
               <select
                 className="h-8 rounded-md border bg-background px-2 font-normal"
-                value={sort ?? 'created'}
-                onChange={(event) => setSort(event.target.value as SpaceSort)}
+                value={selectedSort}
+                onChange={(event) => {
+                  const value = event.target.value as SpaceView['sort'];
+                  if (viewName) setViewSort(value);
+                  else setSort(value);
+                }}
               >
                 <option value="created">Creation order</option>
                 <option value="name">Name</option>
@@ -207,15 +308,20 @@ const WorkspaceSpaces = () => {
             <FilterOptions
               title="Members"
               options={memberOptions}
-              selected={activeMembers}
-              onToggle={(id) => setMembers(toggle(activeMembers, id))}
+              selected={members}
+              onToggle={(id) => setMembers(toggle(members, id))}
             />
             <FilterOptions
               title="Tags"
               options={tagOptions}
-              selected={activeTags}
-              onToggle={(tag) => setTags(toggle(activeTags, tag))}
+              selected={tags}
+              onToggle={(tag) => setTags(toggle(tags, tag))}
             />
+            {missingFilter && (
+              <p className="text-xs text-muted-foreground">
+                Some conditions are unavailable in your Spaces.
+              </p>
+            )}
             {filterCount > 0 && (
               <Button
                 size="sm"
@@ -228,6 +334,66 @@ const WorkspaceSpaces = () => {
                 Clear filters
               </Button>
             )}
+            {hiddenCount > 0 && (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={showHidden}
+                  onChange={(event) => setShowHidden(event.target.checked)}
+                />
+                Include my hidden Spaces ({hiddenCount})
+              </label>
+            )}
+            <div className="space-y-2 border-t pt-3">
+              <Input
+                aria-label="View name"
+                placeholder="View name"
+                className="h-8 text-sm"
+                value={viewName}
+                onChange={(event) => setViewName(event.target.value)}
+              />
+              <div className="flex flex-wrap gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!viewName.trim()}
+                  onClick={() => {
+                    const view = currentView();
+                    setSavedViews([
+                      ...savedViews.filter((item) => item.name !== view.name),
+                      view,
+                    ]);
+                    setViewName(view.name);
+                    toast.success('Space view saved.');
+                  }}
+                >
+                  Save view
+                </Button>
+                {app.type === 'web' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!viewName.trim()}
+                    onClick={() => void copyViewLink()}
+                  >
+                    Copy view link
+                  </Button>
+                )}
+                {savedViews.some((view) => view.name === viewName) && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      setSavedViews(
+                        savedViews.filter((view) => view.name !== viewName)
+                      )
+                    }
+                  >
+                    Remove saved view
+                  </Button>
+                )}
+              </div>
+            </div>
           </PopoverContent>
         </Popover>
       </div>
@@ -238,6 +404,8 @@ const WorkspaceSpaces = () => {
             key={space.id}
             pinned={pinned.has(space.id)}
             onTogglePin={() => setPins(toggle(pins, space.id))}
+            hidden={hiddenIds.has(space.id)}
+            onToggleHidden={() => setHidden(toggle(hidden, space.id))}
             onOpenReference={() => recordSpaceVisit(workspace.userId, space.id)}
           />
         ))}

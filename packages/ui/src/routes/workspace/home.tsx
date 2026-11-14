@@ -24,6 +24,12 @@ export const workspaceHomeMaskRoute = createRoute({
         to: '/workspace/$userId/home',
         params: { userId },
         replace: true,
+        hash: ctx.location.hash,
+        mask: {
+          to: '/$workspaceId/home',
+          params: { workspaceId: ctx.params.workspaceId },
+          hash: ctx.location.hash,
+        },
       });
     }
   },

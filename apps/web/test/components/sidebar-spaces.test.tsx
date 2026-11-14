@@ -14,12 +14,19 @@ import { expect, it, vi } from 'vitest';
 
 import type { LocalSpaceNode, Metadata, User } from '@colanode/client/types';
 import { SidebarSpaces } from '@colanode/ui/components/layouts/sidebars/sidebar-spaces';
+import { buildSpaceViewLink } from '@colanode/ui/lib/space-views';
 
 const fixture = vi.hoisted(() => ({
   userId: 'a',
+  hash: '',
   nodes: null as unknown,
   users: null as unknown,
   metadata: null as unknown,
+}));
+
+vi.mock('@tanstack/react-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@tanstack/react-router')>()),
+  useRouterState: () => fixture.hash,
 }));
 
 vi.mock('@colanode/ui/collections', () => ({
@@ -32,6 +39,7 @@ vi.mock('@colanode/ui/collections', () => ({
 vi.mock('@colanode/ui/contexts/workspace', () => ({
   useWorkspace: () => ({
     userId: fixture.userId,
+    workspaceId: 'demo',
     role: 'guest',
     collections: { nodes: fixture.nodes, users: fixture.users },
   }),
@@ -39,20 +47,44 @@ vi.mock('@colanode/ui/contexts/workspace', () => ({
 vi.mock('@colanode/ui/contexts/app', () => ({
   useApp: () => ({ type: 'desktop' }),
 }));
-vi.mock('@colanode/ui/hooks/use-metadata', () => ({ useMetadata: useState }));
+vi.mock('@colanode/ui/hooks/use-metadata', () => {
+  const preferences = new Map<string, unknown>();
+  return {
+    useMetadata: (namespace: string, key: string) => {
+      const id = namespace + '/' + key;
+      const [value, setValue] = useState(() => preferences.get(id));
+      return [
+        value,
+        (next: unknown) => {
+          preferences.set(id, next);
+          setValue(next);
+        },
+      ];
+    },
+  };
+});
 vi.mock('@colanode/ui/components/spaces/space-sidebar-item', () => ({
   SpaceSidebarItem: ({
     space,
     pinned,
     onTogglePin,
+    hidden,
+    onToggleHidden,
   }: {
     space: LocalSpaceNode;
     pinned: boolean;
     onTogglePin: () => void;
+    hidden: boolean;
+    onToggleHidden: () => void;
   }) => (
-    <button aria-pressed={pinned} onClick={onTogglePin}>
-      {space.name}
-    </button>
+    <>
+      <button aria-pressed={pinned} onClick={onTogglePin}>
+        {space.name}
+      </button>
+      <button onClick={onToggleHidden}>
+        {hidden ? 'Show' : 'Hide'} {space.name}
+      </button>
+    </>
   ),
 }));
 
@@ -64,13 +96,13 @@ it('builds filter options only from the current member’s Spaces and combines s
         {
           id: '01',
           name: 'Zebra',
-          collaborators: { a: 'viewer', editor: 'admin' },
+          collaborators: { a: 'viewer', b: 'viewer', editor: 'admin' },
           tags: ['Shared', 'Delivery'],
         },
         {
           id: '02',
           name: 'Alpha',
-          collaborators: { a: 'viewer' },
+          collaborators: { a: 'viewer', b: 'viewer' },
           tags: ['Shared'],
         },
         {
@@ -114,7 +146,7 @@ it('builds filter options only from the current member’s Spaces and combines s
   });
   fireEvent.click(filterButton);
   const filters = within(await screen.findByRole('dialog'));
-  expect(filters.queryByLabelText('Company B')).not.toBeInTheDocument();
+  expect(filters.queryByLabelText('Company B')).toBeInTheDocument();
   expect(filters.queryByLabelText('B internal')).not.toBeInTheDocument();
   fireEvent.click(filters.getByLabelText('Project editor'));
   fireEvent.click(filters.getByLabelText('Delivery'));
@@ -143,18 +175,61 @@ it('builds filter options only from the current member’s Spaces and combines s
   fireEvent.click(screen.getByRole('button', { name: 'Alpha' }));
   expect(order()).toEqual(['Alpha', 'Zebra']);
 
+  fireEvent.click(filters.getByLabelText('Delivery'));
+  fireEvent.change(filters.getByLabelText('View name'), {
+    target: { value: 'アニメーター用' },
+  });
+  fireEvent.click(filters.getByRole('button', { name: 'Save view' }));
+  const viewList = screen.getByRole('combobox', { name: 'Space view' });
+  fireEvent.change(viewList, { target: { value: '' } });
+  expect(order()).toEqual(['Alpha', 'Zebra']);
+  fireEvent.change(viewList, { target: { value: 'アニメーター用' } });
+  expect(order()).toEqual(['Zebra']);
+  fireEvent.click(screen.getByRole('button', { name: 'Hide Zebra' }));
+  expect(screen.queryByRole('button', { name: 'Zebra' })).toBeNull();
+  fireEvent.click(filters.getByLabelText(/Include my hidden Spaces/));
+  expect(order()).toEqual(['Zebra']);
+  expect(
+    screen.getByRole('button', { name: 'Show Zebra' })
+  ).toBeInTheDocument();
+  fireEvent.click(filters.getByLabelText(/Include my hidden Spaces/));
+
+  const shareLink = buildSpaceViewLink('http://localhost:18400', 'demo', {
+    name: 'アニメーター用',
+    search: '',
+    members: [],
+    tags: ['Delivery'],
+    sort: 'name',
+  });
+  fixture.hash = new URL(shareLink).hash;
   fixture.userId = 'b';
   rerender(<SidebarSpaces />);
   await waitFor(() =>
-    expect(
-      screen.getByRole('button', { name: 'Private B' })
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Zebra' })).toBeInTheDocument()
   );
+  expect(screen.getByRole('combobox', { name: 'Space view' })).toHaveValue(
+    'アニメーター用'
+  );
+  expect(screen.queryByRole('button', { name: 'Alpha' })).toBeNull();
   fireEvent.click(
     screen.getByRole('button', { name: 'Sort and filter Spaces' })
   );
   const companyBFilters = within(await screen.findByRole('dialog'));
   expect(companyBFilters.getByLabelText('B internal')).toBeInTheDocument();
-  expect(companyBFilters.queryByLabelText('Company A')).not.toBeInTheDocument();
-  expect(companyBFilters.queryByLabelText('Delivery')).not.toBeInTheDocument();
+  expect(
+    companyBFilters.queryByLabelText(/Include my hidden Spaces/)
+  ).toBeNull();
+
+  fixture.hash = new URL(
+    buildSpaceViewLink('http://localhost:18400', 'demo', {
+      name: 'Missing tag',
+      search: '',
+      members: [],
+      tags: ['Unavailable'],
+      sort: 'name',
+    })
+  ).hash;
+  rerender(<SidebarSpaces />);
+  expect(screen.getByText('No matching Spaces')).toBeInTheDocument();
+  expect(companyBFilters.queryByLabelText('Unavailable')).toBeNull();
 });

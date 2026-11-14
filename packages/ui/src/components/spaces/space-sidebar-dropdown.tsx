@@ -3,6 +3,8 @@ import {
   Archive,
   Database,
   Ellipsis,
+  Eye,
+  EyeOff,
   Folder,
   Link2,
   MessageCircle,
@@ -36,12 +38,16 @@ interface SpaceSidebarDropdownProps {
   space: LocalSpaceNode;
   pinned?: boolean;
   onTogglePin?: () => void;
+  hidden?: boolean;
+  onToggleHidden?: () => void;
 }
 
 export const SpaceSidebarDropdown = ({
   space,
   pinned,
   onTogglePin,
+  hidden,
+  onToggleHidden,
 }: SpaceSidebarDropdownProps) => {
   const navigate = useNavigate({ from: '/workspace/$userId' });
   const app = useApp();
@@ -76,6 +82,16 @@ export const SpaceSidebarDropdown = ({
                 <Pin className="size-4" />
               )}
               {pinned ? 'Unpin Space' : 'Pin Space'}
+            </DropdownMenuItem>
+          )}
+          {onToggleHidden && (
+            <DropdownMenuItem onSelect={onToggleHidden}>
+              {hidden ? (
+                <Eye className="size-4" />
+              ) : (
+                <EyeOff className="size-4" />
+              )}
+              {hidden ? 'Show Space again' : 'Hide Space for me'}
             </DropdownMenuItem>
           )}
           {app.type === 'web' && space.collaborators[userId] === 'admin' && (
