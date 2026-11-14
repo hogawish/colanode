@@ -22,6 +22,7 @@ const types = [
   EditorNodeTypes.TableHeader,
   EditorNodeTypes.TableCell,
   EditorNodeTypes.TableRow,
+  'toggle',
 ];
 
 export const IdExtension = Extension.create({
