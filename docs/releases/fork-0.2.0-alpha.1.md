@@ -24,6 +24,14 @@ permissions, shared editor limitations, file visibility, and view links.
 - Preserve deployed startup recovery, missing-image cache recovery, cold database
   loads, and stable shared-editor toggles and block IDs.
 
+- Export the currently displayed page, record, database view, or shared page to
+  standalone HTML, or preview it for browser Print / Save as PDF. Child pages stay
+  links and database exports contain displayed rows.
+- Keep block handles and formatting/link popovers inside record modals so modal
+  pointer/focus containment does not block actions.
+
+[Export scope and usage](../page-export.md) describe the snapshot limitations.
+
 ## Local installation
 
 After the candidate tag is published:

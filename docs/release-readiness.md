@@ -11,13 +11,17 @@ permission management, original-page references, Space search/tags/member filter
 saved view links, personal Hide/pins, any/all quick filters, and grouped AND/OR filters.
 [Usage](sharing-and-space-views.md) records the limits and access semantics.
 The candidate also preserves deployed startup, cache, cold-load, and toggle fixes.
+Page/record/database/shared-page HTML and browser PDF exports are included;
+[export scope](page-export.md) documents the visible-row snapshot limits. Modal
+block actions were compared in isolated Chrome: the original handle could not
+open its menu, while the fix applied a background and copied the block link.
 Locale-specific JST display changes are excluded; existing locale behavior remains.
 
 ## Completed validation
 
 - Clean Node 22.23.5 dependency installation, TypeScript checks for shared packages
   and the server, and production Web/API builds.
-- Web suite: **219 passing tests in 34 files**. Related record activity: **2 passing tests**.
+- Web suite: **224 passing tests in 36 files**. Related record activity: **2 passing tests**.
 - API suite: **21 passing tests in 10 files**, using fresh isolated PostgreSQL/Redis.
   These include viewer/editor inheritance, revocation, blocked sibling/foreign-workspace
   access, linked-database source checks, unused-file download denial, invitation
