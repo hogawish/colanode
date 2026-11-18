@@ -6,7 +6,8 @@ import {
 } from '@tanstack/react-router';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { RichTextContent } from '@colanode/core';
+
+type RichTextContent = import('@colanode/core').RichTextContent;
 
 const localNode = vi.hoisted(() => ({ exists: false }));
 vi.mock(import('@tanstack/react-db'), async (original) => ({
