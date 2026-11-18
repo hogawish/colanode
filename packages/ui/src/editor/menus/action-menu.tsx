@@ -223,12 +223,16 @@ export const ActionMenu = ({ editor, documentId }: ActionMenuProps) => {
     };
   }, [editor, menuOpen]);
 
-  if (editor == null || (!menuState.show && !menuOpen)) {
+  if (editor == null || editor.isDestroyed || (!menuState.show && !menuOpen)) {
     return null;
   }
 
+  // Modal dialogs block pointer/focus access to portals outside their DOM tree.
+  const portalContainer =
+    editor.view.dom.closest<HTMLElement>('[role="dialog"]') ?? undefined;
+
   return (
-    <FloatingPortal>
+    <FloatingPortal root={portalContainer}>
       <div
         ref={refs.setFloating}
         style={{ ...floatingStyles, zIndex: 50 }}
@@ -259,6 +263,8 @@ export const ActionMenu = ({ editor, documentId }: ActionMenuProps) => {
         <Popover
           open={menuOpen}
           onOpenChange={(open) => {
+            // A selection transaction may assign missing IDs. Read the live
+            // node afterwards rather than the immutable hover snapshot.
             if (open && menuState.pos !== undefined) {
               view.current.dispatch(
                 view.current.state.tr.setSelection(
@@ -266,12 +272,15 @@ export const ActionMenu = ({ editor, documentId }: ActionMenuProps) => {
                 )
               );
             }
-            if (open)
+            if (open) {
+              const node =
+                menuState.pos === undefined
+                  ? null
+                  : editor.state.doc.nodeAt(menuState.pos);
               setSelectedBlockId(
-                typeof menuState.pmNode?.attrs.id === 'string'
-                  ? menuState.pmNode.attrs.id
-                  : null
+                typeof node?.attrs.id === 'string' ? node.attrs.id : null
               );
+            }
             setMenuOpen(open);
           }}
         >
@@ -331,6 +340,7 @@ export const ActionMenu = ({ editor, documentId }: ActionMenuProps) => {
             </button>
           </PopoverTrigger>
           <PopoverContent
+            container={portalContainer}
             className="w-56 p-1"
             side="right"
             align="start"

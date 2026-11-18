@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { LocalPageNode } from '@colanode/client/types';
 import { NodeRole, hasNodeRole } from '@colanode/core';
 import { Document } from '@colanode/ui/components/documents/document';
+import { PageExport } from '@colanode/ui/components/pages/page-export';
 import { Input } from '@colanode/ui/components/ui/input';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
 
@@ -55,9 +56,9 @@ const PageTitle = ({
 export const PageContainer = ({ page, role }: PageContainerProps) => {
   const canEdit = hasNodeRole(role, 'editor');
   return (
-    <>
+    <PageExport title={page.name}>
       <PageTitle key={page.id} page={page} canEdit={canEdit} />
       <Document node={page} canEdit={canEdit} autoFocus="start" />
-    </>
+    </PageExport>
   );
 };

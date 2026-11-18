@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { SharedPage } from '@colanode/client/mutations';
 import type { RichTextContent } from '@colanode/core';
+import { PageExport } from '@colanode/ui/components/pages/page-export';
 import { SharedPageDocument } from '@colanode/ui/components/pages/shared-page-document';
 import { SharedPageEditor } from '@colanode/ui/components/pages/shared-page-editor';
 import { Button } from '@colanode/ui/components/ui/button';
@@ -92,60 +93,65 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
     <article
       className={`mx-auto w-full min-w-0 space-y-6 px-6 py-10 ${page.linkedDatabasePlacements?.length || page.databasePlacements?.some(({ inline }) => inline) ? '' : 'max-w-3xl'}`}
     >
-      <header className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          {page.location && (
-            <p className="mb-1 break-words text-sm text-muted-foreground">
-              {[
-                page.location.spaceName ?? 'Private Space',
-                ...page.location.ancestorNames,
-              ].join(' › ')}
+      <PageExport title={page.name}>
+        <header
+          className="flex items-start justify-between gap-4"
+          data-export-exclude
+        >
+          <div className="min-w-0">
+            {page.location && (
+              <p className="mb-1 break-words text-sm text-muted-foreground">
+                {[
+                  page.location.spaceName ?? 'Private Space',
+                  ...page.location.ancestorNames,
+                ].join(' › ')}
+              </p>
+            )}
+            <p className="mb-1 text-sm text-muted-foreground">
+              {page.canEdit
+                ? 'Shared page · Can edit'
+                : 'Shared page · View only'}
             </p>
+            <h1 className="text-3xl font-semibold">{page.name}</h1>
+          </div>
+          {!page.canEdit && (
+            <Button
+              variant="ghost"
+              onClick={() => setRefresh((value) => value + 1)}
+            >
+              Reload
+            </Button>
           )}
-          <p className="mb-1 text-sm text-muted-foreground">
-            {page.canEdit
-              ? 'Shared page · Can edit'
-              : 'Shared page · View only'}
+        </header>
+        <SharedPageDocument
+          pageId={pageId}
+          content={page.content}
+          pages={page.pages}
+          pagePlacements={page.pagePlacements}
+          databases={page.databases}
+          databasePlacements={page.databasePlacements}
+          linkedDatabasePlacements={page.linkedDatabasePlacements}
+          files={page.files}
+          filePlacements={page.filePlacements}
+          renderEditor={
+            page.canEdit && !unsupported
+              ? (content) => (
+                  <SharedPageEditor
+                    pageId={pageId}
+                    content={content}
+                    onSave={save}
+                    onUnsupported={() => setUnsupported(true)}
+                  />
+                )
+              : undefined
+          }
+        />
+        {unsupported && (
+          <p role="alert" className="text-sm text-muted-foreground">
+            Some blocks on this page cannot be edited in the shared view.
           </p>
-          <h1 className="text-3xl font-semibold">{page.name}</h1>
-        </div>
-        {!page.canEdit && (
-          <Button
-            variant="ghost"
-            onClick={() => setRefresh((value) => value + 1)}
-          >
-            Reload
-          </Button>
         )}
-      </header>
-      <SharedPageDocument
-        pageId={pageId}
-        content={page.content}
-        pages={page.pages}
-        pagePlacements={page.pagePlacements}
-        databases={page.databases}
-        databasePlacements={page.databasePlacements}
-        linkedDatabasePlacements={page.linkedDatabasePlacements}
-        files={page.files}
-        filePlacements={page.filePlacements}
-        renderEditor={
-          page.canEdit && !unsupported
-            ? (content) => (
-                <SharedPageEditor
-                  pageId={pageId}
-                  content={content}
-                  onSave={save}
-                  onUnsupported={() => setUnsupported(true)}
-                />
-              )
-            : undefined
-        }
-      />
-      {unsupported && (
-        <p role="alert" className="text-sm text-muted-foreground">
-          Some blocks on this page cannot be edited in the shared view.
-        </p>
-      )}
+      </PageExport>
     </article>
   );
 };

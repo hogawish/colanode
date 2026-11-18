@@ -13,6 +13,11 @@ import { EditorContent } from '@tiptap/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DocumentBlockMenu } from '@colanode/ui/components/documents/document-block-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@colanode/ui/components/ui/dialog';
 import { IdExtension } from '@colanode/ui/editor/extensions/id';
 import { ParagraphNode } from '@colanode/ui/editor/extensions/paragraph';
 import { ActionMenu } from '@colanode/ui/editor/menus/action-menu';
@@ -73,13 +78,25 @@ afterEach(() => {
 });
 
 describe('stable block links', () => {
-  const mountHandle = () => {
+  const mountHandle = (modal = false) => {
     const editor = createEditor();
-    render(
+    const content = (
       <>
         <EditorContent editor={editor} />
         <ActionMenu editor={editor} documentId="page" />
       </>
+    );
+    render(
+      modal ? (
+        <Dialog open>
+          <DialogContent>
+            <DialogTitle>Record</DialogTitle>
+            {content}
+          </DialogContent>
+        </Dialog>
+      ) : (
+        content
+      )
     );
     editor.view.dom.getBoundingClientRect = () => new DOMRect(100, 0, 400, 400);
     const target = findBlockElement(editor, 'second')!;
@@ -95,6 +112,32 @@ describe('stable block links', () => {
     fireEvent.mouseMove(target, { clientX: 120, clientY: 50 });
     return editor;
   };
+
+  it('keeps block handles and actions inside a record modal, applies color and copies the link', async () => {
+    const editor = mountHandle(true);
+    const dialog = screen.getByRole('dialog', { name: 'Record' });
+    const handle = await screen.findByRole('button', { name: 'Block actions' });
+    expect(dialog.contains(handle)).toBe(true);
+    fireEvent.click(handle);
+    const menu = await screen.findByRole('menu', { name: 'Block actions' });
+    expect(dialog.contains(menu)).toBe(true);
+    fireEvent.click(screen.getByText('Background color'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Background: Blue' }));
+    expect(
+      findBlockElement(editor, 'second')?.getAttribute('data-block-background')
+    ).toBe('blue');
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Block actions' })
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Copy link to block' })
+    );
+    await waitFor(() =>
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        buildBlockLink(window.location.origin, 'workspace', 'page', 'second')
+      )
+    );
+  });
 
   it('opens the block menu by clicking the handle and copies that block', async () => {
     const editor = mountHandle();

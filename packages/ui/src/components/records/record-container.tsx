@@ -1,6 +1,7 @@
 import { LocalRecordNode } from '@colanode/client/types';
 import { NodeRole, hasNodeRole } from '@colanode/core';
 import { Document } from '@colanode/ui/components/documents/document';
+import { PageExport } from '@colanode/ui/components/pages/page-export';
 import { RecordAttributes } from '@colanode/ui/components/records/record-attributes';
 import { RecordDatabase } from '@colanode/ui/components/records/record-database';
 import { RecordProvider } from '@colanode/ui/components/records/record-provider';
@@ -19,11 +20,13 @@ export const RecordContainer = ({ record, role }: RecordContainerProps) => {
     record.createdBy === workspace.userId || hasNodeRole(role, 'editor');
   return (
     <RecordDatabase id={record.databaseId} role={role}>
-      <RecordProvider record={record} role={role}>
-        <RecordAttributes />
-      </RecordProvider>
-      <Separator className="my-4 w-full" />
-      <Document node={record} canEdit={canEdit} autoFocus={false} />
+      <PageExport title={record.name}>
+        <RecordProvider record={record} role={role}>
+          <RecordAttributes />
+        </RecordProvider>
+        <Separator className="my-4 w-full" />
+        <Document node={record} canEdit={canEdit} autoFocus={false} />
+      </PageExport>
     </RecordDatabase>
   );
 };

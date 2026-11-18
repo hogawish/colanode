@@ -2,6 +2,7 @@ import { LocalDatabaseNode } from '@colanode/client/types';
 import { NodeRole } from '@colanode/core';
 import { Database } from '@colanode/ui/components/databases/database';
 import { DatabaseViews } from '@colanode/ui/components/databases/database-views';
+import { PageExport } from '@colanode/ui/components/pages/page-export';
 
 interface DatabaseContainerProps {
   database: LocalDatabaseNode;
@@ -14,7 +15,9 @@ export const DatabaseContainer = ({
 }: DatabaseContainerProps) => {
   return (
     <Database database={database} role={role}>
-      <DatabaseViews />
+      <PageExport title={database.name}>
+        <DatabaseViews />
+      </PageExport>
     </Database>
   );
 };
