@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: colanode
+      POSTGRES_PASSWORD: local-preview
+      POSTGRES_DB: colanode
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD, pg_isready, -U, colanode, -d, colanode]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  valkey:
+    image: valkey/valkey:8.1
+    volumes:
+      - valkey:/data
+    healthcheck:
+      test: [CMD, valkey-cli, ping]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  server:
+    build:
+      context: ../..
+      dockerfile: apps/server/Dockerfile
+    environment:
+      POSTGRES_URL: postgres://colanode:local-preview@postgres:5432/colanode
+      REDIS_URL: redis://valkey:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    ports:
+      - '127.0.0.1:3000:3000'
+    volumes:
+      - uploads:/app/data
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - '127.0.0.1:4000:80'
+
+volumes:
+  postgres:
+  valkey:
+  uploads:

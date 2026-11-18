@@ -12,8 +12,40 @@ upstream copyright and attribution notices remain in effect.
 
 Report fork-specific problems to this repository's Issues. These changes are not
 included in the official app, cloud service, or released desktop binaries.
-This source fork does not publish releases, tags, or container images; inherited
-GitHub Actions are disabled and feature updates push only the main branch.
+Follow the [fork roadmap](https://github.com/hogawish/colanode/issues/1) for
+page-sharing development and discussion. Fork preview tags identify source
+snapshots for local builds.
+
+## Source preview `fork-0.1.0-alpha.1`
+
+- Copy a link to a block from its handle and jump back to it. The handle also
+  offers formatting, background color, and block type conversion.
+- Select table rows for bulk actions. Use manual sort to save a custom order
+  per view and drag selected rows together.
+- Drag board cards within and between columns and manage grouping options.
+- Reorder sidebar items and use the hide and archive controls.
+
+Page sharing and invitations are in development. The preview targets the
+browser and a local self-hosted server.
+
+### Try the preview locally
+
+With Docker and Docker Compose available, clone the tag and start the preview:
+
+```sh
+git clone --branch fork-0.1.0-alpha.1 https://github.com/hogawish/colanode.git
+cd colanode
+docker compose -p colanode-fork-preview -f hosting/docker/fork-preview.yaml up -d --build
+```
+
+Open [the local Web app](http://localhost:4000). In **Add a server**, enter
+`http://localhost:3000/config`, create a local account, and create a workspace.
+The preview uses loopback ports 3000 and 4000 and its own Docker volumes.
+To stop it and keep the data, run:
+
+```sh
+docker compose -p colanode-fork-preview -f hosting/docker/fork-preview.yaml down
+```
 
 ## Changes
 

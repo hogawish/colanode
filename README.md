@@ -2,6 +2,7 @@
 > **Unofficial feature fork.** This repository is not affiliated with or endorsed by
 > Colanode. The official project is [colanode/colanode](https://github.com/colanode/colanode).
 > See [FORK.md](FORK.md) for this fork's changes, license, checks, and limitations.
+> **Current development focus: page sharing.** Follow the [fork roadmap](https://github.com/hogawish/colanode/issues/1) for progress and discussion.
 
 <div align="center">
 <img alt="Colanode cover" src="assets/images/colanode-github-cover.jpg">
