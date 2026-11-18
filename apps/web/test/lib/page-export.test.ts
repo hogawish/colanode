@@ -113,4 +113,29 @@ describe('portable page export', () => {
       })
     ).rejects.toThrow('Access denied');
   });
+
+  it('embeds a real PNG signature when the original download has no Content-Type', async () => {
+    const source = document.createElement('div');
+    source.innerHTML = '<div data-export-image-id="png"></div>';
+    const png = new Blob([
+      new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0]),
+    ]);
+    const html = await buildPageExport(source, 'PNG', {
+      resolveImage: async () => png,
+    });
+    expect(
+      new DOMParser().parseFromString(html, 'text/html').querySelector('img')
+        ?.src
+    ).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it('rejects untyped non-image responses instead of embedding an error page', async () => {
+    const source = document.createElement('div');
+    source.innerHTML = '<div data-export-image-id="not-image"></div>';
+    await expect(
+      buildPageExport(source, 'Invalid', {
+        resolveImage: async () => new Blob(['<html>Not authorized</html>']),
+      })
+    ).rejects.toThrow('An image could not be exported');
+  });
 });

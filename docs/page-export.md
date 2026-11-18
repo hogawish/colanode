@@ -25,3 +25,9 @@ Source-page links continue to require the reader's normal access.
 Reading access is sufficient to export displayed content. Background formatting
 still requires editing rights. Block handles and their action popovers stay inside
 an open record modal so the modal's focus/pointer restrictions do not block them.
+
+Editable editor NodeViews (including file-image blocks) are retained as static
+HTML containers. PNG, JPEG, GIF, WebP, AVIF, and BMP byte signatures are recognized
+when storage omits the image response Content-Type; untyped non-image responses
+are rejected. Unsupported containers holding images report an error rather than
+silently dropping their contents.

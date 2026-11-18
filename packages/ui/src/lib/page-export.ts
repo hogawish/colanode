@@ -5,6 +5,16 @@ const tags = new Set(
     ' '
   )
 );
+// Editable Tiptap NodeViews use custom host elements. Preserve their sanitized
+// children in ordinary HTML containers instead of dropping the entire block.
+const nodeViewTags = new Map([
+  ['file', 'div'],
+  ['database', 'div'],
+  ['page', 'div'],
+  ['folder', 'div'],
+  ['code-block', 'div'],
+  ['mention', 'span'],
+]);
 const styles = [
   'color',
   'background-color',
@@ -39,7 +49,38 @@ const safeLink = (value: string) => {
     return null;
   }
 };
-const blobImageData = (blob: Blob) => {
+const blobImageData = async (blob: Blob) => {
+  // Some storage download responses omit Content-Type, including cached blob
+  // URLs. Recognize actual image signatures rather than trusting a filename or
+  // treating an arbitrary untyped response as an image.
+  if (!blob.type || blob.type === 'application/octet-stream') {
+    const head = await new Promise<Uint8Array>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () =>
+        resolve(new Uint8Array(reader.result as ArrayBuffer));
+      reader.onerror = () =>
+        reject(new Error('Could not read the image data.'));
+      reader.readAsArrayBuffer(blob.slice(0, 32));
+    });
+    const text = (start: number, end: number) =>
+      String.fromCharCode(...head.slice(start, end));
+    let type: string | undefined;
+    if (
+      [137, 80, 78, 71, 13, 10, 26, 10].every(
+        (byte, index) => head[index] === byte
+      )
+    )
+      type = 'image/png';
+    else if (head[0] === 255 && head[1] === 216 && head[2] === 255)
+      type = 'image/jpeg';
+    else if (['GIF87a', 'GIF89a'].includes(text(0, 6))) type = 'image/gif';
+    else if (text(0, 4) === 'RIFF' && text(8, 12) === 'WEBP')
+      type = 'image/webp';
+    else if (text(4, 8) === 'ftyp' && ['avif', 'avis'].includes(text(8, 12)))
+      type = 'image/avif';
+    else if (text(0, 2) === 'BM') type = 'image/bmp';
+    if (type) blob = new Blob([blob], { type });
+  }
   if (!blob.type.startsWith('image/'))
     throw new Error('An image could not be exported.');
   return new Promise<string>((resolve, reject) => {
@@ -163,8 +204,16 @@ export const buildPageExport = async (
         return output.createTextNode(node.checked ? '☑ ' : '☐ ');
       return output.createTextNode(node.value);
     }
-    if (!tags.has(node.tagName.toLowerCase())) return null;
-    const element = output.createElement(node.tagName.toLowerCase());
+    const name = node.tagName.toLowerCase();
+    const tag = tags.has(name) ? name : nodeViewTags.get(name);
+    if (!tag) {
+      if (node.querySelector('[data-export-image-id],img'))
+        throw new Error(
+          'An image is inside a page block that cannot be exported yet.'
+        );
+      return null;
+    }
+    const element = output.createElement(tag);
     const computed = getComputedStyle(node);
     for (const property of styles) {
       const value = computed.getPropertyValue(property);
