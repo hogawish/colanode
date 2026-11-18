@@ -27,7 +27,8 @@ A conflicting document revision asks the editor to retain changes and reload.
 
 ## Understand inherited access
 
-Sharing a parent page extends access to descendants as the tree changes.
+Sharing a parent page extends access through child pages as the tree changes.
+Folder nodes do not extend this page-sharing inheritance to their contents.
 Keep private internal notes outside that shared parent.
 
 Page grants combine with access granted through the original Space or other

@@ -3,6 +3,9 @@
 Release candidate for the browser and a self-hosted Colanode server, based on
 upstream v0.4.7. The previous source snapshot is fork-0.1.0-alpha.1.
 
+**Not published.** Dependency remediation and final acceptance remain open; see
+[release readiness](../release-readiness.md).
+
 ## Changes
 
 - Share an original page with Can view or Can edit, invite a new guest by email
@@ -17,6 +20,9 @@ upstream v0.4.7. The previous source snapshot is fork-0.1.0-alpha.1.
 
 [Usage and access semantics](../sharing-and-space-views.md) describe inherited
 permissions, shared editor limitations, file visibility, and view links.
+
+- Preserve deployed startup recovery, missing-image cache recovery, cold database
+  loads, and stable shared-editor toggles and block IDs.
 
 ## Local installation
 
