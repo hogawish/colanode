@@ -1,5 +1,5 @@
-// @vitest-environment node
-import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
+import { createRequire } from 'node:module';
+import type { SQLInputValue } from 'node:sqlite';
 
 import { Kysely, SqliteDialect } from 'kysely';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +9,7 @@ import { FileService } from '@colanode/client/services/workspaces/file-service';
 import type { WorkspaceService } from '@colanode/client/services/workspaces/workspace-service';
 import { WebPathService } from '@colanode/web/services/path-service';
 
+const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite') as typeof import('node:sqlite');
 const databases: Kysely<WorkspaceDatabaseSchema>[] = [];
 afterEach(async () => {
   for (const db of databases.splice(0)) await db.destroy();
