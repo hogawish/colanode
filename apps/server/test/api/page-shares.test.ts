@@ -528,3 +528,64 @@ it('invites a new guest and edits the original body only for a page editor', asy
     (await edit((await read()).json().revision, 'Not allowed')).statusCode
   ).toBe(403);
 });
+
+it('keeps page grants and Space reference lookups inside their Workspace', async () => {
+  const owner = await createAccount();
+  const reader = await createAccount();
+  const first = await createWorkspace({ createdBy: owner.id });
+  const second = await createWorkspace({ createdBy: owner.id });
+  const [admin, viewer, otherMember] = await Promise.all([
+    createUser({ account: owner, workspaceId: first.id, role: 'owner' }),
+    createUser({ account: reader, workspaceId: first.id, role: 'guest' }),
+    createUser({ account: reader, workspaceId: second.id, role: 'owner' }),
+  ]);
+  const device = await createDevice({ accountId: reader.id });
+  const headers = buildAuthHeader(device.token);
+  const rootId = await createSpaceNode({
+    workspaceId: first.id,
+    userId: admin.id,
+  });
+  const pageId = await createPageNode({
+    workspaceId: first.id,
+    userId: admin.id,
+    rootId,
+    parentId: rootId,
+  });
+  const otherRootId = await createSpaceNode({
+    workspaceId: second.id,
+    userId: otherMember.id,
+  });
+  await database
+    .insertInto('page_shares')
+    .values({ page_id: pageId, viewer_id: viewer.id, role: 'viewer' })
+    .execute();
+  const own = `/client/v1/workspaces/${first.id}/page-shares`;
+  const other = `/client/v1/workspaces/${second.id}/page-shares`;
+  expect(
+    (await app.inject({ url: `${own}/${pageId}`, headers })).statusCode
+  ).toBe(200);
+  expect(
+    (await app.inject({ url: `${other}/${pageId}`, headers })).statusCode
+  ).toBe(404);
+  expect(
+    (
+      await app.inject({
+        url: `${own}/space-references/${otherRootId}`,
+        headers,
+      })
+    ).statusCode
+  ).toBe(404);
+  expect(
+    (
+      await app.inject({
+        method: 'PUT',
+        url: `${other}/${pageId}/viewers`,
+        headers,
+        payload: { viewerId: otherMember.id, enabled: true, role: 'editor' },
+      })
+    ).statusCode
+  ).toBe(404);
+  expect((await app.inject({ url: `${other}/mine`, headers })).json()).toEqual({
+    pages: [],
+  });
+});

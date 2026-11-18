@@ -16,7 +16,23 @@ Follow the [fork roadmap](https://github.com/hogawish/colanode/issues/1) for
 page-sharing development and discussion. Fork preview tags identify source
 snapshots for local builds.
 
-## Source preview `fork-0.1.0-alpha.1`
+## Source preview `fork-0.2.0-alpha.1`
+
+This candidate adds sharing an original page with view or edit access, invitations,
+inherited access to descendants, and a Shared with me sidebar. Page access can be
+managed from the page or the Workspace member list. Space references open the
+same original page from another Space.
+
+Spaces support optional tags, search, member/tag filters, personal pins and Hide,
+and saved filter views. Each member/tag filter can match any or all selected
+values. Advanced filters combine nested AND/OR groups. Saved views can be copied
+as links containing the current conditions and sort order.
+
+See [sharing and saved views](docs/sharing-and-space-views.md) for permission
+semantics and [the release notes](docs/releases/fork-0.2.0-alpha.1.md) for scope,
+upgrade, backup, rollback, and validation instructions.
+
+### Included from `fork-0.1.0-alpha.1`
 
 - Copy a link to a block from its handle and jump back to it. The handle also
   offers formatting, background color, and block type conversion.
@@ -25,15 +41,14 @@ snapshots for local builds.
 - Drag board cards within and between columns and manage grouping options.
 - Reorder sidebar items and use the hide and archive controls.
 
-Page sharing and invitations are in development. The preview targets the
-browser and a local self-hosted server.
+The preview targets the browser and a local self-hosted server.
 
 ### Try the preview locally
 
 With Docker and Docker Compose available, clone the tag and start the preview:
 
 ```sh
-git clone --branch fork-0.1.0-alpha.1 https://github.com/hogawish/colanode.git
+git clone --branch fork-0.2.0-alpha.1 https://github.com/hogawish/colanode.git
 cd colanode
 docker compose -p colanode-fork-preview -f hosting/docker/fork-preview.yaml up -d --build
 ```
@@ -122,6 +137,7 @@ browser layout or input-method behavior.
 Real account permissions and provider playback require a separate browser check.
 Iframe load alone is not evidence of media access or playback.
 
-No dependencies or lockfiles are added or changed. The candidate does not alter
-server behavior, deployment configuration, accounts, workspace content or storage
-backends. The feature patches do not require a database schema migration.
+The first preview's activity and embed patches require no database migration.
+This sharing release adds migrations 00033 and 00034 for page grants and
+invitations. Deploy the matching Web and server source together. The source-built
+Compose example keeps Postgres, Valkey, and uploaded files in named volumes.
