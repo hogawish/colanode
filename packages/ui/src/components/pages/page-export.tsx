@@ -1,5 +1,12 @@
-import { Download } from 'lucide-react';
-import { type ReactNode, useRef, useState } from 'react';
+import { Download, Settings } from 'lucide-react';
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { Button } from '@colanode/ui/components/ui/button';
 import {
@@ -9,11 +16,59 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@colanode/ui/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@colanode/ui/components/ui/dropdown-menu';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
 import {
   buildPageExport,
   downloadPageHtml,
 } from '@colanode/ui/lib/page-export';
+
+const ExportContext = createContext<{
+  open: boolean;
+  setOpen: (open: boolean) => void;
+} | null>(null);
+
+// One controller per node container keeps the settings menu and body together,
+// including when a database and a record modal are open at the same time.
+export const PageExportProvider = ({ children }: { children: ReactNode }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <ExportContext.Provider value={{ open, setOpen }}>
+      {children}
+    </ExportContext.Provider>
+  );
+};
+
+export const PageExportMenuItem = () => {
+  const controller = useContext(ExportContext);
+  if (!controller) return null;
+  return (
+    <DropdownMenuItem onSelect={() => controller.setOpen(true)}>
+      <Download className="size-4" />
+      Export page
+    </DropdownMenuItem>
+  );
+};
+
+// Shared pages have no normal NodeSettings toolbar, so provide the same gear
+// entry there. Ordinary page/record/database containers use their existing gear.
+export const PageExportSettings = () => (
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <Button variant="ghost" size="icon" aria-label="Page settings">
+        <Settings className="size-4" />
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="end">
+      <PageExportMenuItem />
+    </DropdownMenuContent>
+  </DropdownMenu>
+);
 
 export const PageExport = ({
   title,
@@ -25,11 +80,21 @@ export const PageExport = ({
   const { userId } = useWorkspace();
   const body = useRef<HTMLDivElement>(null);
   const preview = useRef<HTMLIFrameElement>(null);
-  const [open, setOpen] = useState(false);
+  const controller = useContext(ExportContext);
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = controller?.open ?? localOpen;
+  const setOpen = controller?.setOpen ?? setLocalOpen;
   const [busy, setBusy] = useState(false);
   const [html, setHtml] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (open) {
+      setHtml(null);
+      setError(null);
+      setReady(false);
+    }
+  }, [open]);
   const build = async (format: 'html' | 'pdf') => {
     if (!body.current) return;
     setBusy(true);
@@ -71,20 +136,6 @@ export const PageExport = ({
   };
   return (
     <>
-      <div className="mb-2 flex justify-end" data-export-exclude>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setHtml(null);
-            setError(null);
-            setOpen(true);
-          }}
-        >
-          <Download className="size-4" />
-          Export page
-        </Button>
-      </div>
       <div ref={body} className="min-w-0">
         {children}
       </div>

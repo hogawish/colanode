@@ -11,6 +11,7 @@ import { NodeBreadcrumb } from '@colanode/ui/components/nodes/node-breadcrumb';
 import { NodeProvider } from '@colanode/ui/components/nodes/node-provider';
 import { NodeSettings } from '@colanode/ui/components/nodes/node-settings';
 import { PageContainer } from '@colanode/ui/components/pages/page-container';
+import { PageExportProvider } from '@colanode/ui/components/pages/page-export';
 import { RecordContainer } from '@colanode/ui/components/records/record-container';
 import { SpaceContainer } from '@colanode/ui/components/spaces/space-container';
 import { ContainerType } from '@colanode/ui/contexts/container';
@@ -75,7 +76,9 @@ export const NodeContainer = ({
   return (
     <>
       <NodeProvider nodeId={nodeId}>
-        <NodeContent type={type} onFullscreen={onFullscreen} />
+        <PageExportProvider key={nodeId}>
+          <NodeContent type={type} onFullscreen={onFullscreen} />
+        </PageExportProvider>
       </NodeProvider>
       <Outlet />
     </>

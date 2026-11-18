@@ -5,6 +5,7 @@ import { LocalRecordNode } from '@colanode/client/types';
 import { NodeRole, hasNodeRole } from '@colanode/core';
 import { NodeCollaboratorAudit } from '@colanode/ui/components/collaborators/node-collaborator-audit';
 import { NodeDeleteDialog } from '@colanode/ui/components/nodes/node-delete-dialog';
+import { PageExportMenuItem } from '@colanode/ui/components/pages/page-export';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,10 +31,13 @@ export const RecordSettings = ({ record, role }: RecordSettingsProps) => {
     <Fragment>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Settings className="size-4 cursor-pointer text-muted-foreground hover:text-foreground" />
+          <button type="button" aria-label="Record settings">
+            <Settings className="size-4 cursor-pointer text-muted-foreground hover:text-foreground" />
+          </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="bottom" className="mr-2 w-80">
           <DropdownMenuLabel>{record.name}</DropdownMenuLabel>
+          <PageExportMenuItem />
           <DropdownMenuSeparator />
           <DropdownMenuItem className="flex items-center gap-2" disabled>
             <Copy className="size-4" />

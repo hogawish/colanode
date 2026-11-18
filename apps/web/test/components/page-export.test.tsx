@@ -1,7 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 
-import { PageExport } from '@colanode/ui/components/pages/page-export';
+import {
+  PageExport,
+  PageExportProvider,
+  PageExportSettings,
+} from '@colanode/ui/components/pages/page-export';
 import { SharedFileBlock } from '@colanode/ui/components/pages/shared-file';
 import * as exports from '@colanode/ui/lib/page-export';
 
@@ -15,11 +19,27 @@ vi.mock('@colanode/ui/components/files/file-save-button', () => ({
   FileSaveButton: () => null,
 }));
 
+const renderExport = (children: Parameters<typeof render>[0]) =>
+  render(
+    <PageExportProvider>
+      <PageExportSettings />
+      {children}
+    </PageExportProvider>
+  );
+const openExport = async () => {
+  fireEvent.pointerDown(screen.getByRole('button', { name: 'Page settings' }), {
+    button: 0,
+    ctrlKey: false,
+    pointerType: 'mouse',
+  });
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Export page' }));
+};
+
 it('exports a readable page without editing rights and previews only its body for PDF printing', async () => {
   const download = vi
     .spyOn(exports, 'downloadPageHtml')
     .mockImplementation(() => {});
-  render(
+  renderExport(
     <>
       <aside>Unrelated sidebar</aside>
       <PageExport title="共有仕様">
@@ -27,7 +47,8 @@ it('exports a readable page without editing rights and previews only its body fo
       </PageExport>
     </>
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Export page' }));
+  expect(screen.queryByRole('button', { name: 'Export page' })).toBeNull();
+  await openExport();
   fireEvent.click(screen.getByRole('button', { name: 'Download HTML' }));
   await waitFor(() => expect(download).toHaveBeenCalledOnce());
   expect(download.mock.calls[0]![0]).toContain('Read-only body');
@@ -61,7 +82,7 @@ it('includes an unpreviewed image using the current reader’s authorized origin
     blob: async () => new Blob(['full image bytes'], { type: 'image/png' }),
   });
   vi.stubGlobal('fetch', fetch);
-  render(
+  renderExport(
     <PageExport title="Images">
       <SharedFileBlock
         file={{ id: 'image1', name: 'Original.png', subtype: 'image' }}
@@ -70,7 +91,7 @@ it('includes an unpreviewed image using the current reader’s authorized origin
   );
   expect(screen.queryByRole('img')).toBeNull();
   expect(executeQuery).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Export page' }));
+  await openExport();
   fireEvent.click(screen.getByRole('button', { name: 'Download HTML' }));
   await waitFor(() => expect(download).toHaveBeenCalledOnce());
   expect(executeQuery).toHaveBeenCalledExactlyOnceWith({
@@ -87,4 +108,35 @@ it('includes an unpreviewed image using the current reader’s authorized origin
   );
   expect(download.mock.calls[0]![0]).toContain('data:image/png;base64,');
   expect(download.mock.calls[0]![0]).not.toContain('synthetic-test-token');
+});
+
+it('opens the record export without opening or exporting the database behind it', async () => {
+  const download = vi
+    .spyOn(exports, 'downloadPageHtml')
+    .mockImplementation(() => {});
+  render(
+    <PageExportProvider>
+      <PageExportSettings />
+      <PageExport title="Database">
+        <p>Database contents</p>
+      </PageExport>
+      <PageExportProvider>
+        <PageExportSettings />
+        <PageExport title="Record">
+          <p>Record contents</p>
+        </PageExport>
+      </PageExportProvider>
+    </PageExportProvider>
+  );
+  fireEvent.pointerDown(
+    screen.getAllByRole('button', { name: 'Page settings' })[1]!,
+    { button: 0, ctrlKey: false, pointerType: 'mouse' }
+  );
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Export page' }));
+  expect(screen.getAllByRole('dialog')).toHaveLength(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Download HTML' }));
+  await waitFor(() => expect(download).toHaveBeenCalledOnce());
+  expect(download.mock.calls[0]![1]).toBe('Record');
+  expect(download.mock.calls[0]![0]).toContain('Record contents');
+  expect(download.mock.calls[0]![0]).not.toContain('Database contents');
 });

@@ -15,6 +15,7 @@ import { LocalPageNode } from '@colanode/client/types';
 import { NodeRole, hasNodeRole } from '@colanode/core';
 import { NodeCollaboratorAudit } from '@colanode/ui/components/collaborators/node-collaborator-audit';
 import { NodeDeleteDialog } from '@colanode/ui/components/nodes/node-delete-dialog';
+import { PageExportMenuItem } from '@colanode/ui/components/pages/page-export';
 import { PageShareDialog } from '@colanode/ui/components/pages/page-share-dialog';
 import { PageUnusedImagesDialog } from '@colanode/ui/components/pages/page-unused-images-dialog';
 import { PageUpdateDialog } from '@colanode/ui/components/pages/page-update-dialog';
@@ -51,10 +52,13 @@ export const PageSettings = ({ page, role }: PageSettingsProps) => {
     <Fragment>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Settings className="size-4 cursor-pointer text-muted-foreground hover:text-foreground" />
+          <button type="button" aria-label="Page settings">
+            <Settings className="size-4 cursor-pointer text-muted-foreground hover:text-foreground" />
+          </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="bottom" className="mr-2 w-80">
           <DropdownMenuLabel>{page.name}</DropdownMenuLabel>
+          <PageExportMenuItem />
           {canShare && (
             <DropdownMenuItem onSelect={() => setShowShareDialog(true)}>
               <Share2 className="size-4" /> Share page

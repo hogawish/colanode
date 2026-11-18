@@ -1,6 +1,7 @@
 # Page export
 
-Use **Export page** above a page, database view, record body, or shared page.
+Open the **settings gear → Export page** on a page, database view, record, or
+shared page. There is no separate export button above the body.
 Choose **Download HTML** for a standalone HTML file. For PDF, choose **PDF preview**,
 then **Print / Save as PDF**, and select the browser's Save as PDF destination.
 The export preview contains the document, without the app sidebar or editing controls.

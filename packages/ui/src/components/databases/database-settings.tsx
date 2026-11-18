@@ -14,6 +14,7 @@ import { NodeRole, hasNodeRole } from '@colanode/core';
 import { NodeCollaboratorAudit } from '@colanode/ui/components/collaborators/node-collaborator-audit';
 import { DatabaseUpdateDialog } from '@colanode/ui/components/databases/database-update-dialog';
 import { NodeDeleteDialog } from '@colanode/ui/components/nodes/node-delete-dialog';
+import { PageExportMenuItem } from '@colanode/ui/components/pages/page-export';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,10 +63,13 @@ export const DatabaseSettings = ({ database, role }: DatabaseSettingsProps) => {
     <Fragment>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Settings className="size-4 cursor-pointer text-muted-foreground hover:text-foreground" />
+          <button type="button" aria-label="Database settings">
+            <Settings className="size-4 cursor-pointer text-muted-foreground hover:text-foreground" />
+          </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="bottom" className="mr-2 w-80">
           <DropdownMenuLabel>{database.name}</DropdownMenuLabel>
+          <PageExportMenuItem />
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="flex items-center gap-2 cursor-pointer"
