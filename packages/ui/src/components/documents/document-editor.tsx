@@ -43,10 +43,15 @@ import {
   ParagraphCommand,
   TableCommand,
   TodoCommand,
+  ToggleCommand,
   DatabaseCommand,
   DatabaseInlineCommand,
 } from '@colanode/ui/editor/commands';
-import { createExternalReferenceCommand, ExternalReferenceDialog, type ExternalReferenceRequest } from '@colanode/ui/editor/commands/external-reference';
+import {
+  createExternalReferenceCommand,
+  ExternalReferenceDialog,
+  type ExternalReferenceRequest,
+} from '@colanode/ui/editor/commands/external-reference';
 import {
   createLinkedDatabaseCommand,
   LinkedDatabaseDialog,
@@ -87,6 +92,7 @@ import {
   TaskItemNode,
   TaskListNode,
   TextNode,
+  ToggleNode,
   TrailingNode,
   UnderlineMark,
   DatabaseNode,
@@ -202,8 +208,10 @@ export const DocumentEditor = ({
   autoFocus,
 }: DocumentEditorProps) => {
   const workspace = useWorkspace();
-  const [externalReferenceRequest, setExternalReferenceRequest] = useState<ExternalReferenceRequest | null>(null);
-  const [linkedDatabaseEditor, setLinkedDatabaseEditor] = useState<Editor | null>(null);
+  const [externalReferenceRequest, setExternalReferenceRequest] =
+    useState<ExternalReferenceRequest | null>(null);
+  const [linkedDatabaseEditor, setLinkedDatabaseEditor] =
+    useState<Editor | null>(null);
 
   const hasPendingChanges = useRef(false);
   const revisionRef = useRef(state?.revision ?? 0);
@@ -299,6 +307,7 @@ export const DocumentEditor = ({
         TableCellNode,
         TableHeaderNode,
         DividerNode,
+        ToggleNode,
         TrailingNode,
         LinkMark,
         DeleteControlExtension,
@@ -323,6 +332,7 @@ export const DocumentEditor = ({
             DatabaseCommand,
             DividerCommand,
             TodoCommand,
+            ToggleCommand,
             FileCommand,
             FolderCommand,
           ],
@@ -352,7 +362,11 @@ export const DocumentEditor = ({
             return false;
           }
 
-          if (event.key === 'z' && event.metaKey && !event.shiftKey) {
+          if (
+            event.key === 'z' &&
+            (event.metaKey || event.ctrlKey) &&
+            !event.shiftKey
+          ) {
             event.preventDefault();
             performUndo({
               editor: editorRef.current,
@@ -362,7 +376,11 @@ export const DocumentEditor = ({
             });
             return true;
           }
-          if (event.key === 'z' && event.metaKey && event.shiftKey) {
+          if (
+            event.key === 'z' &&
+            (event.metaKey || event.ctrlKey) &&
+            event.shiftKey
+          ) {
             event.preventDefault();
             performRedo({
               editor: editorRef.current,
@@ -372,7 +390,7 @@ export const DocumentEditor = ({
             });
             return true;
           }
-          if (event.key === 'y' && event.metaKey) {
+          if (event.key === 'y' && (event.metaKey || event.ctrlKey)) {
             event.preventDefault();
             performRedo({
               editor: editorRef.current,
@@ -456,7 +474,12 @@ export const DocumentEditor = ({
       <DocumentBlockMenu editor={editor} documentId={node.id}>
         <EditorContent editor={editor} />
       </DocumentBlockMenu>
-      {externalReferenceRequest && <ExternalReferenceDialog request={externalReferenceRequest} onClose={() => setExternalReferenceRequest(null)} />}
+      {externalReferenceRequest && (
+        <ExternalReferenceDialog
+          request={externalReferenceRequest}
+          onClose={() => setExternalReferenceRequest(null)}
+        />
+      )}
       {linkedDatabaseEditor && (
         <LinkedDatabaseDialog
           editor={linkedDatabaseEditor}

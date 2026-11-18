@@ -84,6 +84,7 @@ const ManualTableBody = () => {
         ...unranked,
         data: records,
         isLoading: ranked.isLoading || unranked.isLoading,
+        isReady: ranked.isReady && unranked.isReady,
         isError: ranked.isError || unranked.isError,
       }}
       onReorder={database.canEdit && !database.isLocked ? reorder : undefined}
@@ -102,7 +103,14 @@ const SelectableTableBody = ({
     side: 'before' | 'after'
   ) => void;
 }) => {
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = query;
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isReady,
+    isError,
+  } = query;
   const records = data;
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [request, setRequest] = useState<{
@@ -179,7 +187,17 @@ const SelectableTableBody = ({
         }
       />
       <div className="border-t">
-        {records.length === 0 && <TableViewEmptyPlaceholder />}
+        {isError ? (
+          <p role="alert" className="p-4 text-sm text-muted-foreground">
+            Could not load records.
+          </p>
+        ) : !isReady ? (
+          <p role="status" className="p-4 text-sm text-muted-foreground">
+            Loading records…
+          </p>
+        ) : records.length === 0 ? (
+          <TableViewEmptyPlaceholder />
+        ) : null}
         {records.map((record, index) => (
           <TableViewRow
             key={record.id}

@@ -1,5 +1,8 @@
 import { expect, it, vi } from 'vitest';
 
+import { PageInvitationAcceptHandler } from '@colanode/client/handlers/mutations/accounts/page-invitation-accept';
+import { PageShareMutationHandler } from '@colanode/client/handlers/mutations/nodes/page-share';
+import { SharedPagesListQueryHandler } from '@colanode/client/handlers/queries/nodes/shared-pages-list';
 import { eventBus } from '@colanode/client/lib/event-bus';
 import { mapAccount } from '@colanode/client/lib/mappers';
 import { AccountService } from '@colanode/client/services/accounts/account-service';
@@ -16,7 +19,7 @@ it.each([
   [false, 'workspace.created'],
   [true, 'workspace.updated'],
 ] as const)(
-  'initializes a synced guest workspace before notifying the UI (already stored: %s)',
+  'opens the shared page after inviting a guest (workspace already stored: %s)',
   async (stored, eventType) => {
     const account = {
       id: 'guest-account',
@@ -56,30 +59,62 @@ it.each([
       }),
     };
     const order: string[] = [];
+    const page = {
+      name: 'Shared original',
+      content: null,
+      revision: null,
+      canEdit: false,
+      pages: [],
+      files: [],
+    };
+    const accepted = { workspaceId: workspace.workspace_id, pageId: 'page-id' };
+    let service: AccountService;
+    let initialized = false;
     const app = {
       client: {
         extend: () => ({
-          post: () => ({
-            json: async () => ({
-              account,
-              workspaces: [
-                {
-                  id: workspace.workspace_id,
-                  name: workspace.name,
-                  status: workspace.status,
-                  user: { id: workspace.user_id, role: workspace.role },
-                },
-              ],
-            }),
+          post: (url: string) => ({
+            json: async () =>
+              url.endsWith('/page-invitations/accept')
+                ? accepted
+                : {
+                    account,
+                    workspaces: [
+                      {
+                        id: workspace.workspace_id,
+                        name: workspace.name,
+                        status: workspace.status,
+                        user: { id: workspace.user_id, role: workspace.role },
+                      },
+                    ],
+                  },
+          }),
+          get: (url: string) => ({
+            json: async () => {
+              expect(initialized).toBe(true);
+              return url.endsWith('/mine')
+                ? { pages: [{ id: accepted.pageId, name: page.name }] }
+                : page;
+            },
           }),
         }),
       },
+      getAccount: () => service,
+      getWorkspace: (id: string) =>
+        initialized && id === workspace.user_id
+          ? {
+              workspaceId: workspace.workspace_id,
+              status: workspace.status,
+              account: service,
+            }
+          : undefined,
       database: {
         transaction: () => ({
           execute: (run: (tx: typeof trx) => unknown) => run(trx),
         }),
       },
       initWorkspace: vi.fn(async () => {
+        initialized = true;
         order.push('initialize');
       }),
     } as unknown as AppService;
@@ -90,7 +125,7 @@ it.each([
       });
 
     try {
-      const service = new AccountService(
+      service = new AccountService(
         mapAccount(account),
         {
           domain: account.server,
@@ -99,7 +134,28 @@ it.each([
         } as ServerService,
         app
       );
-      await service.sync();
+      await expect(
+        new PageInvitationAcceptHandler(app).handleMutation({
+          type: 'page.invitation.accept',
+          accountId: account.id,
+          token: 'synthetic-token',
+          server: account.server,
+        })
+      ).resolves.toEqual(accepted);
+      await expect(
+        new PageShareMutationHandler(app).handleMutation({
+          type: 'page.share',
+          action: 'read',
+          userId: workspace.user_id,
+          pageId: accepted.pageId,
+        })
+      ).resolves.toEqual({ action: 'read', page });
+      await expect(
+        new SharedPagesListQueryHandler(app).handleQuery({
+          type: 'shared.pages.list',
+          userId: workspace.user_id,
+        })
+      ).resolves.toEqual([{ id: accepted.pageId, name: page.name }]);
 
       expect(app.initWorkspace).toHaveBeenCalledWith(workspace);
       expect(order).toEqual(['initialize', eventType]);

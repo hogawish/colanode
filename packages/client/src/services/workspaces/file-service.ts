@@ -233,7 +233,7 @@ export class FileService {
       return null;
     }
 
-    const updatedLocalFile = await this.workspace.database
+    let updatedLocalFile = await this.workspace.database
       .updateTable('local_files')
       .returningAll()
       .set({
@@ -243,7 +243,72 @@ export class FileService {
       .executeTakeFirst();
 
     if (updatedLocalFile) {
+      const file = mapNode(node) as LocalFileNode;
+      const path = this.buildFilePath(fileId, file.extension);
+      if (
+        updatedLocalFile.path !== path &&
+        updatedLocalFile.download_status === DownloadStatus.Completed
+      ) {
+        if (
+          (await this.app.fs.exists(updatedLocalFile.path)) &&
+          !(await this.app.fs.exists(path))
+        ) {
+          await this.app.fs.copy(updatedLocalFile.path, path);
+        }
+        updatedLocalFile = await this.workspace.database
+          .updateTable('local_files')
+          .set({ path })
+          .where('id', '=', fileId)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+      }
       const url = await this.app.fs.url(updatedLocalFile.path);
+      if (
+        autoDownload &&
+        !url &&
+        updatedLocalFile.download_status === DownloadStatus.Completed &&
+        !(await this.app.fs.exists(path))
+      ) {
+        // A completed row can outlive an evicted or legacy-named cache file.
+        // Claim recovery once so concurrent preview reads do not requeue it.
+        const pending = await this.workspace.database
+          .updateTable('local_files')
+          .set({
+            download_status: DownloadStatus.Pending,
+            download_progress: 0,
+            download_retries: 0,
+            download_completed_at: null,
+            download_error_code: null,
+            download_error_message: null,
+          })
+          .where('id', '=', fileId)
+          .where('download_status', '=', DownloadStatus.Completed)
+          .returningAll()
+          .executeTakeFirst();
+        if (pending) {
+          await this.app.jobs.addJob({
+            type: 'local.file.download',
+            userId: this.workspace.userId,
+            fileId,
+          });
+          const localFile = mapLocalFile(pending, null);
+          eventBus.publish({
+            type: 'local.file.updated',
+            workspace: {
+              workspaceId: this.workspace.workspaceId,
+              userId: this.workspace.userId,
+              accountId: this.workspace.accountId,
+            },
+            localFile,
+          });
+          return localFile;
+        }
+        updatedLocalFile = await this.workspace.database
+          .selectFrom('local_files')
+          .selectAll()
+          .where('id', '=', fileId)
+          .executeTakeFirstOrThrow();
+      }
       return mapLocalFile(updatedLocalFile, url);
     }
 
@@ -364,7 +429,9 @@ export class FileService {
   }
 
   private buildFilePath(id: string, extension: string): string {
-    return this.app.path.workspaceFile(this.workspace.userId, id, extension);
+    const suffix =
+      extension && !extension.startsWith('.') ? '.' + extension : extension;
+    return this.app.path.workspaceFile(this.workspace.userId, id, suffix);
   }
 
   public async cleanupFiles(): Promise<void> {
@@ -378,34 +445,23 @@ export class FileService {
     const fsFiles = await this.app.fs.listFiles(this.filesDir);
     while (fsFiles.length > 0) {
       const batch = fsFiles.splice(0, 100);
-      const fileIdMap: Record<string, string> = {};
-
-      for (const file of batch) {
-        const id = this.app.path.filename(file);
-        fileIdMap[id] = file;
-      }
-
-      const fileIds = Object.keys(fileIdMap);
+      // Match the registered cache path, including legacy Bridge names without
+      // a dotted suffix. Parsing those names as IDs deletes valid local images.
+      const paths = batch.map((file) =>
+        this.app.path.workspaceFile(this.workspace.userId, file, '')
+      );
       const localFiles = await this.workspace.database
         .selectFrom('local_files')
-        .select(['id'])
-        .where('id', 'in', fileIds)
+        .select(['path'])
+        .where('path', 'in', paths)
         .execute();
 
-      for (const fileId of fileIds) {
-        const localFile = localFiles.find((lf) => lf.id === fileId);
+      for (const filePath of paths) {
+        const localFile = localFiles.find((lf) => lf.path === filePath);
         if (localFile) {
           continue;
         }
 
-        const fsFile = fileIdMap[fileId]!;
-        const name = this.app.path.filename(fsFile);
-        const extension = this.app.path.extension(fsFile);
-        const filePath = this.app.path.workspaceFile(
-          this.workspace.userId,
-          name,
-          extension
-        );
         await this.app.fs.delete(filePath);
       }
     }

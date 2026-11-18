@@ -14,7 +14,8 @@ vi.mock('workbox-routing', () => ({
 }));
 
 vi.mock('workbox-strategies', () => ({
-  StaleWhileRevalidate: vi.fn(),
+  NetworkFirst: class {},
+  StaleWhileRevalidate: class {},
 }));
 
 describe('Service Worker', () => {

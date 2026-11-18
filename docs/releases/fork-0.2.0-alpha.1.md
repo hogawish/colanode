@@ -86,7 +86,7 @@ and Docker for the API integration tests.
 
 ```sh
 npm ci
-npx tsc -b packages/ui
+npx tsc -b packages/crdt packages/ui
 npm run compile -w @colanode/server
 npm run test -w @colanode/web -- --run
 npm run test -w @colanode/client -- --run test/record-activity.test.ts

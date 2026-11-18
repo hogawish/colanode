@@ -245,6 +245,7 @@ export class AccountService {
                   role: workspace.user.role,
                 })
                 .where('workspace_id', '=', workspace.id)
+                .where('account_id', '=', this.account.id)
                 .executeTakeFirst();
 
               if (updatedWorkspace) {

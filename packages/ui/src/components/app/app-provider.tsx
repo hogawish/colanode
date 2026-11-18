@@ -7,6 +7,7 @@ import { AppAssets } from '@colanode/ui/components/app/app-assets';
 import { AppLayout } from '@colanode/ui/components/app/app-layout';
 import { AppLoading } from '@colanode/ui/components/app/app-loading';
 import { AppReset } from '@colanode/ui/components/app/app-reset';
+import { AppStartupError } from '@colanode/ui/components/app/app-startup-error';
 import { AppThemeProvider } from '@colanode/ui/components/app/app-theme-provider';
 import { RadarProvider } from '@colanode/ui/components/app/radar-provider';
 import { AppContext } from '@colanode/ui/contexts/app';
@@ -21,23 +22,27 @@ export const AppProvider = ({ type }: AppProviderProps) => {
   useEffect(() => {
     console.log(`Colanode | Version: ${build.version} | SHA: ${build.sha}`);
 
-    window.colanode.init().then((output) => {
-      console.log('Colanode | Initialized');
-
-      if (output === 'success') {
-        collections
-          .preload()
-          .then(() => {
-            setInitOutput('success');
-          })
-          .catch((err) => {
-            setInitOutput('error');
-            console.error('Colanode | Error preloading', err);
-          });
-      } else {
-        setInitOutput(output);
+    let active = true;
+    const timer = setTimeout(() => {
+      if (active) setInitOutput('error');
+    }, 20_000);
+    const initialize = async () => {
+      try {
+        const output = await window.colanode.init();
+        if (output === 'success') await collections.preload();
+        if (active) setInitOutput(output);
+      } catch (error) {
+        console.error('Colanode | Error opening workspace', error);
+        if (active) setInitOutput('error');
+      } finally {
+        clearTimeout(timer);
       }
-    });
+    };
+    void initialize();
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   return (
@@ -46,6 +51,7 @@ export const AppProvider = ({ type }: AppProviderProps) => {
         <AppAssets />
         {initOutput === null && <AppLoading />}
         {initOutput === 'reset' && <AppReset />}
+        {initOutput === 'error' && <AppStartupError />}
         {initOutput === 'success' && (
           <RadarProvider>
             <AppLayout type={type} />

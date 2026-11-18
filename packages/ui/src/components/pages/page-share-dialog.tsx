@@ -135,6 +135,8 @@ export const PageShareDialog = ({ pageId, onClose }: PageShareDialogProps) => {
           <DialogDescription>
             Invite by email. Access includes descendants and their attachments,
             including items added later. Changes apply on the next request.
+            Previously loaded content and downloaded files remain with the
+            viewer.
           </DialogDescription>
         </DialogHeader>
         <form className="flex flex-wrap gap-2" onSubmit={invite}>

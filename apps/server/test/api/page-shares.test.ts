@@ -1,6 +1,6 @@
 import { afterAll, expect, it } from 'vitest';
 
-import { IdType, generateId } from '@colanode/core';
+import { IdType, UserStatus, generateId } from '@colanode/core';
 import { database } from '@colanode/server/data/database';
 import { createDocument } from '@colanode/server/lib/documents';
 import { createNode } from '@colanode/server/lib/nodes';
@@ -21,31 +21,50 @@ const app = buildTestApp();
 afterAll(() => app.close());
 
 it('shares a single page and its children and attachments until access is removed', async () => {
-  const [owner, reader, other] = await Promise.all([
+  const [owner, reader, other, editorAccount] = await Promise.all([
+    createAccount(),
     createAccount(),
     createAccount(),
     createAccount(),
   ]);
   const workspace = await createWorkspace({ createdBy: owner.id });
-  const [admin, viewer] = await Promise.all([
+  const [admin, viewer, , editor] = await Promise.all([
     createUser({ account: owner, workspaceId: workspace.id, role: 'owner' }),
     createUser({ account: reader, workspaceId: workspace.id, role: 'guest' }),
     createUser({ account: other, workspaceId: workspace.id, role: 'admin' }),
+    createUser({
+      account: editorAccount,
+      workspaceId: workspace.id,
+      role: 'collaborator',
+    }),
   ]);
-  const [adminDevice, viewerDevice, outsideDevice] = await Promise.all([
-    createDevice({ accountId: owner.id }),
-    createDevice({ accountId: reader.id }),
-    createDevice({ accountId: other.id }),
-  ]);
+  const [adminDevice, viewerDevice, outsideDevice, editorDevice] =
+    await Promise.all([
+      createDevice({ accountId: owner.id }),
+      createDevice({ accountId: reader.id }),
+      createDevice({ accountId: other.id }),
+      createDevice({ accountId: editorAccount.id }),
+    ]);
   const adminHeaders = buildAuthHeader(adminDevice.token);
   const viewerHeaders = buildAuthHeader(viewerDevice.token);
   const outsideHeaders = buildAuthHeader(outsideDevice.token);
+  const editorHeaders = buildAuthHeader(editorDevice.token);
 
-  const rootId = await createSpaceNode({
-    workspaceId: workspace.id,
-    userId: admin.id,
-    name: 'Production Space',
-  });
+  const rootId = generateId(IdType.Space);
+  expect(
+    await createNode({
+      nodeId: rootId,
+      rootId,
+      workspaceId: workspace.id,
+      userId: admin.id,
+      attributes: {
+        type: 'space',
+        name: 'Production Space',
+        visibility: 'private',
+        collaborators: { [admin.id]: 'admin', [editor.id]: 'editor' },
+      },
+    })
+  ).toBe(true);
   const fixture = { workspaceId: workspace.id, userId: admin.id, rootId };
   const pageId = await createPageNode({
     ...fixture,
@@ -61,6 +80,31 @@ it('shares a single page and its children and attachments until access is remove
     ...fixture,
     parentId: rootId,
     name: 'Private sibling',
+  });
+  const folderId = generateId(IdType.Folder);
+  expect(
+    await createNode({
+      ...fixture,
+      nodeId: folderId,
+      attributes: { type: 'folder', name: 'Unshared folder', parentId: pageId },
+    })
+  ).toBe(true);
+  const behindFolder = await createPageNode({ ...fixture, parentId: folderId });
+  const foreignWorkspace = await createWorkspace({ createdBy: other.id });
+  const foreignMember = await createUser({
+    account: other,
+    workspaceId: foreignWorkspace.id,
+    role: 'owner',
+  });
+  const foreignRoot = await createSpaceNode({
+    workspaceId: foreignWorkspace.id,
+    userId: foreignMember.id,
+  });
+  const foreignPage = await createPageNode({
+    workspaceId: foreignWorkspace.id,
+    userId: foreignMember.id,
+    rootId: foreignRoot,
+    parentId: foreignRoot,
   });
   const destinationId = generateId(IdType.Space);
   expect(
@@ -82,6 +126,7 @@ it('shares a single page and its children and attachments until access is remove
   const dbId = generateId(IdType.Database);
   const unrelatedDb = generateId(IdType.Database);
   const linkedBlockId = generateId(IdType.Block);
+  const sourceViewId = generateId(IdType.DatabaseView);
   const recordId = generateId(IdType.Record);
   const viewId = generateId(IdType.DatabaseView);
   for (const [nodeId, parentId] of [
@@ -127,6 +172,19 @@ it('shares a single page and its children and attachments until access is remove
       },
     })
   ).toBeTruthy();
+  expect(
+    await createNode({
+      ...fixture,
+      nodeId: sourceViewId,
+      attributes: {
+        type: 'database_view',
+        name: 'Linked view',
+        parentId: unrelatedDb,
+        index: 'a0',
+        layout: 'table',
+      },
+    })
+  ).toBeTruthy();
   await createDocument({
     ...fixture,
     nodeId: pageId,
@@ -165,7 +223,7 @@ it('shares a single page and its children and attachments until access is remove
           parentId: pageId,
           index: 'a5',
           type: 'database',
-          attrs: { sourceDatabaseId: unrelatedDb },
+          attrs: { sourceDatabaseId: unrelatedDb, sourceViewId },
         },
       },
     },
@@ -240,6 +298,7 @@ it('shares a single page and its children and attachments until access is remove
     app.inject({ url: `${endpoint}/page-shares/${id}`, headers });
   const download = (id: string) =>
     app.inject({ url: `${endpoint}/files/${id}`, headers: viewerHeaders });
+
   const sharedPages = (headers = viewerHeaders) =>
     app.inject({ url: `${endpoint}/page-shares/mine`, headers });
   const references = (headers = viewerHeaders) =>
@@ -257,13 +316,31 @@ it('shares a single page and its children and attachments until access is remove
   const readLinkedDatabase = (headers = viewerHeaders) =>
     app.inject({ url: `${url}/linked-databases/${linkedBlockId}`, headers });
 
+  expect((await references()).json()).toEqual({ pages: [] });
+  expect((await managedPages()).json()).toEqual({ pages: [] });
+  expect((await setAccess(adminHeaders, true, 'editor')).statusCode).toBe(404);
   expect((await sharedPages()).json()).toEqual({ pages: [] });
   expect((await references()).json()).toEqual({ pages: [] });
   expect((await references(outsideHeaders)).statusCode).toBe(404);
   expect((await read(pageId)).statusCode).toBe(404);
   expect((await setAccess(viewerHeaders, true)).statusCode).toBe(404);
+  expect((await read(pageId, editorHeaders)).statusCode).toBe(200);
+  expect((await setAccess(editorHeaders, true)).statusCode).toBe(404);
+  expect((await read(foreignPage)).statusCode).toBe(404);
+  expect(
+    (
+      await app.inject({
+        method: 'PUT',
+        url: `${url}/viewers`,
+        headers: adminHeaders,
+        payload: { viewerId: foreignMember.id, enabled: true },
+      })
+    ).statusCode
+  ).toBe(404);
   expect((await setAccess(adminHeaders, true)).statusCode).toBe(200);
-  expect((await references()).json()).toEqual({
+  const visibleReferences = await references();
+  expect(visibleReferences.headers['cache-control']).toBe('private, no-store');
+  expect(visibleReferences.json()).toEqual({
     pages: [{ id: pageId, name: 'Shared original' }],
   });
   expect((await managedPages()).json()).toEqual({
@@ -305,9 +382,11 @@ it('shares a single page and its children and attachments until access is remove
   expect(shared.headers['cache-control']).toBe('private, no-store');
   expect(shared.json()).toMatchObject({
     name: 'Shared original',
+    canEdit: false,
     location: { spaceName: null, ancestorNames: [] },
     pages: [{ id: childId, name: 'Child' }],
     pagePlacements: [{ id: childId, parentId: pageId, index: 'a1' }],
+    databases: [{ id: dbId, name: 'Example database' }],
     databasePlacements: [
       { id: dbId, parentId: pageId, index: 'a3', inline: true },
     ],
@@ -321,6 +400,15 @@ it('shares a single page and its children and attachments until access is remove
   expect(shared.json().linkedDatabasePlacements).toEqual([
     { id: linkedBlockId, parentId: pageId, index: 'a5' },
   ]);
+  expect(shared.json().content.blocks).not.toHaveProperty(linkedBlockId);
+  expect(
+    (
+      await app.inject({
+        url: `${url}/linked-databases/${blockId}`,
+        headers: viewerHeaders,
+      })
+    ).statusCode
+  ).toBe(404);
   const sharedDatabase = await readDatabase(dbId);
   expect(sharedDatabase.statusCode).toBe(200);
   expect(sharedDatabase.headers['cache-control']).toBe('private, no-store');
@@ -344,17 +432,48 @@ it('shares a single page and its children and attachments until access is remove
   expect((await setSourceAccess(true)).statusCode).toBe(200);
   const linkedDatabase = await readLinkedDatabase();
   expect(linkedDatabase.statusCode).toBe(200);
-  expect(linkedDatabase.json().database.id).toBe(unrelatedDb);
+  expect(linkedDatabase.headers['cache-control']).toBe('private, no-store');
+  expect(linkedDatabase.json()).toMatchObject({
+    database: { id: unrelatedDb },
+    initialViewId: sourceViewId,
+    nodes: [{ id: sourceViewId, name: 'Linked view' }],
+  });
+  expect((await readLinkedDatabase(editorHeaders)).statusCode).toBe(200);
+  expect((await setAccess(adminHeaders, false)).statusCode).toBe(200);
+  expect((await readLinkedDatabase()).statusCode).toBe(404);
+  expect((await setAccess(adminHeaders, true)).statusCode).toBe(200);
   expect((await readLinkedDatabase(outsideHeaders)).statusCode).toBe(404);
   expect((await setSourceAccess(false)).statusCode).toBe(200);
   expect((await readLinkedDatabase()).statusCode).toBe(404);
-  expect((await read(childId)).json()).toMatchObject({
-    location: { spaceName: null, ancestorNames: ['Shared original'] },
-    files: [{ id: childFile, name: 'Child.txt' }],
-    filePlacements: [{ id: childFile, parentId: childId, index: 'a0' }],
+  const sharedChild = (await read(childId)).json();
+  expect(sharedChild.location).toEqual({
+    spaceName: null,
+    ancestorNames: ['Shared original'],
   });
+  expect(sharedChild.files).toEqual([
+    {
+      id: childFile,
+      name: 'Child.txt',
+      mimeType: 'text/plain',
+      subtype: 'other',
+    },
+  ]);
+  expect(sharedChild.filePlacements).toEqual([
+    { id: childFile, parentId: childId, index: 'a0' },
+  ]);
+  expect(sharedChild.content.blocks).not.toHaveProperty(childFile);
   expect((await read(pageId, outsideHeaders)).statusCode).toBe(404);
   expect((await read(siblingId)).statusCode).toBe(404);
+  expect((await read(behindFolder)).statusCode).toBe(404);
+  const addedChild = await createPageNode({ ...fixture, parentId: pageId });
+  expect((await read(addedChild)).statusCode).toBe(200);
+  const withUnplacedChild = (await read(pageId)).json();
+  expect(withUnplacedChild.pages).toContainEqual(
+    expect.objectContaining({ id: addedChild })
+  );
+  expect(withUnplacedChild.pagePlacements).toEqual([
+    { id: childId, parentId: pageId, index: 'a1' },
+  ]);
   const file = await download(childFile);
   expect(file.statusCode).toBe(200);
   expect(file.body).toBe(payload.toString());
@@ -370,13 +489,49 @@ it('shares a single page and its children and attachments until access is remove
   ).toBe(200);
   expect((await download(privateFile)).statusCode).toBe(403);
 
+  await database
+    .updateTable('users')
+    .set({ status: UserStatus.Removed })
+    .where('id', '=', viewer.id)
+    .execute();
+  expect((await read(pageId)).statusCode).toBe(403);
+  expect((await download(childFile)).statusCode).toBe(403);
+  await database
+    .updateTable('users')
+    .set({ status: UserStatus.Active })
+    .where('id', '=', viewer.id)
+    .execute();
+  expect((await read(pageId)).statusCode).toBe(200);
+
   expect((await setAccess(adminHeaders, false)).statusCode).toBe(200);
-  expect((await references()).json()).toEqual({ pages: [] });
-  expect((await managedPages()).json()).toEqual({ pages: [] });
-  expect((await setAccess(adminHeaders, true, 'editor')).statusCode).toBe(404);
   expect((await sharedPages()).json()).toEqual({ pages: [] });
   expect((await read(pageId)).statusCode).toBe(404);
   expect((await read(childId)).statusCode).toBe(404);
+  expect(
+    (
+      await app.inject({
+        method: 'PUT',
+        url: endpoint + '/page-shares/' + childId + '/viewers',
+        headers: adminHeaders,
+        payload: { viewerId: viewer.id, enabled: true },
+      })
+    ).statusCode
+  ).toBe(200);
+  expect((await read(childId)).json().location).toEqual({
+    spaceName: null,
+    ancestorNames: [],
+  });
+  expect((await read(pageId)).statusCode).toBe(404);
+  expect(
+    (
+      await app.inject({
+        method: 'PUT',
+        url: endpoint + '/page-shares/' + childId + '/viewers',
+        headers: adminHeaders,
+        payload: { viewerId: viewer.id, enabled: false },
+      })
+    ).statusCode
+  ).toBe(200);
   expect((await readDatabase(dbId)).statusCode).toBe(404);
   expect((await download(childFile)).statusCode).toBe(403);
   expect((await read(pageId, adminHeaders)).statusCode).toBe(200);
@@ -475,8 +630,12 @@ it('invites a new guest and edits the original body only for a page editor', asy
   expect((await claim(recipientHeaders, token)).statusCode).toBe(404);
   expect((await read(siblingId)).statusCode).toBe(404);
   expect((await read(childId)).json()).toMatchObject({ canEdit: true });
+  expect((await read('mine')).json()).toEqual({
+    pages: [{ id: pageId, name: 'Test Page' }],
+  });
 
   const initial = (await read()).json();
+  expect(initial.content.blocks[blockId].content[0].text).toBe('Before');
   expect(initial.canEdit).toBe(true);
   expect(initial.content.blocks[childId]).toBeUndefined();
   const firstSave = await edit(initial.revision, 'First draft');
@@ -506,6 +665,13 @@ it('invites a new guest and edits the original body only for a page editor', asy
     .where('workspace_id', '=', workspace.id)
     .executeTakeFirstOrThrow();
   expect(member.role).toBe('guest');
+  expect(
+    await database
+      .selectFrom('collaborations')
+      .select('collaborator_id')
+      .where('collaborator_id', '=', member.id)
+      .execute()
+  ).toEqual([]);
 
   const setChildShare = (enabled: boolean) =>
     app.inject({

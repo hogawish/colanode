@@ -7,7 +7,7 @@ declare const self: ServiceWorkerGlobalScope & {
 
 import { precacheAndRoute } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
-import { StaleWhileRevalidate } from 'workbox-strategies';
+import { NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
 
 import { WebFileSystem } from '@colanode/web/services/file-system';
 import { WebPathService } from '@colanode/web/services/path-service';
@@ -19,10 +19,25 @@ self.__WB_DISABLE_DEV_LOGS = true;
 precacheAndRoute(self.__WB_MANIFEST);
 
 registerRoute(
-  ({ url }) =>
-    url.origin === self.location.origin && url.pathname.startsWith('/assets/'),
+  ({ request, url }) =>
+    url.origin === self.location.origin &&
+    request.mode === 'navigate' &&
+    !url.pathname.split('/').includes('shared') &&
+    !/^\/(?:client|api)(?:\/|$)/.test(url.pathname),
+  new NetworkFirst({
+    cacheName: 'colanode-pages-v2',
+    networkTimeoutSeconds: 3,
+  })
+);
+
+registerRoute(
+  ({ request, url }) =>
+    url.origin === self.location.origin &&
+    url.pathname.startsWith('/assets/') &&
+    request.mode !== 'navigate' &&
+    request.destination !== 'document',
   new StaleWhileRevalidate({
-    cacheName: 'same-origin-assets',
+    cacheName: 'same-origin-assets-v2',
   })
 );
 
@@ -62,4 +77,8 @@ export const downloadIcons = async () => {
 
 self.addEventListener('install', (event: ExtendableEvent) => {
   event.waitUntil(Promise.all([downloadDbs(), self.skipWaiting()]));
+});
+
+self.addEventListener('activate', (event: ExtendableEvent) => {
+  event.waitUntil(self.clients.claim());
 });

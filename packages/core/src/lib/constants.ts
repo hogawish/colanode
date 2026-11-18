@@ -10,6 +10,7 @@ export const EditorNodeTypes = {
   OrderedList: 'orderedList',
   TaskList: 'taskList',
   TaskItem: 'taskItem',
+  Toggle: 'toggle',
   HorizontalRule: 'horizontalRule',
   Page: 'page',
   File: 'file',

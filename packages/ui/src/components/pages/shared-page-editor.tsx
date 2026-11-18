@@ -1,7 +1,6 @@
 import '@colanode/ui/styles/editor.css';
 
 import { useBlocker } from '@tanstack/react-router';
-import { Node } from '@tiptap/core';
 import { UndoRedo } from '@tiptap/extensions';
 import { EditorContent, useEditor, type JSONContent } from '@tiptap/react';
 import { isEqual } from 'lodash-es';
@@ -24,6 +23,7 @@ import {
   ParagraphCommand,
   TableCommand,
   TodoCommand,
+  ToggleCommand,
 } from '@colanode/ui/editor/commands';
 import {
   createExternalReferenceCommand,
@@ -66,6 +66,7 @@ import {
   TaskItemNode,
   TaskListNode,
   TextNode,
+  ToggleNode,
   UnderlineMark,
 } from '@colanode/ui/editor/extensions';
 import { sharedPageReferenceNodes } from '@colanode/ui/editor/extensions/shared-page-reference';
@@ -79,13 +80,6 @@ interface SharedPageEditorProps {
 }
 
 const referenceTypes = new Set(['page', 'database', 'file']);
-const ToggleNode = Node.create({
-  name: 'toggle',
-  group: 'block',
-  content: 'block+',
-  renderHTML: () => ['div', { class: 'border-l pl-4' }, 0],
-});
-
 export const SharedPageEditor = ({
   pageId,
   content,
@@ -108,7 +102,7 @@ export const SharedPageEditor = ({
   const indexes = useRef(
     new Map(Object.values(content.blocks).map(({ id, index }) => [id, index]))
   );
-  const saved = useRef<JSONContent | null>(null);
+  const [saved, setSaved] = useState<JSONContent | null>(null);
   const lastAttempt = useRef<JSONContent | null>(null);
 
   const editor = useEditor({
@@ -159,6 +153,7 @@ export const SharedPageEditor = ({
           TableCommand,
           DividerCommand,
           TodoCommand,
+          ToggleCommand,
           createExternalReferenceCommand(setExternalReference),
         ],
       }),
@@ -174,7 +169,23 @@ export const SharedPageEditor = ({
     enableContentCheck: true,
     onContentError: () => setUnsupported(true),
     onCreate: ({ editor }) => {
-      saved.current = editor.getJSON();
+      const initial = editor.getJSON();
+      try {
+        const blocks = mapContentsToBlocks(
+          pageId,
+          initial.content ?? [],
+          indexes.current
+        );
+        if (
+          [...indexes.current.keys()].some((id) => !Object.hasOwn(blocks, id))
+        ) {
+          setUnsupported(true);
+          return;
+        }
+        setSaved(initial);
+      } catch {
+        setUnsupported(true);
+      }
     },
     editorProps: {
       attributes: { class: sharedDocumentEditorClass, spellCheck: 'false' },
@@ -185,8 +196,7 @@ export const SharedPageEditor = ({
     },
   });
 
-  const dirty =
-    pending !== null && (saving || !isEqual(pending, saved.current));
+  const dirty = pending !== null && (saving || !isEqual(pending, saved));
   useBlocker({
     enableBeforeUnload: dirty,
     shouldBlockFn: ({ current, next }) =>
@@ -196,8 +206,8 @@ export const SharedPageEditor = ({
   });
 
   useEffect(() => {
-    if (unsupported || !pending || saving) return;
-    if (isEqual(pending, saved.current)) {
+    if (unsupported || !saved || !pending || saving) return;
+    if (isEqual(pending, saved)) {
       setError('');
       return;
     }
@@ -236,7 +246,7 @@ export const SharedPageEditor = ({
         indexes.current = new Map(
           Object.values(blocks).map(({ id, index }) => [id, index])
         );
-        saved.current = pending;
+        setSaved(pending);
       } catch (cause) {
         setError(
           cause instanceof Error ? cause.message : 'Could not save the page.'
@@ -246,7 +256,7 @@ export const SharedPageEditor = ({
       }
     }, 500);
     return () => window.clearTimeout(timer);
-  }, [pageId, pending, saving, unsupported]);
+  }, [pageId, pending, saved, saving, unsupported]);
 
   useEffect(() => {
     if (unsupported) onUnsupported();

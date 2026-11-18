@@ -1,12 +1,9 @@
 // Modified: refresh record activity on document update events.
-import {
-  BasicIndex,
-  createCollection,
-  parseLoadSubsetOptions,
-} from '@tanstack/react-db';
+import { BasicIndex, createCollection } from '@tanstack/react-db';
 
-import { LocalNode } from '@colanode/client/types';
 import { withRecordActivity } from '@colanode/client/lib';
+import { LocalNode } from '@colanode/client/types';
+import { parseNodeSubset } from '@colanode/ui/lib/node-subset';
 import { applyNodeTransaction } from '@colanode/ui/lib/nodes';
 
 export const createNodesCollection = (userId: string) => {
@@ -23,8 +20,6 @@ export const createNodesCollection = (userId: string) => {
       sync({ begin, write, commit, markReady }) {
         const known = new Map<string, LocalNode>();
         const remember = (node: LocalNode) => {
-          // Raw node events can predate a body update; retain the last effective
-          // activity stamp until a newer document event or reload refreshes it.
           const value = withRecordActivity(node, known.get(node.id));
           known.set(node.id, value);
           return value;
@@ -95,7 +90,7 @@ export const createNodesCollection = (userId: string) => {
             window.eventBus.unsubscribe(subscriptionId);
           },
           loadSubset: async (options) => {
-            const parsedOptions = parseLoadSubsetOptions(options);
+            const parsedOptions = parseNodeSubset(options);
 
             const nodes = await window.colanode.executeQuery({
               type: 'node.list',

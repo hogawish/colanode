@@ -14,6 +14,7 @@ export const defaultClasses = {
   blockquote: 'p-2 my-1 border-l-4 border-border bg-muted',
   taskList: 'not-prose pl-2',
   taskItem: 'flex items-start my-1',
+  toggle: 'relative my-1',
   link: 'font-medium underline underline-offset-4 cursor-pointer',
   gif: 'max-h-72 my-1',
   emoji: 'max-h-5 max-w-5 h-5 w-5 px-0.5 mb-1 inline-block',

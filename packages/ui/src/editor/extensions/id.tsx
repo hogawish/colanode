@@ -16,13 +16,13 @@ const types = [
   EditorNodeTypes.OrderedList,
   EditorNodeTypes.TaskList,
   EditorNodeTypes.TaskItem,
+  EditorNodeTypes.Toggle,
   EditorNodeTypes.CodeBlock,
   EditorNodeTypes.HorizontalRule,
   EditorNodeTypes.Table,
   EditorNodeTypes.TableHeader,
   EditorNodeTypes.TableCell,
   EditorNodeTypes.TableRow,
-  'toggle',
 ];
 
 export const IdExtension = Extension.create({

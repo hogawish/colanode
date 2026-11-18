@@ -267,7 +267,7 @@ describe('stable block links', () => {
     );
   });
 
-  it('retains the block target after editing and moving the block, including reload', () => {
+  it('retains the block target after editing and moving the block, including reload', async () => {
     const editor = createEditor();
     render(<EditorContent editor={editor} />);
     const blocks = editor.getJSON().content!;
@@ -287,8 +287,11 @@ describe('stable block links', () => {
     });
     editors.push(restored);
     render(<EditorContent editor={restored} />);
-    expect(findBlockElement(restored, 'second')).toHaveTextContent(
-      'changed second'
+    // The trial's existing React paragraph NodeView mounts through a portal.
+    await waitFor(() =>
+      expect(findBlockElement(restored, 'second')).toHaveTextContent(
+        'changed second'
+      )
     );
     expect(blockAtTarget(restored, findBlockElement(restored, 'second'))).toBe(
       'second'
@@ -338,11 +341,21 @@ describe('stable block links', () => {
       }
     );
     const editor = createEditor();
-    state.hash = 'block=second';
+    const view = render(
+      <DocumentBlockMenu editor={editor} documentId="page">
+        <EditorContent editor={editor} />
+      </DocumentBlockMenu>
+    );
+    // Mount the trial's React NodeView before attaching layout to its DOM;
+    // EditorContent can replace the detached wrapper from createEditor().
+    await waitFor(() =>
+      expect(findBlockElement(editor, 'second')).toHaveTextContent('second')
+    );
     const target = findBlockElement(editor, 'second')!;
     target.getBoundingClientRect = () =>
       new DOMRect(0, 500, 200, ready ? 20 : 0);
-    render(
+    state.hash = 'block=second';
+    view.rerender(
       <DocumentBlockMenu editor={editor} documentId="page">
         <EditorContent editor={editor} />
       </DocumentBlockMenu>
