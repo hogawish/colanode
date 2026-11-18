@@ -619,6 +619,23 @@ it('invites a new guest and edits the original body only for a page editor', asy
       },
     });
 
+  const expiredInvitation = await invite('editor');
+  expect(expiredInvitation.statusCode).toBe(200);
+  await database
+    .updateTable('page_invitations')
+    .set({ expires_at: new Date('2000-01-01T00:00:00Z') })
+    .where('page_id', '=', pageId)
+    .where('email', '=', recipient.email.toLowerCase())
+    .execute();
+  expect(
+    (
+      await claim(
+        recipientHeaders,
+        expiredInvitation.json<{ token: string }>().token
+      )
+    ).statusCode
+  ).toBe(404);
+
   const invitation = await invite('editor');
   expect(invitation.statusCode).toBe(200);
   const { token } = invitation.json<{ token: string }>();
