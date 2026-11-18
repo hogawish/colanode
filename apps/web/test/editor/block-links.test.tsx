@@ -124,8 +124,13 @@ describe('stable block links', () => {
     fireEvent.click(screen.getByText('Background color'));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Background: Blue' }));
     expect(
-      findBlockElement(editor, 'second')?.getAttribute('data-block-background')
+      (editor.state.selection as NodeSelection).node.attrs.blockBackground
     ).toBe('blue');
+    // React NodeViews receive background decorations on their wrapper; they
+    // need not serialize the native paragraph's data attribute there.
+    await waitFor(() =>
+      expect(findBlockElement(editor, 'second')).toHaveClass('bg-blue-200')
+    );
     fireEvent.click(
       await screen.findByRole('button', { name: 'Block actions' })
     );
