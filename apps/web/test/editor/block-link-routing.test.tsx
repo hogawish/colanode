@@ -6,7 +6,6 @@ import {
 } from '@tanstack/react-router';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-
 import { RichTextContent } from '@colanode/core';
 
 const localNode = vi.hoisted(() => ({ exists: false }));

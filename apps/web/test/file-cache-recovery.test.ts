@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 
 import { Kysely, SqliteDialect } from 'kysely';
