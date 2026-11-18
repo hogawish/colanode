@@ -62,7 +62,13 @@ export const SharedFileBlock = ({ file }: { file: SharedFile }) => {
   }, [file.id, userId, load]);
 
   return (
-    <div ref={ref} data-document-block={file.id} className="my-1 w-full">
+    <div
+      ref={ref}
+      data-document-block={file.id}
+      className="my-1 w-full"
+      data-export-image-id={isImage ? file.id : undefined}
+      data-export-image-name={isImage ? file.name : undefined}
+    >
       {(isImage || (isPlayable && playableRequested)) && (
         <div className="flex h-72 max-w-lg items-center justify-center overflow-hidden rounded-md p-2">
           {preview ? (

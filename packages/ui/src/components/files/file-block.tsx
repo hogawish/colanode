@@ -23,19 +23,17 @@ export const FileBlock = ({ id }: FileBlockProps) => {
     [workspace.userId, id]
   );
 
-  if (
-    fileGetQuery.isLoading ||
-    !fileGetQuery.data ||
-    fileGetQuery.data.type !== 'file'
-  ) {
-    return null;
-  }
+  if (fileGetQuery.isLoading) return <span data-export-file-loading />;
+  if (!fileGetQuery.data || fileGetQuery.data.type !== 'file')
+    return <span data-export-file-unavailable />;
 
   const file = fileGetQuery.data as LocalFileNode;
   const canPreview = canPreviewFile(file.subtype);
 
   return (
     <Link
+      data-export-image-id={file.subtype === 'image' ? file.id : undefined}
+      data-export-image-name={file.subtype === 'image' ? file.name : undefined}
       from="/workspace/$userId/$nodeId"
       to="modal/$modalNodeId"
       params={{ modalNodeId: id }}

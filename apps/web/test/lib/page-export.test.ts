@@ -32,12 +32,10 @@ describe('portable page export', () => {
     const source = document.createElement('div');
     source.innerHTML =
       '<img src="blob:http://localhost/loaded-image" alt="Design"><a href="/private-file">Attachment link</a>';
-    const fetch = vi
-      .fn()
-      .mockResolvedValue({
-        ok: true,
-        blob: async () => new Blob(['png'], { type: 'image/png' }),
-      });
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['png'], { type: 'image/png' }),
+    });
     vi.stubGlobal('fetch', fetch);
     const html = await buildPageExport(source, 'Images');
     const result = new DOMParser().parseFromString(html, 'text/html');
@@ -48,6 +46,7 @@ describe('portable page export', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch).toHaveBeenCalledWith('blob:http://localhost/loaded-image', {
       credentials: 'same-origin',
+      signal: expect.any(AbortSignal),
     });
     expect(result.querySelector('a')?.href).toContain('/private-file');
   });
@@ -59,5 +58,59 @@ describe('portable page export', () => {
     await expect(buildPageExport(source, 'Missing')).rejects.toThrow(
       'Load the page images'
     );
+  });
+
+  it('loads offscreen referenced images once, at their body position, without following unused attachments', async () => {
+    document.body.innerHTML =
+      '<div data-export-image-id="unused">Unused image</div>';
+    const source = document.createElement('div');
+    source.innerHTML =
+      '<p>Before</p><div data-export-image-id="photo" data-export-image-name="Original.png">Loading preview…</div><p>After</p><div data-export-image-id="photo"></div>';
+    const resolveImage = vi
+      .fn()
+      .mockResolvedValue(new Blob(['original bytes'], { type: 'image/png' }));
+    const result = new DOMParser().parseFromString(
+      await buildPageExport(source, 'Photos', { resolveImage }),
+      'text/html'
+    );
+    expect(resolveImage).toHaveBeenCalledExactlyOnceWith('photo');
+    expect(result.querySelectorAll('img')).toHaveLength(2);
+    expect(result.querySelector('img')?.src).toMatch(
+      /^data:image\/png;base64,/
+    );
+    expect(result.querySelector('img')?.alt).toBe('Original.png');
+    expect(
+      result.querySelector('figure')?.previousElementSibling?.textContent
+    ).toBe('Before');
+    expect(
+      result.querySelector('figure')?.nextElementSibling?.textContent
+    ).toBe('After');
+    expect(result.body.textContent).not.toMatch(/Loading preview|Unused image/);
+  });
+
+  it('waits for file metadata instead of losing a loading image block', async () => {
+    const source = document.createElement('div');
+    source.innerHTML = '<span data-export-file-loading></span>';
+    const resolveImage = vi
+      .fn()
+      .mockResolvedValue(new Blob(['image'], { type: 'image/png' }));
+    const result = buildPageExport(source, 'Loading', { resolveImage });
+    expect(resolveImage).not.toHaveBeenCalled();
+    source.innerHTML = '<div data-export-image-id="ready"></div>';
+    expect(await result).toContain('data:image/png;base64,');
+    expect(resolveImage).toHaveBeenCalledExactlyOnceWith('ready');
+  });
+
+  it('fails when the referenced original is denied, without exporting a placeholder', async () => {
+    const source = document.createElement('div');
+    source.innerHTML =
+      '<div data-export-image-id="denied">Preview unavailable</div>';
+    await expect(
+      buildPageExport(source, 'Denied', {
+        resolveImage: async () => {
+          throw new Error('Access denied');
+        },
+      })
+    ).rejects.toThrow('Access denied');
   });
 });
