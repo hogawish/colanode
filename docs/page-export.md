@@ -78,10 +78,12 @@ remain IDs rather than expanding a private workspace user directory.
 
 The authenticated read-only endpoint checks Space roles or existing Page shares
 for every container. A shared Page grants its owned database and that database's
-own records; a folder is not a new share-inheritance bridge. Body-file downloads
-require access to the containing page/record **and a current reachable file
-block**. Undo-only/unreferenced files, other Spaces/Workspaces and inaccessible
-siblings are not included. Export never changes source content or access.
+own records; a folder is not a new share-inheritance bridge. For Page-share-only
+readers, body-file downloads require access to the containing page/record **and
+a current reachable file block**. Space members keep their existing normal
+attachment access. The hierarchy ZIP includes only current body references,
+excluding Undo-only/unreferenced files, inaccessible siblings and other
+Spaces/Workspaces. Export never changes source content or access.
 
 The one-page ZIP, HTML and PDF flows remain available for unsynced on-screen
 content. Unsafe/empty links are retained as text instead of becoming accidental
