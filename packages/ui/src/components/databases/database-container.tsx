@@ -15,7 +15,7 @@ export const DatabaseContainer = ({
 }: DatabaseContainerProps) => {
   return (
     <Database database={database} role={role}>
-      <PageExport title={database.name}>
+      <PageExport title={database.name} nodeId={database.id}>
         <DatabaseViews />
       </PageExport>
     </Database>

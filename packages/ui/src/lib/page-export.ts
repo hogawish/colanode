@@ -40,6 +40,7 @@ const styles = [
   'list-style-type',
 ];
 const safeLink = (value: string) => {
+  if (!value.trim()) return null;
   try {
     const url = new URL(value, window.location.href);
     return ['http:', 'https:', 'mailto:', 'tel:'].includes(url.protocol)
@@ -213,7 +214,9 @@ export const buildPageExport = async (
         );
       return null;
     }
-    const element = output.createElement(tag);
+    const element = output.createElement(
+      name === 'a' && !safeLink(node.getAttribute('href') ?? '') ? 'span' : tag
+    );
     const computed = getComputedStyle(node);
     for (const property of styles) {
       const value = computed.getPropertyValue(property);

@@ -98,7 +98,7 @@ const SharedPageContent = ({ pageId }: { pageId: string }) => {
       <article
         className={`mx-auto w-full min-w-0 space-y-6 px-6 py-10 ${page.linkedDatabasePlacements?.length || page.databasePlacements?.some(({ inline }) => inline) ? '' : 'max-w-3xl'}`}
       >
-        <PageExport title={page.name}>
+        <PageExport title={page.name} nodeId={pageId}>
           <header
             className="flex items-start justify-between gap-4"
             data-export-exclude

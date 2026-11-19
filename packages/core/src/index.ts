@@ -38,3 +38,4 @@ export * from './types/avatars';
 export * from './types/build';
 export * from './lib/servers';
 export * from './types/auth';
+export * from './types/page-export';

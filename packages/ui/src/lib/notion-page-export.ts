@@ -2,7 +2,7 @@ import { strToU8, zipSync } from 'fflate';
 
 // Consume the same sanitized snapshot as HTML/PDF. Only referenced body images
 // are bundled; this layer never traverses pages, databases, or attachment lists.
-export const buildNotionPageZip = (html: string, title: string) => {
+export const packageNotionHtml = (html: string, imagePrefix = 'image') => {
   const page = new DOMParser().parseFromString(html, 'text/html');
   const files: Record<string, Uint8Array> = {};
   const images = new Map<string, string>();
@@ -29,8 +29,8 @@ export const buildNotionPageZip = (html: string, title: string) => {
       const bytes = Uint8Array.from(atob(match[2]), (character) =>
         character.charCodeAt(0)
       );
-      path = `assets/image-${String(images.size + 1).padStart(3, '0')}.${extension}`;
-      files[`notion-export/${path}`] = bytes;
+      path = `assets/${imagePrefix}-${String(images.size + 1).padStart(3, '0')}.${extension}`;
+      files[path] = bytes;
       images.set(source, path);
     }
     image.setAttribute('src', path);
@@ -40,26 +40,41 @@ export const buildNotionPageZip = (html: string, title: string) => {
     'content',
     "default-src 'none'; img-src 'self' file: data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"
   );
-  files[`notion-export/${exportFilename(title)}.html`] = strToU8(
-    '<!doctype html>\n' + page.documentElement.outerHTML
+  return { html: '<!doctype html>\n' + page.documentElement.outerHTML, files };
+};
+
+export const buildNotionPageZip = (html: string, title: string) => {
+  const packed = packageNotionHtml(html);
+  const files: Record<string, Uint8Array> = Object.fromEntries(
+    Object.entries(packed.files).map(([path, bytes]) => [
+      `notion-export/${path}`,
+      bytes,
+    ])
   );
+  files[`notion-export/${exportFilename(title)}.html`] = strToU8(packed.html);
   // Images are already compressed. STORE avoids recompression/worker startup
   // and keeps the ZIP compatible with ordinary readers and Notion's importer.
   return zipSync(files, { level: 0 });
 };
 
-const exportFilename = (title: string) =>
-  Array.from(title, (character) =>
-    character.charCodeAt(0) < 32 ? '_' : character
+export const exportFilename = (title: string) =>
+  Array.from(
+    Array.from(title, (character) =>
+      character.charCodeAt(0) < 32 ? '_' : character
+    )
+      .join('')
+      .replace(/[<>:"/\\|?*]/g, '_')
+      .replace(/[. ]+$/g, '')
+      .trim()
   )
-    .join('')
-    .replace(/[<>:"/\\|?*]/g, '_')
-    .replace(/[. ]+$/g, '')
-    .trim()
-    .slice(0, 100) || 'page';
+    .slice(0, 100)
+    .join('') || 'page';
 
 export const downloadNotionPageZip = (html: string, title: string) => {
-  const bytes = buildNotionPageZip(html, title);
+  downloadNotionZip(buildNotionPageZip(html, title), title);
+};
+
+export const downloadNotionZip = (bytes: Uint8Array, title: string) => {
   const url = URL.createObjectURL(
     new Blob([new Uint8Array(bytes).buffer], { type: 'application/zip' })
   );

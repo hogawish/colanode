@@ -20,7 +20,7 @@ export const RecordContainer = ({ record, role }: RecordContainerProps) => {
     record.createdBy === workspace.userId || hasNodeRole(role, 'editor');
   return (
     <RecordDatabase id={record.databaseId} role={role}>
-      <PageExport title={record.name}>
+      <PageExport title={record.name} nodeId={record.id}>
         <RecordProvider record={record} role={role}>
           <RecordAttributes />
         </RecordProvider>

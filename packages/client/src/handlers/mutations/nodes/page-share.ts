@@ -11,6 +11,7 @@ import type {
   SharedDatabase,
   SharedPage,
 } from '@colanode/client/mutations/nodes/page-share';
+import type { PageExportSnapshot } from '@colanode/core';
 
 export class PageShareMutationHandler
   extends WorkspaceMutationHandlerBase
@@ -38,6 +39,15 @@ export class PageShareMutationHandler
       }
       const path = `${base}/${encodeURIComponent(input.pageId)}`;
       switch (input.action) {
+        case 'read-export':
+          return {
+            action: 'read-export',
+            snapshot: await client
+              .get(`${path}/export`, {
+                searchParams: { offset: input.offset ?? 0 },
+              })
+              .json<PageExportSnapshot>(),
+          };
         case 'read':
           return {
             action: 'read',

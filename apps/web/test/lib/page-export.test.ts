@@ -18,7 +18,7 @@ describe('portable page export', () => {
     expect(result.querySelector('details')?.open).toBe(true);
     expect(result.querySelector('td')?.textContent).toBe('Visible row');
     expect(result.body.textContent).toContain('☑');
-    expect(result.querySelector('a')?.hasAttribute('href')).toBe(false);
+    expect(result.querySelector('a[href]')).toBeNull();
     expect(result.querySelector('script,button,[onclick],input')).toBeNull();
     expect(result.body.textContent).not.toMatch(
       /Private sibling|Duplicate title|Delete|Saving/

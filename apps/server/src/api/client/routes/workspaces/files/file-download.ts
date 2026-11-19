@@ -10,10 +10,8 @@ import {
 } from '@colanode/core';
 import { database } from '@colanode/server/data/database';
 import { fetchNodeTree, mapNode } from '@colanode/server/lib/nodes';
-import {
-  canViewSharedPage,
-  isSharedFileBlock,
-} from '@colanode/server/lib/page-shares';
+import { canReadExportTree } from '@colanode/server/lib/page-export';
+import { isSharedFileBlock } from '@colanode/server/lib/page-shares';
 import { storage } from '@colanode/server/lib/storage';
 
 export const fileDownloadRoute: FastifyPluginCallbackZod = (
@@ -70,8 +68,8 @@ export const fileDownloadRoute: FastifyPluginCallbackZod = (
       const parent = nodes.at(-2);
       if (
         !allowedBySpace &&
-        parent?.type === 'page' &&
-        (await canViewSharedPage(nodes.slice(0, -1), request.workspace.user.id))
+        (parent?.type === 'page' || parent?.type === 'record') &&
+        (await canReadExportTree(nodes.slice(0, -1), request.workspace.user.id))
       ) {
         const document = await database
           .selectFrom('documents')

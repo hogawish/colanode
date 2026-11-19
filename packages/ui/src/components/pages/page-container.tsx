@@ -56,7 +56,7 @@ const PageTitle = ({
 export const PageContainer = ({ page, role }: PageContainerProps) => {
   const canEdit = hasNodeRole(role, 'editor');
   return (
-    <PageExport title={page.name}>
+    <PageExport title={page.name} nodeId={page.id}>
       <PageTitle key={page.id} page={page} canEdit={canEdit} />
       <Document node={page} canEdit={canEdit} autoFocus="start" />
     </PageExport>

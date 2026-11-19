@@ -5,6 +5,7 @@ import type {
   FileSubtype,
   RecordNode,
   RichTextContent,
+  PageExportSnapshot,
 } from '@colanode/core';
 
 type NamedItem = { id: string; name: string };
@@ -46,6 +47,7 @@ export type ManagedPageShare = NamedItem & {
 };
 
 type PageShareAction =
+  | { action: 'read-export'; offset?: number }
   | { action: 'read' }
   | { action: 'read-database'; databaseId: string }
   | { action: 'read-linked-database'; blockId: string }
@@ -65,6 +67,7 @@ export type PageShareMutationInput = {
 );
 
 export type PageShareMutationOutput =
+  | { action: 'read-export'; snapshot: PageExportSnapshot }
   | { action: 'read'; page: SharedPage }
   | { action: 'read-database'; database: SharedDatabase }
   | { action: 'list-user'; pages: ManagedPageShare[] }

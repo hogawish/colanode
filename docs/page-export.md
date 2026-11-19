@@ -49,10 +49,42 @@ Colanode links; displayed tables are static HTML tables, not imported Notion
 databases. Notion may simplify colors, toggles, and layout. Import is a copy,
 not synchronization; permissions and edit history do not transfer.
 
-Next milestones requested by the user are **both** recursive child-page import
-(hierarchy, packaged assets, and internal-link rewriting) and database import
-(records, properties and record bodies, with explicit handling of unsupported
-relations/formulas). These are not part of the one-page ZIP. Do not recursively
-export pages or records without checking the exporting reader's existing access.
+## Hierarchy and databases
+
+Use **settings gear → Export page → Notion ZIP + subpages & databases** on a
+page, shared page, database, or record. This reads the **synced server version**,
+so wait for edits to sync first. It fetches every readable descendant, including
+children present only in the sidebar, and all database rows through pagination.
+Current view filters and loaded-row limits do not restrict this export. A failed
+child/image read stops the download instead of producing a silently partial ZIP.
+
+The ZIP uses nested directories for child pages, keeps body images alongside each
+HTML page, and rewrites links between included pages to relative paths. Same-name
+pages get distinct numbered filenames without exposing IDs as page titles. It does not follow arbitrary body links
+or linked databases outside the selected subtree. Direct image references are
+bundled when readable through the browser; Drive embeds remain source links.
+
+Each database is a UTF-8 CSV with its columns and **all readable rows**. Select
+options use their labels. A Body column retains plain row-body text, and a Body
+page column points to the matching HTML file with formatting and images. Those
+HTML files are also in the ZIP under the database's directory. Notion imports
+CSV as a database and HTML as pages; **automatic attachment of each HTML body to
+the corresponding CSV row is not guaranteed by the file importer**. The explicit
+body text and file references preserve content for checking after import.
+Property types may require mapping in Notion. Relations are exported as readable
+values (IDs for targets outside the archive); views, formulas/rollups, sharing
+permissions, comments, and history are not recreated. Collaborator references
+remain IDs rather than expanding a private workspace user directory.
+
+The authenticated read-only endpoint checks Space roles or existing Page shares
+for every container. A shared Page grants its owned database and that database's
+own records; a folder is not a new share-inheritance bridge. Body-file downloads
+require access to the containing page/record **and a current reachable file
+block**. Undo-only/unreferenced files, other Spaces/Workspaces and inaccessible
+siblings are not included. Export never changes source content or access.
+
+The one-page ZIP, HTML and PDF flows remain available for unsynced on-screen
+content. Unsafe/empty links are retained as text instead of becoming accidental
+links to the current Colanode route.
 
 Reference: https://www.notion.com/help/import-data-into-notion

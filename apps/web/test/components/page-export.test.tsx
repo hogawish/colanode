@@ -11,7 +11,7 @@ import * as notionExports from '@colanode/ui/lib/notion-page-export';
 import * as exports from '@colanode/ui/lib/page-export';
 
 vi.mock('@colanode/ui/contexts/workspace', () => ({
-  useWorkspace: () => ({ userId: 'reader' }),
+  useWorkspace: () => ({ userId: 'reader', workspaceId: 'workspace' }),
 }));
 vi.mock('react-intersection-observer', () => ({
   useInView: () => ({ ref: () => {}, inView: false }),
@@ -67,6 +67,93 @@ it('exports a readable page without editing rights and previews only its body fo
   fireEvent.load(frame);
   fireEvent.click(screen.getByRole('button', { name: 'Print / Save as PDF' }));
   expect(print).toHaveBeenCalledOnce();
+});
+
+it('exports synced server descendants through the gear, independently of mounted or filtered content', async () => {
+  const download = vi
+    .spyOn(notionExports, 'downloadNotionZip')
+    .mockImplementation(() => {});
+  const executeMutation = vi.fn(async (query) => ({
+    success: true,
+    output: {
+      action: 'read-export',
+      snapshot: {
+        id: query.pageId,
+        name: query.pageId,
+        kind: 'page',
+        files: [],
+        nextOffset: null,
+        children:
+          query.pageId === 'root'
+            ? [{ id: 'child', name: 'child', kind: 'page' }]
+            : [],
+        content: {
+          type: 'rich_text',
+          blocks: {
+            text: {
+              id: 'text',
+              parentId: query.pageId,
+              type: 'paragraph',
+              index: 'a0',
+              content: [{ type: 'text', text: 'Synced body' }],
+            },
+          },
+        },
+      },
+    },
+  }));
+  Object.assign(window, { colanode: { executeMutation } });
+  renderExport(
+    <PageExport title="Root" nodeId="root">
+      <p>Unrelated local screen</p>
+    </PageExport>
+  );
+  await openExport();
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Notion ZIP + subpages & databases' })
+  );
+  await waitFor(() => expect(download).toHaveBeenCalledOnce());
+  expect(executeMutation).toHaveBeenNthCalledWith(1, {
+    type: 'page.share',
+    action: 'read-export',
+    pageId: 'root',
+    offset: 0,
+    userId: 'reader',
+  });
+  expect(executeMutation).toHaveBeenNthCalledWith(2, {
+    type: 'page.share',
+    action: 'read-export',
+    pageId: 'child',
+    offset: 0,
+    userId: 'reader',
+  });
+});
+
+it('shows permission failures without downloading a partially collected hierarchy', async () => {
+  const download = vi
+    .spyOn(notionExports, 'downloadNotionZip')
+    .mockImplementation(() => {});
+  Object.assign(window, {
+    colanode: {
+      executeMutation: vi
+        .fn()
+        .mockResolvedValue({
+          success: false,
+          error: { message: 'Access changed' },
+        }),
+    },
+  });
+  renderExport(
+    <PageExport title="Root" nodeId="root">
+      <p>Body</p>
+    </PageExport>
+  );
+  await openExport();
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Notion ZIP + subpages & databases' })
+  );
+  expect(await screen.findByRole('alert')).toHaveTextContent('Access changed');
+  expect(download).not.toHaveBeenCalled();
 });
 
 it('includes an unpreviewed image using the current reader’s authorized original download', async () => {

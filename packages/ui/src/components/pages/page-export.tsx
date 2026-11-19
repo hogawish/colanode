@@ -23,7 +23,11 @@ import {
   DropdownMenuTrigger,
 } from '@colanode/ui/components/ui/dropdown-menu';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
-import { downloadNotionPageZip } from '@colanode/ui/lib/notion-page-export';
+import {
+  downloadNotionPageZip,
+  downloadNotionZip,
+} from '@colanode/ui/lib/notion-page-export';
+import { buildNotionTreeZip } from '@colanode/ui/lib/notion-tree-export';
 import {
   buildPageExport,
   downloadPageHtml,
@@ -74,11 +78,13 @@ export const PageExportSettings = () => (
 export const PageExport = ({
   title,
   children,
+  nodeId,
 }: {
   title: string;
   children: ReactNode;
+  nodeId?: string;
 }) => {
-  const { userId } = useWorkspace();
+  const { userId, workspaceId } = useWorkspace();
   const body = useRef<HTMLDivElement>(null);
   const preview = useRef<HTMLIFrameElement>(null);
   const controller = useContext(ExportContext);
@@ -89,6 +95,28 @@ export const PageExport = ({
   const [html, setHtml] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number | null>(null);
+  const resolveImage = async (id: string) => {
+    const request = await window.colanode.executeQuery({
+      type: 'file.download.request.get',
+      id,
+      userId,
+    });
+    if (!request)
+      throw new Error(
+        'A page image is unavailable. Please check its access and try again.'
+      );
+    const response = await fetch(request.url, {
+      headers: request.headers,
+      cache: 'no-store',
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!response.ok)
+      throw new Error(
+        'Could not load a page image. Please check its access and try again.'
+      );
+    return response.blob();
+  };
   useEffect(() => {
     if (open) {
       setHtml(null);
@@ -96,6 +124,46 @@ export const PageExport = ({
       setReady(false);
     }
   }, [open]);
+  const buildTree = async () => {
+    if (!nodeId) return;
+    setBusy(true);
+    setError(null);
+    setProgress(0);
+    try {
+      const result = await buildNotionTreeZip(nodeId, {
+        read: async (id, offset) => {
+          const response = await window.colanode.executeMutation({
+            type: 'page.share',
+            action: 'read-export',
+            pageId: id,
+            offset,
+            userId,
+          });
+          if (!response.success) throw new Error(response.error.message);
+          if (response.output.action !== 'read-export')
+            throw new Error('The server did not return export content.');
+          return response.output.snapshot;
+        },
+        resolveImage,
+        sourceUrl: (id) =>
+          new URL(
+            `/${encodeURIComponent(workspaceId)}/${encodeURIComponent(id)}`,
+            window.location.origin
+          ).href,
+        onProgress: setProgress,
+      });
+      downloadNotionZip(result.bytes, title);
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'Could not export this hierarchy.'
+      );
+    } finally {
+      setBusy(false);
+      setProgress(null);
+    }
+  };
   const build = async (format: 'html' | 'pdf' | 'notion') => {
     if (!body.current) return;
     setBusy(true);
@@ -103,27 +171,7 @@ export const PageExport = ({
     setReady(false);
     try {
       const result = await buildPageExport(body.current, title, {
-        resolveImage: async (id) => {
-          const request = await window.colanode.executeQuery({
-            type: 'file.download.request.get',
-            id,
-            userId,
-          });
-          if (!request)
-            throw new Error(
-              'A page image is unavailable. Please check its access and try again.'
-            );
-          const response = await fetch(request.url, {
-            headers: request.headers,
-            cache: 'no-store',
-            signal: AbortSignal.timeout(30000),
-          });
-          if (!response.ok)
-            throw new Error(
-              'Could not load a page image. Please check its access and try again.'
-            );
-          return response.blob();
-        },
+        resolveImage,
       });
       if (format === 'html') downloadPageHtml(result, title);
       else if (format === 'notion') downloadNotionPageZip(result, title);
@@ -152,7 +200,12 @@ export const PageExport = ({
               current view. PDF uses your browser’s Save as PDF option. Notion
               ZIP bundles this page’s HTML and body images. Import the ZIP in
               Notion via Settings → Import → ZIP. Child pages and database
-              structures are not included; formatting may change on import.
+              structures are not included; formatting may change on import. For
+              a hierarchy ZIP, use “Notion ZIP + subpages & databases”. It reads
+              synced server content and all readable descendant rows. Wait for
+              edits to sync first. Databases become CSV; row bodies and images
+              are also included as linked HTML pages. Views, relations,
+              permissions and history are not recreated.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-wrap gap-2">
@@ -173,6 +226,15 @@ export const PageExport = ({
             >
               Notion ZIP
             </Button>
+            {nodeId && (
+              <Button
+                disabled={busy}
+                variant="outline"
+                onClick={() => void buildTree()}
+              >
+                Notion ZIP + subpages &amp; databases
+              </Button>
+            )}
             {html && (
               <Button
                 disabled={!ready || busy}
@@ -185,7 +247,12 @@ export const PageExport = ({
               </Button>
             )}
           </div>
-          {busy && <p role="status">Preparing export…</p>}
+          {busy && (
+            <p role="status">
+              Preparing export…
+              {progress !== null ? ` ${progress} pages read` : ''}
+            </p>
+          )}
           {error && <p role="alert">{error}</p>}
           {html && (
             <iframe

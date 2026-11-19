@@ -18,6 +18,7 @@ import { database } from '@colanode/server/data/database';
 import type { SelectNode } from '@colanode/server/data/schema';
 import { updateDocument } from '@colanode/server/lib/documents';
 import { fetchNode, fetchNodeTree, mapNode } from '@colanode/server/lib/nodes';
+import { readPageExport } from '@colanode/server/lib/page-export';
 import { inviteToPage } from '@colanode/server/lib/page-invitations';
 import {
   getPageAncestors,
@@ -335,6 +336,40 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
       files,
     };
   });
+
+  instance.get(
+    '/:pageId/export',
+    {
+      schema: {
+        params,
+        querystring: z.object({
+          offset: z.coerce
+            .number()
+            .int()
+            .min(0)
+            .max(Number.MAX_SAFE_INTEGER)
+            .default(0),
+        }),
+      },
+    },
+    async (request, reply) => {
+      reply.header('Cache-Control', 'private, no-store');
+      const result = await readPageExport(
+        request.workspace.id,
+        request.workspace.user.id,
+        request.params.pageId,
+        request.query.offset
+      );
+      if (!result)
+        return reply
+          .code(404)
+          .send({
+            code: ApiErrorCode.NotFound,
+            message: 'Export content is unavailable.',
+          });
+      return result;
+    }
+  );
 
   instance.get(
     '/:pageId/databases/:databaseId',
