@@ -121,12 +121,17 @@ export const buildNotionTreeZip = async (
     );
   }
   const files: Record<string, Uint8Array> = {};
-  const sourcePaths = new Map(
-    [...paths].map(([id, path]) => {
-      const url = new URL(options.sourceUrl(id));
-      return [url.origin + url.pathname, path];
-    })
-  );
+  const sourcePaths = new Map<string, string>();
+  for (const [id, path] of paths) {
+    const url = new URL(options.sourceUrl(id));
+    sourcePaths.set(url.origin + url.pathname, path);
+    // The shared reader and ordinary editor address the same included node.
+    const parent = url.pathname.slice(0, url.pathname.lastIndexOf('/') + 1);
+    sourcePaths.set(
+      url.origin + parent + 'shared/' + encodeURIComponent(id),
+      path
+    );
+  }
   const images = new Map<string, Promise<Blob>>();
   const resolveImage = (id: string) => {
     if (!images.has(id)) images.set(id, options.resolveImage(id));

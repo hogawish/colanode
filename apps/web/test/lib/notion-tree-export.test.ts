@@ -47,6 +47,26 @@ it('exports the real hierarchy, all paginated database records, body images and 
       ],
     },
   ];
+  root.content.blocks.shared = {
+    id: 'shared',
+    type: 'paragraph',
+    parentId: 'root',
+    index: 'a1',
+    content: [
+      {
+        type: 'text',
+        text: 'Shared-reader link',
+        marks: [
+          {
+            type: 'link',
+            attrs: {
+              href: 'http://localhost/workspace/shared/grandchild#block=target',
+            },
+          },
+        ],
+      },
+    ],
+  };
   grandchild.content = body('grandchild', 'Nested 日本語');
   const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 5, 255]);
   grandchild.files = [
@@ -103,6 +123,10 @@ it('exports the real hierarchy, all paginated database records, body images and 
   const parsed = new DOMParser().parseFromString(rootHtml, 'text/html');
   const link = parsed.querySelector('a')!.getAttribute('href')!;
   expect(decodeURIComponent(link)).toBe('同名/同名/同名.html#block-target');
+  const shared = Array.from(parsed.querySelectorAll('a')).find(
+    (anchor) => anchor.textContent === 'Shared-reader link'
+  );
+  expect(shared?.getAttribute('href')).toBe(link);
   const csvPath = result.paths.get('db')!;
   const csv = strFromU8(files[csvPath]!);
   expect(csv).toContain('"Status","Body","Body page"');
