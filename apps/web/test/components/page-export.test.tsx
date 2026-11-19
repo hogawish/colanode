@@ -7,6 +7,7 @@ import {
   PageExportSettings,
 } from '@colanode/ui/components/pages/page-export';
 import { SharedFileBlock } from '@colanode/ui/components/pages/shared-file';
+import * as notionExports from '@colanode/ui/lib/notion-page-export';
 import * as exports from '@colanode/ui/lib/page-export';
 
 vi.mock('@colanode/ui/contexts/workspace', () => ({
@@ -139,4 +140,42 @@ it('opens the record export without opening or exporting the database behind it'
   expect(download.mock.calls[0]![1]).toBe('Record');
   expect(download.mock.calls[0]![0]).toContain('Record contents');
   expect(download.mock.calls[0]![0]).not.toContain('Database contents');
+});
+
+it('offers Notion ZIP inside the gear export dialog, including an offscreen authorized body image', async () => {
+  const download = vi
+    .spyOn(notionExports, 'downloadNotionPageZip')
+    .mockImplementation(() => {});
+  const executeQuery = vi.fn().mockResolvedValue({
+    url: 'http://localhost/notion-original',
+    headers: { Authorization: 'Bearer synthetic-notion-token' },
+  });
+  Object.assign(window, { colanode: { executeQuery } });
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['original'], { type: 'image/png' }),
+    })
+  );
+  renderExport(
+    <PageExport title="ナギ">
+      <p>本文</p>
+      <SharedFileBlock
+        file={{ id: 'photo', name: 'image.png', subtype: 'image' }}
+      />
+    </PageExport>
+  );
+  expect(screen.queryByRole('button', { name: 'Notion ZIP' })).toBeNull();
+  await openExport();
+  fireEvent.click(screen.getByRole('button', { name: 'Notion ZIP' }));
+  await waitFor(() => expect(download).toHaveBeenCalledOnce());
+  expect(download.mock.calls[0]![1]).toBe('ナギ');
+  expect(download.mock.calls[0]![0]).toContain('data:image/png;base64,');
+  expect(download.mock.calls[0]![0]).not.toContain('synthetic-notion-token');
+  expect(executeQuery).toHaveBeenCalledExactlyOnceWith({
+    type: 'file.download.request.get',
+    id: 'photo',
+    userId: 'reader',
+  });
 });

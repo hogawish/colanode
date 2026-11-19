@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@colanode/ui/components/ui/dropdown-menu';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
+import { downloadNotionPageZip } from '@colanode/ui/lib/notion-page-export';
 import {
   buildPageExport,
   downloadPageHtml,
@@ -95,7 +96,7 @@ export const PageExport = ({
       setReady(false);
     }
   }, [open]);
-  const build = async (format: 'html' | 'pdf') => {
+  const build = async (format: 'html' | 'pdf' | 'notion') => {
     if (!body.current) return;
     setBusy(true);
     setError(null);
@@ -125,6 +126,7 @@ export const PageExport = ({
         },
       });
       if (format === 'html') downloadPageHtml(result, title);
+      else if (format === 'notion') downloadNotionPageZip(result, title);
       else setHtml(result);
     } catch (cause) {
       setError(
@@ -147,7 +149,10 @@ export const PageExport = ({
               This page only. Child pages remain links. Embedded databases
               include currently displayed rows. Original page images are
               embedded in both HTML and PDF, including images outside the
-              current view. PDF uses your browser’s Save as PDF option.
+              current view. PDF uses your browser’s Save as PDF option. Notion
+              ZIP bundles this page’s HTML and body images. Import the ZIP in
+              Notion via Settings → Import → ZIP. Child pages and database
+              structures are not included; formatting may change on import.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-wrap gap-2">
@@ -160,6 +165,13 @@ export const PageExport = ({
               onClick={() => void build('pdf')}
             >
               PDF preview
+            </Button>
+            <Button
+              disabled={busy}
+              variant="outline"
+              onClick={() => void build('notion')}
+            >
+              Notion ZIP
             </Button>
             {html && (
               <Button

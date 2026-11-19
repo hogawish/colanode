@@ -32,3 +32,27 @@ HTML containers. PNG, JPEG, GIF, WebP, AVIF, and BMP byte signatures are recogni
 when storage omits the image response Content-Type; untyped non-image responses
 are rejected. Unsupported containers holding images report an error rather than
 silently dropping their contents.
+
+## Notion ZIP
+
+Choose **settings gear → Export page → Notion ZIP** to download one page's
+HTML and referenced original body images in a single ZIP. In Notion use
+**Settings → Import → ZIP** (Convert ZIP to pages), then select the downloaded
+ZIP without extracting it. The archive contains `notion-export/<title>.html`
+and `notion-export/assets/image-001.png` (or the image's matching extension).
+Image paths are relative, so images do not require a Colanode login after import.
+Repeated identical image content is bundled once. No account tokens, temporary
+image URLs, unreferenced attachments, or unrelated pages are included.
+
+This first step covers one page's body and images. Child pages remain original
+Colanode links; displayed tables are static HTML tables, not imported Notion
+databases. Notion may simplify colors, toggles, and layout. Import is a copy,
+not synchronization; permissions and edit history do not transfer.
+
+Next milestones requested by the user are **both** recursive child-page import
+(hierarchy, packaged assets, and internal-link rewriting) and database import
+(records, properties and record bodies, with explicit handling of unsupported
+relations/formulas). These are not part of the one-page ZIP. Do not recursively
+export pages or records without checking the exporting reader's existing access.
+
+Reference: https://www.notion.com/help/import-data-into-notion
