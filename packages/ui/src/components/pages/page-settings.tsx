@@ -7,6 +7,7 @@ import {
   Settings,
   Share2,
   Trash2,
+  Upload,
 } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { toast } from 'sonner';
@@ -15,6 +16,7 @@ import { LocalPageNode } from '@colanode/client/types';
 import { NodeRole, hasNodeRole } from '@colanode/core';
 import { NodeCollaboratorAudit } from '@colanode/ui/components/collaborators/node-collaborator-audit';
 import { NodeDeleteDialog } from '@colanode/ui/components/nodes/node-delete-dialog';
+import { NotionImportDialog } from '@colanode/ui/components/pages/notion-import-dialog';
 import { PageExportMenuItem } from '@colanode/ui/components/pages/page-export';
 import { PageShareDialog } from '@colanode/ui/components/pages/page-share-dialog';
 import { PageUnusedImagesDialog } from '@colanode/ui/components/pages/page-unused-images-dialog';
@@ -41,6 +43,7 @@ export const PageSettings = ({ page, role }: PageSettingsProps) => {
 
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showUnusedImages, setShowUnusedImages] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const app = useApp();
   const { workspaceId } = useWorkspace();
   const canShare = app.type === 'web' && hasNodeRole(role, 'admin');
@@ -59,6 +62,11 @@ export const PageSettings = ({ page, role }: PageSettingsProps) => {
         <DropdownMenuContent side="bottom" className="mr-2 w-80">
           <DropdownMenuLabel>{page.name}</DropdownMenuLabel>
           <PageExportMenuItem />
+          {canEdit && (
+            <DropdownMenuItem onSelect={() => setShowImport(true)}>
+              <Upload className="size-4" /> Import from Notion
+            </DropdownMenuItem>
+          )}
           {canShare && (
             <DropdownMenuItem onSelect={() => setShowShareDialog(true)}>
               <Share2 className="size-4" /> Share page
@@ -169,6 +177,12 @@ export const PageSettings = ({ page, role }: PageSettingsProps) => {
         <PageUnusedImagesDialog
           pageId={page.id}
           onClose={() => setShowUnusedImages(false)}
+        />
+      )}
+      {showImport && (
+        <NotionImportDialog
+          parentId={page.id}
+          onClose={() => setShowImport(false)}
         />
       )}
       <NodeDeleteDialog

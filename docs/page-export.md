@@ -35,7 +35,8 @@ silently dropping their contents.
 
 ## Notion ZIP
 
-Choose **settings gear → Export page → Notion ZIP** to download one page's
+Choose **settings gear → Export page → Notion ZIP** and turn off
+**Include subpages & databases in Notion ZIP** to download one page's
 HTML and referenced original body images in a single ZIP. In Notion use
 **Settings → Import → ZIP** (Convert ZIP to pages), then select the downloaded
 ZIP without extracting it. The archive contains `notion-export/<title>.html`
@@ -51,7 +52,8 @@ not synchronization; permissions and edit history do not transfer.
 
 ## Hierarchy and databases
 
-Use **settings gear → Export page → Notion ZIP + subpages & databases** on a
+Use **settings gear → Export page → Notion ZIP** with
+**Include subpages & databases in Notion ZIP** enabled (the default) on a
 page, shared page, database, or record. This reads the **synced server version**,
 so wait for edits to sync first. It fetches every readable descendant, including
 children present only in the sidebar, and all database rows through pagination.
@@ -90,3 +92,66 @@ content. Unsafe/empty links are retained as text instead of becoming accidental
 links to the current Colanode route.
 
 Reference: https://www.notion.com/help/import-data-into-notion
+
+## Native inline databases in Notion
+
+The file importer does not reliably preserve native inline databases: a linked
+CSV is not the database's own child block and cannot simply be converted into
+an inline database. For native placement, open **Copy directly to Notion (native
+inline databases)** in the export dialog.
+
+Create a Notion connection with read/insert/update content capabilities, add it
+to a destination page, and enter that page's URL/ID and connection token in the
+dialog. Click **Create a new copy in Notion**. Do not paste the token in a chat.
+The token is held for that request only, cleared from the form afterwards, and
+is not saved in application storage. The server sends it only to the fixed
+Notion API origin, with redirects disabled. It never returns upstream response
+bodies in errors or automatically retries ambiguous writes. Only rate-limit
+responses are retried with a bounded delay.
+
+The transfer reads the synced, authorized hierarchy. It creates fresh native
+pages and databases, places an owned inline database between the preceding and
+following body blocks, creates its native row pages, and copies row bodies and
+original body images. Database properties become text. Tables, lists, headings,
+basic marks, background colors and toggles have native mappings. Nested page/DB
+placements move to the containing page with a warning. References outside the
+hierarchy, unsupported blocks and non-image attachments are reported. Custom
+views, relations, formulas, permissions and history are not reconstructed.
+
+Limits: 200 pages/rows, 3,000 blocks, and 20 MB per body image. A failure leaves
+the partial destination and its link for inspection; it does not delete pages
+or automatically start a second copy. Wait for completion before closing the
+tab. Normal HTML/PDF/ZIP exports need no Notion connection.
+
+The native inline creation mechanism was checked with a synthetic private
+Notion test page. Automated tests verify the application's API payload, ordering,
+row/image transfer contract and failure handling. A full live application
+transfer requires the user's dedicated Notion connection and remains a separate
+acceptance check; the connector test is not that end-to-end check.
+
+References: [Create a database](https://developers.notion.com/reference/create-a-database),
+[File uploads](https://developers.notion.com/reference/create-a-file-upload).
+
+## Import from Notion
+
+From Notion, export **HTML** or **Markdown & CSV**, including subpages. In
+Colanode use **page settings gear → Import from Notion**, or a Space's sidebar
+menu → **Import from Notion**. Select the ZIP, inspect the page/DB/row/image counts
+and warnings, then click **Import as new pages**. The import creates a fresh
+**Notion import** page under the selected destination; it never overwrites an
+existing page. New content uses normal Colanode nodes, files, documents and
+permission checks, saved locally and synchronized by the normal client.
+
+Page hierarchy, basic formatting, lists, toggles, tables and local body images
+are imported. CSV columns become editable text properties. Matching row-body
+HTML/Markdown becomes the corresponding record's native body. Unmatched or
+ambiguous row bodies are retained as separate pages with a warning. Internal
+archive links are rewritten to new Colanode IDs. Remote/missing/unsupported
+images remain text links; inspection never downloads them. Permissions, views,
+relations, formulas and history are not imported. This is migration, not sync.
+
+ZIP inspection is inert: scripts/embeds are not executed or mounted, and paths,
+duplicate normalized names, file count, expanded size and nesting are bounded.
+Limits: 256 MB compressed/expanded, 10,000 archive files, 2,000 pages/rows, 30
+block levels. A failed write keeps a link to the partial import for inspection.
+Do not retry blindly if creation or server synchronization is incomplete.

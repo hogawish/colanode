@@ -1,4 +1,4 @@
-import { afterAll, expect, it } from 'vitest';
+import { afterAll, expect, it, vi } from 'vitest';
 
 import { generateId, IdType, UserStatus } from '@colanode/core';
 import { database } from '@colanode/server/data/database';
@@ -19,6 +19,105 @@ import {
 
 const app = buildTestApp();
 afterAll(() => app.close());
+
+it('authorizes Notion transfer before outbound calls, including revoked and cross-workspace access', async () => {
+  const owner = await createAccount(),
+    guest = await createAccount();
+  const workspace = await createWorkspace({ createdBy: owner.id });
+  const admin = await createUser({
+    account: owner,
+    workspaceId: workspace.id,
+    role: 'owner',
+  });
+  const viewer = await createUser({
+    account: guest,
+    workspaceId: workspace.id,
+    role: 'guest',
+  });
+  const device = await createDevice({ accountId: owner.id }),
+    guestDevice = await createDevice({ accountId: guest.id });
+  const headers = buildAuthHeader(device.token),
+    guestHeaders = buildAuthHeader(guestDevice.token);
+  const rootId = await createSpaceNode({
+    workspaceId: workspace.id,
+    userId: admin.id,
+  });
+  const page = await createPageNode({
+    workspaceId: workspace.id,
+    userId: admin.id,
+    rootId,
+    parentId: rootId,
+    name: 'Transfer fixture',
+  });
+  const base = `/client/v1/workspaces/${workspace.id}/page-shares/${page}`;
+  const transfer = (url = base, auth = guestHeaders) =>
+    app.inject({
+      method: 'POST',
+      url: `${url}/notion`,
+      headers: auth,
+      payload: {
+        token: 'synthetic-test-token',
+        parent: '0123456789abcdef0123456789abcdef',
+      },
+    });
+  const api = vi
+    .fn()
+    .mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: '0123456789abcdef0123456789abcdea',
+          url: 'https://www.notion.so/new',
+        })
+      )
+    );
+  vi.stubGlobal('fetch', api);
+  try {
+    expect((await transfer()).statusCode).toBe(404);
+    expect(api).not.toHaveBeenCalled();
+    expect(
+      (
+        await app.inject({
+          method: 'PUT',
+          url: `${base}/viewers`,
+          headers,
+          payload: { viewerId: viewer.id, enabled: true },
+        })
+      ).statusCode
+    ).toBe(200);
+    const result = await transfer();
+    expect(result.statusCode).toBe(200);
+    expect(result.json().complete).toBe(true);
+    expect(result.headers['cache-control']).toBe('private, no-store');
+    expect(api).toHaveBeenCalledOnce();
+    expect(result.body).not.toContain('synthetic-test-token');
+    api.mockClear();
+    expect(
+      (
+        await app.inject({
+          method: 'PUT',
+          url: `${base}/viewers`,
+          headers,
+          payload: { viewerId: viewer.id, enabled: false },
+        })
+      ).statusCode
+    ).toBe(200);
+    expect((await transfer()).statusCode).toBe(404);
+    expect(api).not.toHaveBeenCalled();
+    const other = await createWorkspace({ createdBy: owner.id });
+    await createUser({ account: owner, workspaceId: other.id, role: 'owner' });
+    expect(
+      (
+        await transfer(
+          `/client/v1/workspaces/${other.id}/page-shares/${page}`,
+          headers
+        )
+      ).statusCode
+    ).toBe(404);
+    expect(api).not.toHaveBeenCalled();
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
 
 it('exports only readable descendants and all database pages; record images require both live sharing and body references', async () => {
   const [owner, guest, outsider] = await Promise.all([

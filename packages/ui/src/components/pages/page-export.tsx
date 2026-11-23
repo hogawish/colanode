@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 
+import { NotionTransfer } from '@colanode/ui/components/pages/notion-transfer';
 import { Button } from '@colanode/ui/components/ui/button';
 import {
   Dialog,
@@ -96,6 +97,7 @@ export const PageExport = ({
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
+  const [includeChildren, setIncludeChildren] = useState(true);
   const resolveImage = async (id: string) => {
     const request = await window.colanode.executeQuery({
       type: 'file.download.request.get',
@@ -189,23 +191,31 @@ export const PageExport = ({
       <div ref={body} className="min-w-0">
         {children}
       </div>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className={html ? 'sm:max-w-4xl' : ''}>
+      <Dialog
+        open={open}
+        onOpenChange={(value) => {
+          if (!busy) setOpen(value);
+        }}
+      >
+        <DialogContent
+          className={
+            html
+              ? 'sm:max-w-4xl max-h-[90vh] overflow-y-auto'
+              : 'max-h-[90vh] overflow-y-auto'
+          }
+          onEscapeKeyDown={(event) => {
+            if (busy) event.preventDefault();
+          }}
+          onPointerDownOutside={(event) => {
+            if (busy) event.preventDefault();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Export page</DialogTitle>
             <DialogDescription>
-              This page only. Child pages remain links. Embedded databases
-              include currently displayed rows. Original page images are
-              embedded in both HTML and PDF, including images outside the
-              current view. PDF uses your browser’s Save as PDF option. Notion
-              ZIP bundles this page’s HTML and body images. Import the ZIP in
-              Notion via Settings → Import → ZIP. Child pages and database
-              structures are not included; formatting may change on import. For
-              a hierarchy ZIP, use “Notion ZIP + subpages & databases”. It reads
-              synced server content and all readable descendant rows. Wait for
-              edits to sync first. Databases become CSV; row bodies and images
-              are also included as linked HTML pages. Views, relations,
-              permissions and history are not recreated.
+              HTML / PDF include this page and its images. Import the Notion ZIP
+              via Notion’s Import → ZIP. Database views, relations, permissions
+              and history are not preserved in ZIP.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-wrap gap-2">
@@ -222,19 +232,12 @@ export const PageExport = ({
             <Button
               disabled={busy}
               variant="outline"
-              onClick={() => void build('notion')}
+              onClick={() =>
+                void (includeChildren && nodeId ? buildTree() : build('notion'))
+              }
             >
               Notion ZIP
             </Button>
-            {nodeId && (
-              <Button
-                disabled={busy}
-                variant="outline"
-                onClick={() => void buildTree()}
-              >
-                Notion ZIP + subpages &amp; databases
-              </Button>
-            )}
             {html && (
               <Button
                 disabled={!ready || busy}
@@ -247,6 +250,24 @@ export const PageExport = ({
               </Button>
             )}
           </div>
+          {nodeId && (
+            <div className="space-y-2 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={includeChildren}
+                  disabled={busy}
+                  onChange={(event) => setIncludeChildren(event.target.checked)}
+                />
+                Include subpages &amp; databases in Notion ZIP
+              </label>
+              <p className="text-muted-foreground">
+                {includeChildren
+                  ? 'Uses synced content and all readable descendant rows. Wait for edits to sync first. Databases are CSV with linked row bodies and images.'
+                  : 'This page and its images only. Child pages remain links; embedded databases include displayed rows.'}
+              </p>
+            </div>
+          )}
           {busy && (
             <p role="status">
               Preparing export…
@@ -254,6 +275,9 @@ export const PageExport = ({
             </p>
           )}
           {error && <p role="alert">{error}</p>}
+          {nodeId && open && (
+            <NotionTransfer nodeId={nodeId} disabled={busy} onBusy={setBusy} />
+          )}
           {html && (
             <iframe
               ref={preview}

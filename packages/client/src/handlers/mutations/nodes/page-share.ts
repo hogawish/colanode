@@ -39,6 +39,23 @@ export class PageShareMutationHandler
       }
       const path = `${base}/${encodeURIComponent(input.pageId)}`;
       switch (input.action) {
+        case 'transfer-notion':
+          return {
+            action: 'transfer-notion',
+            result: await client
+              .post(`${path}/notion`, {
+                json: { token: input.token, parent: input.parent },
+                retry: 0,
+                timeout: false,
+              })
+              .json<{
+                url: string | null;
+                complete: boolean;
+                pages: number;
+                warnings: string[];
+                error?: string;
+              }>(),
+          };
         case 'read-export':
           return {
             action: 'read-export',

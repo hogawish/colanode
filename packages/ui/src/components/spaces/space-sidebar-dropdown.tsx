@@ -13,6 +13,7 @@ import {
   Plus,
   Settings,
   StickyNote,
+  Upload,
 } from 'lucide-react';
 import { Fragment, useState } from 'react';
 
@@ -20,6 +21,7 @@ import { LocalSpaceNode } from '@colanode/client/types';
 import { ChannelCreateDialog } from '@colanode/ui/components/channels/channel-create-dialog';
 import { DatabaseCreateDialog } from '@colanode/ui/components/databases/database-create-dialog';
 import { FolderCreateDialog } from '@colanode/ui/components/folders/folder-create-dialog';
+import { NotionImportDialog } from '@colanode/ui/components/pages/notion-import-dialog';
 import { PageCreateDialog } from '@colanode/ui/components/pages/page-create-dialog';
 import { ManageSpacePageReferences } from '@colanode/ui/components/spaces/space-page-references';
 import { SpaceSidebarVisibilityDialog } from '@colanode/ui/components/spaces/space-sidebar-visibility-dialog';
@@ -59,6 +61,7 @@ export const SpaceSidebarDropdown = ({
   const [openCreateFolder, setOpenCreateFolder] = useState(false);
   const [openVisibility, setOpenVisibility] = useState(false);
   const [openReferences, setOpenReferences] = useState(false);
+  const [openImport, setOpenImport] = useState(false);
 
   return (
     <Fragment>
@@ -73,6 +76,11 @@ export const SpaceSidebarDropdown = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent className="ml-1 w-72">
           <DropdownMenuLabel>{space.name ?? 'Unnamed'}</DropdownMenuLabel>
+          {['admin', 'editor'].includes(space.collaborators[userId] ?? '') && (
+            <DropdownMenuItem onSelect={() => setOpenImport(true)}>
+              <Upload className="size-4" /> Import from Notion
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           {onTogglePin && (
             <DropdownMenuItem onSelect={onTogglePin}>
@@ -165,6 +173,12 @@ export const SpaceSidebarDropdown = ({
         <ManageSpacePageReferences
           space={space}
           onClose={() => setOpenReferences(false)}
+        />
+      )}
+      {openImport && (
+        <NotionImportDialog
+          parentId={space.id}
+          onClose={() => setOpenImport(false)}
         />
       )}
       {openVisibility && (

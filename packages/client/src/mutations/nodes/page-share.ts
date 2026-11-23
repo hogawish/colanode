@@ -47,6 +47,7 @@ export type ManagedPageShare = NamedItem & {
 };
 
 type PageShareAction =
+  | { action: 'transfer-notion'; token: string; parent: string }
   | { action: 'read-export'; offset?: number }
   | { action: 'read' }
   | { action: 'read-database'; databaseId: string }
@@ -67,6 +68,16 @@ export type PageShareMutationInput = {
 );
 
 export type PageShareMutationOutput =
+  | {
+      action: 'transfer-notion';
+      result: {
+        url: string | null;
+        complete: boolean;
+        pages: number;
+        warnings: string[];
+        error?: string;
+      };
+    }
   | { action: 'read-export'; snapshot: PageExportSnapshot }
   | { action: 'read'; page: SharedPage }
   | { action: 'read-database'; database: SharedDatabase }

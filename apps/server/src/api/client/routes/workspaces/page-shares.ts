@@ -18,6 +18,7 @@ import { database } from '@colanode/server/data/database';
 import type { SelectNode } from '@colanode/server/data/schema';
 import { updateDocument } from '@colanode/server/lib/documents';
 import { fetchNode, fetchNodeTree, mapNode } from '@colanode/server/lib/nodes';
+import { transferToNotion } from '@colanode/server/lib/notion-transfer';
 import { readPageExport } from '@colanode/server/lib/page-export';
 import { inviteToPage } from '@colanode/server/lib/page-invitations';
 import {
@@ -30,6 +31,7 @@ import {
   resolveSharedPageRole,
   sharedPageBody,
 } from '@colanode/server/lib/page-shares';
+import { storage } from '@colanode/server/lib/storage';
 
 const params = z.object({ workspaceId: z.string(), pageId: z.string() });
 
@@ -337,6 +339,118 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
     };
   });
 
+  instance.post(
+    '/:pageId/notion',
+    {
+      schema: {
+        params,
+        body: z.object({
+          token: z.string().min(10).max(512),
+          parent: z.string().min(1).max(2048),
+        }),
+      },
+    },
+    async (request, reply) => {
+      reply.header('Cache-Control', 'private, no-store');
+      // Authorize the root before any outbound request. Descendants are checked
+      // independently by readPageExport, never supplied by the browser.
+      const root = await readPageExport(
+        request.workspace.id,
+        request.workspace.user.id,
+        request.params.pageId,
+        0
+      );
+      if (!root)
+        return reply
+          .code(404)
+          .send({
+            code: ApiErrorCode.NotFound,
+            message: 'Export content is unavailable.',
+          });
+      try {
+        return await transferToNotion({
+          token: request.body.token,
+          parent: request.body.parent,
+          rootId: root.id,
+          read: (id, offset) =>
+            readPageExport(
+              request.workspace.id,
+              request.workspace.user.id,
+              id,
+              offset
+            ),
+          image: async (file) => {
+            const node = await fetchNode(file.id);
+            if (
+              !node ||
+              node.workspace_id !== request.workspace.id ||
+              !node.parent_id
+            )
+              throw new Error('A body image is unavailable.');
+            const parent = await readPageExport(
+              request.workspace.id,
+              request.workspace.user.id,
+              node.parent_id,
+              0
+            );
+            if (!parent?.files.some((entry) => entry.id === file.id))
+              throw new Error('A body image is unavailable.');
+            const upload = await database
+              .selectFrom('uploads')
+              .selectAll()
+              .where('file_id', '=', file.id)
+              .executeTakeFirst();
+            if (!upload?.uploaded_at)
+              throw new Error('A body image is not ready.');
+            const { stream, contentType } = await storage.download(upload.path);
+            const chunks: Buffer[] = [];
+            let size = 0;
+            try {
+              for await (const chunk of stream) {
+                const bytes = Buffer.isBuffer(chunk)
+                  ? chunk
+                  : Buffer.from(chunk);
+                size += bytes.length;
+                if (size > 20 * 1024 * 1024)
+                  throw new Error(
+                    'A body image exceeds Notion’s 20 MB single-upload limit.'
+                  );
+                chunks.push(bytes);
+              }
+            } finally {
+              stream.destroy();
+            }
+            const bytes = Buffer.concat(chunks);
+            const mime = bytes
+              .subarray(0, 8)
+              .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+              ? 'image/png'
+              : bytes[0] === 255 && bytes[1] === 216
+                ? 'image/jpeg'
+                : bytes.subarray(0, 3).toString() === 'GIF'
+                  ? 'image/gif'
+                  : bytes.subarray(8, 12).toString() === 'WEBP'
+                    ? 'image/webp'
+                    : contentType?.startsWith('image/')
+                      ? contentType
+                      : file.mimeType;
+            return new Blob([new Uint8Array(bytes)], {
+              type: mime || 'image/png',
+            });
+          },
+        });
+      } catch {
+        return reply
+          .code(400)
+          .send({
+            code: ApiErrorCode.BadRequest,
+            message:
+              'Could not prepare the Notion transfer. Check the destination page ID, source access and export size.',
+          });
+      }
+    }
+  );
+
   instance.get(
     '/:pageId/export',
     {
@@ -361,12 +475,10 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         request.query.offset
       );
       if (!result)
-        return reply
-          .code(404)
-          .send({
-            code: ApiErrorCode.NotFound,
-            message: 'Export content is unavailable.',
-          });
+        return reply.code(404).send({
+          code: ApiErrorCode.NotFound,
+          message: 'Export content is unavailable.',
+        });
       return result;
     }
   );

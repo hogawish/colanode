@@ -109,9 +109,7 @@ it('exports synced server descendants through the gear, independently of mounted
     </PageExport>
   );
   await openExport();
-  fireEvent.click(
-    screen.getByRole('button', { name: 'Notion ZIP + subpages & databases' })
-  );
+  fireEvent.click(screen.getByRole('button', { name: 'Notion ZIP' }));
   await waitFor(() => expect(download).toHaveBeenCalledOnce());
   expect(executeMutation).toHaveBeenNthCalledWith(1, {
     type: 'page.share',
@@ -135,12 +133,10 @@ it('shows permission failures without downloading a partially collected hierarch
     .mockImplementation(() => {});
   Object.assign(window, {
     colanode: {
-      executeMutation: vi
-        .fn()
-        .mockResolvedValue({
-          success: false,
-          error: { message: 'Access changed' },
-        }),
+      executeMutation: vi.fn().mockResolvedValue({
+        success: false,
+        error: { message: 'Access changed' },
+      }),
     },
   });
   renderExport(
@@ -149,11 +145,75 @@ it('shows permission failures without downloading a partially collected hierarch
     </PageExport>
   );
   await openExport();
-  fireEvent.click(
-    screen.getByRole('button', { name: 'Notion ZIP + subpages & databases' })
-  );
+  fireEvent.click(screen.getByRole('button', { name: 'Notion ZIP' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Access changed');
   expect(download).not.toHaveBeenCalled();
+});
+
+it('uses one ZIP action and can switch to this page only without reading descendants', async () => {
+  const download = vi
+    .spyOn(notionExports, 'downloadNotionPageZip')
+    .mockImplementation(() => {});
+  const executeMutation = vi.fn();
+  Object.assign(window, { colanode: { executeMutation } });
+  renderExport(
+    <PageExport title="One page" nodeId="root">
+      <p>Local body</p>
+    </PageExport>
+  );
+  await openExport();
+  expect(screen.getAllByRole('button', { name: 'Notion ZIP' })).toHaveLength(1);
+  const checkbox = screen.getByRole('checkbox', {
+    name: 'Include subpages & databases in Notion ZIP',
+  });
+  expect(checkbox).toBeChecked();
+  fireEvent.click(checkbox);
+  fireEvent.click(screen.getByRole('button', { name: 'Notion ZIP' }));
+  await waitFor(() => expect(download).toHaveBeenCalledOnce());
+  expect(executeMutation).not.toHaveBeenCalled();
+});
+
+it('sends a connection token only on an explicit transfer click and clears it after the result', async () => {
+  const executeMutation = vi
+    .fn()
+    .mockResolvedValue({
+      success: true,
+      output: {
+        action: 'transfer-notion',
+        result: {
+          url: 'https://www.notion.so/copied',
+          complete: true,
+          pages: 2,
+          warnings: [],
+        },
+      },
+    });
+  Object.assign(window, { colanode: { executeMutation } });
+  renderExport(
+    <PageExport title="Source" nodeId="root">
+      <p>Body</p>
+    </PageExport>
+  );
+  await openExport();
+  const input = screen.getByLabelText('Notion connection token');
+  fireEvent.change(input, { target: { value: 'synthetic-notion-key' } });
+  fireEvent.change(screen.getByLabelText('Destination Notion page'), {
+    target: { value: 'https://www.notion.so/target' },
+  });
+  expect(executeMutation).not.toHaveBeenCalled();
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Create a new copy in Notion' })
+  );
+  await screen.findByRole('link', { name: 'Open copied page in Notion' });
+  expect(input).toHaveValue('');
+  expect(executeMutation).toHaveBeenCalledExactlyOnceWith({
+    type: 'page.share',
+    action: 'transfer-notion',
+    pageId: 'root',
+    userId: 'reader',
+    token: 'synthetic-notion-key',
+    parent: 'https://www.notion.so/target',
+  });
 });
 
 it('includes an unpreviewed image using the current reader’s authorized original download', async () => {
