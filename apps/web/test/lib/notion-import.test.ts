@@ -55,6 +55,32 @@ it('previews hierarchy, quoted multiline CSV, record bodies and exact local imag
   expect(body).not.toContain('fetch(');
   expect(network).not.toHaveBeenCalled();
 });
+it('keeps the surrounding page body when an HTML export contains an inline collection table', () => {
+  const plan = previewNotionZip(
+    archive({
+      'Page.html':
+        '<div class="page-body"><p>Before</p><table class="collection-content"><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody><tr><td><a href="Page/Row.html">Row</a></td><td>Ready</td></tr></tbody></table><p>After</p></div>',
+      'Page/Row.html': '<div class="page-body"><p>Record body</p></div>',
+    })
+  );
+  const page = plan.items.find((item) => item.path === 'Page.html')!;
+  const db = plan.items.find((item) => item.kind === 'database')!;
+  const row = plan.items.find((item) => item.kind === 'record')!;
+  expect(page.kind).toBe('page');
+  expect(db.parent).toBe(page.path);
+  expect(page.body.map((node) => node.type)).toEqual([
+    'paragraph',
+    'database',
+    'paragraph',
+  ]);
+  expect(page.body[1]?.attrs).toEqual({ importTarget: db.path, inline: true });
+  expect(JSON.stringify(page.body)).toContain('Before');
+  expect(JSON.stringify(page.body)).toContain('After');
+  expect(row.parent).toBe(db.path);
+  expect(row.values).toEqual(['Row', 'Ready']);
+  expect(JSON.stringify(row.body)).toContain('Record body');
+});
+
 it('rejects unsafe paths, duplicates and declared oversized decompression before importing', () => {
   expect(() => previewNotionZip(archive({ '../secret.html': 'bad' }))).toThrow(
     'Unsafe'

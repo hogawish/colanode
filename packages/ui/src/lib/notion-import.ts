@@ -238,37 +238,63 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
   // a separate CSV. Convert it to the same preview model as CSV databases.
   for (const item of [...items]) {
     const body = bodies.get(item.path);
-    const table = body?.querySelector('table.collection-content');
-    if (!table || item.kind === 'database') continue;
-    const rows = Array.from(table.querySelectorAll('tr')).map((row) =>
-      Array.from(row.querySelectorAll('th,td')).map(
-        (cell) => cell.textContent?.trim() ?? ''
-      )
+    const tables = Array.from(
+      body?.querySelectorAll('table.collection-content') ?? []
     );
-    if (!rows.length) continue;
-    item.kind = 'database';
-    item.columns = rows[0];
-    for (const [index, values] of rows.slice(1).entries()) {
-      const link = table
-        .querySelectorAll('tbody tr')
-        [index]?.querySelector('a');
-      const target = link
-        ? localPath(item.path, link.getAttribute('href') ?? '')
-        : null;
-      const record = items.find((candidate) => candidate.path === target);
-      if (record) {
-        record.kind = 'record';
-        record.parent = item.path;
-        record.values = values;
-      } else
-        items.push({
-          path: `${item.path}#row-${index}`,
-          kind: 'record',
-          parent: item.path,
-          name: values[0] || 'Untitled',
-          values,
-          body: [],
-        });
+    if (!body || !tables.length || item.kind === 'database') continue;
+    const remainder = body.cloneNode(true) as DocumentFragment;
+    remainder
+      .querySelectorAll('table.collection-content')
+      .forEach((table) => table.remove());
+    const wholeDatabase =
+      tables.length === 1 &&
+      !remainder.textContent?.trim() &&
+      !remainder.querySelector('img,video,audio,iframe');
+    for (const [tableIndex, table] of tables.entries()) {
+      const sourceRows = Array.from(table.querySelectorAll('tr'));
+      const rows = sourceRows.map((row) =>
+        Array.from(row.querySelectorAll('th,td')).map(
+          (cell) => cell.textContent?.trim() ?? ''
+        )
+      );
+      if (!rows.length) continue;
+      const database: NotionImportItem = wholeDatabase
+        ? item
+        : {
+            path: `${item.path}#inline-db-${tableIndex}`,
+            name:
+              table.querySelector('caption')?.textContent?.trim() ||
+              `${item.name} database ${tableIndex + 1}`,
+            kind: 'database',
+            parent: item.path,
+            body: [],
+          };
+      database.kind = 'database';
+      database.columns = rows[0];
+      if (!wholeDatabase) {
+        items.push(database);
+        table.setAttribute('data-notion-import-database', database.path);
+      }
+      for (const [index, values] of rows.slice(1).entries()) {
+        const link = sourceRows[index + 1]?.querySelector('a');
+        const target = link
+          ? localPath(item.path, link.getAttribute('href') ?? '')
+          : null;
+        const record = items.find((candidate) => candidate.path === target);
+        if (record) {
+          record.kind = 'record';
+          record.parent = database.path;
+          record.values = values;
+        } else
+          items.push({
+            path: `${database.path}#row-${index}`,
+            kind: 'record',
+            parent: database.path,
+            name: values[0] || 'Untitled',
+            values,
+            body: [],
+          });
+      }
     }
   }
   if (!items.length)
@@ -385,6 +411,14 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
           : [];
       if (!(node instanceof Element)) return [];
       if (node.matches('script,style,iframe,object,embed,link,meta')) return [];
+      const inlineDatabase = node.getAttribute('data-notion-import-database');
+      if (inlineDatabase && byPath.get(inlineDatabase)?.kind === 'database')
+        return [
+          {
+            type: 'database',
+            attrs: { importTarget: inlineDatabase, inline: true },
+          },
+        ];
       if (node.tagName === 'IMG') {
         const path = localPath(base, node.getAttribute('src') ?? '');
         if (path && normalized[path] && imageType(path)) {
