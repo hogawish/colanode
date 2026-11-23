@@ -2,7 +2,7 @@ import { strToU8, zipSync } from 'fflate';
 import { afterEach, expect, it, vi } from 'vitest';
 
 import { buildEditorContent } from '@colanode/client/lib';
-import { richTextContentSchema } from '@colanode/core';
+import { generateFractionalIndex, richTextContentSchema } from '@colanode/core';
 import { YDoc } from '@colanode/crdt';
 import {
   importNotionPlan,
@@ -129,6 +129,18 @@ it('creates fresh native nodes and CRDT documents with rewritten page/image IDs 
   });
   const creates = inputs.filter((input) => input.type === 'node.create');
   expect(creates).toHaveLength(5); // wrapper, page, database, default view, row
+  const database = creates
+    .map(
+      (input) =>
+        input.attributes as {
+          type: string;
+          fields?: Record<string, { index: string }>;
+        }
+    )
+    .find((attrs) => attrs.type === 'database')!;
+  const indexes = Object.values(database.fields!).map((field) => field.index);
+  expect(indexes).toEqual(['a0']);
+  expect(() => generateFractionalIndex(indexes.at(-1)!, null)).not.toThrow();
   expect(creates.every((input) => input.nodeId !== 'existing')).toBe(true);
   const document = inputs.find((input) => input.type === 'document.update')!;
   const ydoc = new YDoc(document.update as string);

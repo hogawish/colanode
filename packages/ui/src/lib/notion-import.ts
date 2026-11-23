@@ -5,6 +5,7 @@ import { marked } from 'marked';
 import { mapContentsToBlocks } from '@colanode/client/lib';
 import {
   generateId,
+  generateFractionalIndex,
   IdType,
   richTextContentSchema,
   type NodeAttributes,
@@ -649,22 +650,25 @@ export const importNotionPlan = async (
         index === 0 ? 'name' : generateId(IdType.Field)
       );
       columns.set(item.path, fields);
+      let previousIndex: string | null = null;
+      const definitions = fields.slice(1).map((id, index) => {
+        previousIndex = generateFractionalIndex(previousIndex, null);
+        return [
+          id,
+          {
+            id,
+            type: 'text' as const,
+            name: item.columns![index + 1] || `Column ${index + 2}`,
+            index: previousIndex,
+          },
+        ] as const;
+      });
       await create(nodeId, {
         type: 'database',
         name: item.name,
         parentId,
         nameField: { name: item.columns?.[0] || 'Name' },
-        fields: Object.fromEntries(
-          fields.slice(1).map((id, index) => [
-            id,
-            {
-              id,
-              type: 'text',
-              name: item.columns![index + 1] || `Column ${index + 2}`,
-              index: String(index).padStart(5, '0'),
-            },
-          ])
-        ),
+        fields: Object.fromEntries(definitions),
       });
       await create(generateId(IdType.DatabaseView), {
         type: 'database_view',
