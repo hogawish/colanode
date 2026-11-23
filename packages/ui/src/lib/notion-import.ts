@@ -222,6 +222,7 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
         (candidates.length === 1 ? candidates[0] : undefined);
       if (record) {
         record.kind = 'record';
+        record.name = values[0] || record.name;
         record.parent = database.path;
         record.values = values;
       } else
@@ -284,6 +285,7 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
         const record = items.find((candidate) => candidate.path === target);
         if (record) {
           record.kind = 'record';
+          record.name = values[0] || record.name;
           record.parent = database.path;
           record.values = values;
         } else

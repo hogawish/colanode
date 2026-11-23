@@ -31,7 +31,7 @@ it('previews hierarchy, quoted multiline CSV, record bodies and exact local imag
       'Export/Hub/Child.md':
         '# Child\n\n**Bold**\n\n![Photo](../assets/photo.png)',
       'Export/Hub/Tasks.csv':
-        'Name,Comment,Body page\r\n"Row","one, two\nthree","Tasks/Row.html"\r\n',
+        'Name,Comment,Body page\r\n"Full row title","one, two\nthree","Tasks/Row.html"\r\n',
       'Export/Hub/Tasks/Row.html':
         '<div class="page-body"><p>Record body</p><img src="../../assets/photo.png"></div>',
       'Export/assets/photo.png': bytes,
@@ -41,7 +41,7 @@ it('previews hierarchy, quoted multiline CSV, record bodies and exact local imag
     [
       ['Hub', 'page', undefined],
       ['Child', 'page', 'Export/Hub.html'],
-      ['Row', 'record', 'Export/Hub/Tasks.csv'],
+    ['Full row title', 'record', 'Export/Hub/Tasks.csv'],
       ['Tasks', 'database', 'Export/Hub.html'],
     ]
   );
@@ -77,6 +77,7 @@ it('keeps the surrounding page body when an HTML export contains an inline colle
   expect(JSON.stringify(page.body)).toContain('Before');
   expect(JSON.stringify(page.body)).toContain('After');
   expect(row.parent).toBe(db.path);
+  expect(row.name).toBe('Row');
   expect(row.values).toEqual(['Row', 'Ready']);
   expect(JSON.stringify(row.body)).toContain('Record body');
 });
