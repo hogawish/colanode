@@ -13,7 +13,9 @@ interface EmailMessage {
 const logger = createLogger('server:service:email');
 
 class EmailService {
-  private transporter: nodemailer.Transporter | undefined;
+  private transporter:
+    | ReturnType<typeof nodemailer.createTransport>
+    | undefined;
   private from: string | undefined;
 
   public async init() {

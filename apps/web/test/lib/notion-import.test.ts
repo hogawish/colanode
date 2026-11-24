@@ -19,6 +19,49 @@ const archive = (files: Record<string, string | Uint8Array>) =>
       ])
     )
   );
+
+it('unwraps Notion export envelopes and merges distinct ZIP parts without unpacking body ZIP attachments', () => {
+  const bytes = archive({
+    'Export-Part-1.zip': archive({
+      'Page.html':
+        '<p>Parent</p><a href="Page/Child.html">Child</a><a download href="assets/archive.zip">Archive</a>',
+      'assets/archive.zip': archive({ 'not-a-page.html': 'Attached ZIP' }),
+    }),
+    'Export-Part-2.zip': archive({ 'Page/Child.html': '<p>Child</p>' }),
+  });
+  const plan = previewNotionZip(bytes);
+  expect(plan.items.map((item) => item.name)).toEqual(['Page', 'Child']);
+  expect(plan.attachments.map((file) => file.name)).toEqual(['archive.zip']);
+  expect(plan.items[1]?.parent).toBe('Page.html');
+  expect(() =>
+    previewNotionZip(
+      archive({
+        'Part-1.zip': archive({ 'Page.html': 'one' }),
+        'Part-2.zip': archive({ 'Page.html': 'two' }),
+      })
+    )
+  ).toThrow('duplicate');
+  let nested = archive({ 'Page.html': '<p>Body</p>' });
+  for (let i = 0; i < 4; i++) nested = archive({ 'Part.zip': nested });
+  expect(() => previewNotionZip(nested)).toThrow('wrapper nesting');
+});
+
+it('imports files wrapped in inline spans without repeatedly rewrapping the paragraph', () => {
+  const plan = previewNotionZip(
+    archive({
+      'Page.html':
+        '<p>Before <span><a href="assets/movie.mp4">Movie</a></span> After</p><p><span><img src="assets/image.png"></span></p>',
+      'assets/movie.mp4': 'video',
+      'assets/image.png': 'image',
+    })
+  );
+  expect(plan.attachments.map((file) => file.subtype)).toEqual([
+    'video',
+    'image',
+  ]);
+  expect(JSON.stringify(plan.items[0]?.body)).toContain('Before');
+  expect(JSON.stringify(plan.items[0]?.body)).toContain('After');
+});
 afterEach(() => vi.unstubAllGlobals());
 it('previews hierarchy, quoted multiline CSV, record bodies and exact local images without remote requests', () => {
   const network = vi.fn();
@@ -41,7 +84,7 @@ it('previews hierarchy, quoted multiline CSV, record bodies and exact local imag
     [
       ['Hub', 'page', undefined],
       ['Child', 'page', 'Export/Hub.html'],
-    ['Full row title', 'record', 'Export/Hub/Tasks.csv'],
+      ['Full row title', 'record', 'Export/Hub/Tasks.csv'],
       ['Tasks', 'database', 'Export/Hub.html'],
     ]
   );

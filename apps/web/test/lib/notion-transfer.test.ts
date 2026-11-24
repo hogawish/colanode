@@ -259,3 +259,65 @@ it('returns the partial destination and never automatically retries ambiguous wr
   expect(api).toHaveBeenCalledTimes(2);
   expect(JSON.stringify(result)).not.toContain('secret');
 });
+
+it.each(['timeout', 'server-error'])(
+  'retains the destination without completing or inserting a partial multipart file after %s',
+  async (failure) => {
+    const root = item('root');
+    root.files = [
+      {
+        id: 'movie',
+        name: 'clip.mp4',
+        subtype: 'video',
+        mimeType: 'video/mp4',
+      },
+    ];
+    root.content = {
+      type: 'rich_text',
+      blocks: {
+        movie: { id: 'movie', type: 'file', parentId: 'root', index: 'a0' },
+      },
+    };
+    const calls: string[] = [];
+    const api = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const endpoint = String(url);
+      calls.push(endpoint);
+      if (
+        init?.body instanceof FormData &&
+        init.body.get('part_number') === '2'
+      ) {
+        if (failure === 'timeout')
+          throw new DOMException('private transport detail', 'TimeoutError');
+        return new Response('private upstream detail', { status: 503 });
+      }
+      return new Response(
+        JSON.stringify({
+          id: 'fixture',
+          url: 'https://www.notion.so/partial',
+          status: 'pending',
+        })
+      );
+    });
+    const result = await transferToNotion({
+      token: 'private-token',
+      parent: '0123456789abcdef0123456789abcdef',
+      rootId: 'root',
+      read: async () => root,
+      image: async () =>
+        new Blob([new Uint8Array(20 * 1024 * 1024 + 1)], { type: 'video/mp4' }),
+      fetch: api,
+      sleep: async () => {},
+    });
+    expect(result).toMatchObject({
+      complete: false,
+      url: 'https://www.notion.so/partial',
+    });
+    expect(calls).toHaveLength(4); // page, upload, first part, failed second part
+    expect(
+      calls.some(
+        (path) => path.endsWith('/complete') || path.endsWith('/children')
+      )
+    ).toBe(false);
+    expect(JSON.stringify(result)).not.toContain('private');
+  }
+);

@@ -126,24 +126,50 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
   const seen = new Set<string>();
   let total = 0,
     count = 0;
-  const files = unzipSync(bytes, {
-    filter: (entry) => {
-      const name = archivePath(entry.name);
-      if (seen.has(name)) throw new Error('ZIP contains duplicate paths.');
-      seen.add(name);
-      total += entry.originalSize;
-      if (++count > 10000 || total > LIMIT)
-        throw new Error('ZIP expands beyond 256 MB or 10,000 files.');
-      return (
-        !name.endsWith('/') &&
-        !name.startsWith('__MACOSX/') &&
-        !name.split('/').at(-1)?.startsWith('.')
-      );
-    },
-  });
+  const unpack = (input: Uint8Array, depth = 0): Record<string, Uint8Array> => {
+    if (depth > 3) throw new Error('ZIP wrapper nesting exceeds 3 levels.');
+    const paths = new Set<string>();
+    const files = unzipSync(input, {
+      filter: (entry) => {
+        const name = archivePath(entry.name);
+        if (paths.has(name)) throw new Error('ZIP contains duplicate paths.');
+        paths.add(name);
+        total += entry.originalSize;
+        if (++count > 10000 || total > LIMIT)
+          throw new Error('ZIP expands beyond 256 MB or 10,000 files.');
+        return (
+          !name.endsWith('/') &&
+          !name.startsWith('__MACOSX/') &&
+          !name.split('/').at(-1)?.startsWith('.')
+        );
+      },
+    });
+    const entries = Object.entries(files);
+    // Notion often wraps its HTML/Markdown export in Export-...-Part-1.zip.
+    // Unwrap only a document-free envelope containing ZIP parts exclusively;
+    // ZIP attachments referenced by a real page remain ordinary attachments.
+    if (entries.length && entries.every(([name]) => /\.zip$/i.test(name))) {
+      const merged: Record<string, Uint8Array> = Object.create(null);
+      for (const [, part] of entries) {
+        for (const [name, value] of Object.entries(unpack(part, depth + 1))) {
+          const normalizedName = archivePath(name);
+          if (Object.hasOwn(merged, normalizedName))
+            throw new Error('ZIP parts contain duplicate paths.');
+          merged[normalizedName] = value;
+        }
+      }
+      return merged;
+    }
+    return files;
+  };
+  const files = unpack(bytes);
   const normalized: Record<string, Uint8Array> = Object.create(null);
-  for (const [path, value] of Object.entries(files))
-    normalized[archivePath(path)] = value;
+  for (const [path, value] of Object.entries(files)) {
+    const name = archivePath(path);
+    if (seen.has(name)) throw new Error('ZIP contains duplicate paths.');
+    seen.add(name);
+    normalized[name] = value;
+  }
   const warnings = new Set<string>([
     'CSV properties are imported as text. Views, relations, permissions and history are not imported.',
   ]);
@@ -435,12 +461,14 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
     for (const node of Array.from(nodes)) {
       const isReference =
         node instanceof Element &&
-        node.tagName === 'A' &&
-        (byPath.has(localPath(base, node.getAttribute('href') ?? '') ?? '') ||
-          Object.hasOwn(
-            normalized,
-            localPath(base, node.getAttribute('href') ?? '') ?? ''
-          ));
+        (!!node.querySelector('img,video,audio,object,embed') ||
+          Array.from(
+            node.matches('a[href]') ? [node] : node.querySelectorAll('a[href]')
+          ).some((link) => {
+            const target =
+              localPath(base, link.getAttribute('href') ?? '') ?? '';
+            return byPath.has(target) || Object.hasOwn(normalized, target);
+          }));
       if (
         node.nodeType === 3 ||
         (node instanceof Element &&

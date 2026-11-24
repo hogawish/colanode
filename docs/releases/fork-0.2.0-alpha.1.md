@@ -3,7 +3,7 @@
 Release candidate for the browser and a self-hosted Colanode server, based on
 upstream v0.4.7. The previous source snapshot is fork-0.1.0-alpha.1.
 
-**Not published.** Dependency remediation and final acceptance remain open; see
+**Not published.** Final distribution and upgrade acceptance are in progress; see
 [release readiness](../release-readiness.md).
 
 ## Changes
@@ -29,6 +29,17 @@ permissions, shared editor limitations, file visibility, and view links.
   links and database exports contain displayed rows.
 - Keep block handles and formatting/link popovers inside record modals so modal
   pointer/focus containment does not block actions.
+
+- Migrate page trees, database CSVs and row bodies with original images, videos,
+  audio, PDFs and file attachments using Notion ZIP export/import. Import always
+  creates a fresh subtree and does not overwrite the destination page.
+- Read Notion's outer ZIP envelopes and distinct ZIP parts within shared size,
+  entry-count and nesting limits. Inline-wrapped file links no longer recurse.
+- Copy directly to Notion using native media blocks and owned inline databases;
+  uploads above 20 MiB use multipart. Connection tokens are request-only.
+- Update vulnerable Web/API dependencies, align Tiptap packages, remove developer
+  tooling from API production dependencies, and exclude local secrets/build
+  output from Docker contexts. The Web runtime follows stable Alpine Nginx.
 
 [Export scope and usage](../page-export.md) describe the snapshot limitations.
 
@@ -130,3 +141,9 @@ grouped filters, and personal Hide across users.
   links contain a configuration snapshot and require source access.
 - Cross-Workspace page references and collaborative version history remain
   future work. Japanese IME and native mobile/desktop behavior need further use.
+- Notion import/export is a preview migration, not two-way synchronization.
+  CSV properties become text; views, relations, formulas, permissions and history
+  are not reconstructed. Notion ZIP media placement depends on its importer.
+- The user confirmed a video successfully imported into Notion from an exported
+  ZIP. Live application-token direct transfer and live multipart into Notion
+  remain separate acceptance items; automated payload/failure tests cover both.

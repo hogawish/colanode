@@ -38,7 +38,7 @@ RUN npm run build -w @colanode/core && \
     npm prune --production
 
 
-FROM nginx:1.27-alpine
+FROM nginx:stable-alpine
 
 COPY --from=build /app/apps/web/dist /usr/share/nginx/html
 

@@ -1,0 +1,14 @@
+.git
+**/node_modules
+**/dist
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+**/*.tsbuildinfo
+runtime
+.workspaces
+.personal
+coverage
+**/coverage
+*.log

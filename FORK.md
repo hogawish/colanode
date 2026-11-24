@@ -28,6 +28,14 @@ and saved filter views. Each member/tag filter can match any or all selected
 values. Advanced filters combine nested AND/OR groups. Saved views can be copied
 as links containing the current conditions and sort order.
 
+Notion migration is a preview feature: export a page hierarchy and databases with
+original body images, video, audio, PDFs and other attachments in ZIP, or import
+Notion HTML/Markdown and CSV exports as fresh Colanode pages. Notion export ZIP
+envelopes and distinct ZIP parts are supported. A separate direct Notion copy
+maps media and owned inline databases to native blocks with a user-supplied
+connection. This is migration, not synchronization or full-fidelity interchange.
+See [export/import scope](docs/page-export.md) for limits and acceptance evidence.
+
 See [sharing and saved views](docs/sharing-and-space-views.md) for permission
 semantics and [the release notes](docs/releases/fork-0.2.0-alpha.1.md) for scope,
 upgrade, backup, rollback, and validation instructions.

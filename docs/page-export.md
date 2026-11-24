@@ -170,6 +170,18 @@ relations, formulas and history are not imported. This is migration, not sync.
 
 ZIP inspection is inert: scripts/embeds are not executed or mounted, and paths,
 duplicate normalized names, file count, expanded size and nesting are bounded.
+Notion's outer `Export-...-Part-1.zip` envelopes are unwrapped automatically;
+distinct parts share one archive namespace and duplicate paths are rejected.
+Only ZIP-only envelopes are unwrapped, so a ZIP attached inside a document is
+not expanded as pages. Wrapper depth is limited to three; expanded byte and
+entry limits apply cumulatively across envelopes and their parts.
 Limits: 256 MB compressed/expanded, 10,000 archive files, 2,000 pages/rows, 30
 block levels. A failed write keeps a link to the partial import for inspection.
 Do not retry blindly if creation or server synchronization is incomplete.
+
+Release acceptance also reads two real Notion export fixtures from the official
+[Obsidian Importer tests](https://github.com/obsidianmd/obsidian-importer/tree/4020f2c1b4eaac7e3dfd4a1632fa4e919e29f916/tests/notion).
+Their ZIP envelopes exercise HTML/images and Markdown/database CSV input. They
+are downloaded only for optional release tests, not redistributed in this fork.
+A user additionally confirmed a Colanode video ZIP imported into Notion. This
+does not establish every codec/size or live direct-transfer multipart behavior.
