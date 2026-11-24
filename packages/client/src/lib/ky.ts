@@ -5,7 +5,10 @@ import { ApiErrorCode, ApiErrorOutput } from '@colanode/core';
 export const parseApiError = async (
   error: unknown
 ): Promise<ApiErrorOutput> => {
-  if (error instanceof Error) {
+  if (
+    error instanceof Error ||
+    (typeof DOMException !== 'undefined' && error instanceof DOMException)
+  ) {
     if (error.name === 'TimeoutError' || error.name === 'AbortError') {
       return {
         code: ApiErrorCode.Unknown,
