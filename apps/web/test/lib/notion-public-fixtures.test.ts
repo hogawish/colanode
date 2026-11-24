@@ -2,9 +2,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { expect, it, vi } from 'vitest';
+
 import { richTextContentSchema, extractDocumentText } from '@colanode/core';
 import { YDoc } from '@colanode/crdt';
-
 import {
   previewNotionZip,
   importNotionPlan,
