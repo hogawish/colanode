@@ -3,6 +3,7 @@ import type { JSONContent } from '@tiptap/core';
 import { buildEditorContent } from '@colanode/client/lib';
 import type { PageExportSnapshot } from '@colanode/core';
 import { readExternalReference } from '@colanode/ui/lib/external-reference';
+import { markExportAttachment } from '@colanode/ui/lib/notion-attachments';
 
 const backgrounds: Record<string, string> = {
   gray: '#f3f4f6',
@@ -93,11 +94,15 @@ export const renderNotionExportDocument = (
       const file = files.get(id);
       const element = document.createElement('div');
       element.dataset.id = id;
+      if (file) markExportAttachment(element, file);
       if (!file) element.dataset.exportFileUnavailable = 'true';
       else if (file.subtype === 'image') {
         element.dataset.exportImageId = id;
         element.dataset.exportImageName = file.name;
-      } else element.appendChild(reference(id, file.name));
+      } else {
+        markExportAttachment(element, file);
+        element.appendChild(reference(id, file.name));
+      }
       return element;
     }
     if (

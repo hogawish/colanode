@@ -34,6 +34,10 @@ export const FileBlock = ({ id }: FileBlockProps) => {
     <Link
       data-export-image-id={file.subtype === 'image' ? file.id : undefined}
       data-export-image-name={file.subtype === 'image' ? file.name : undefined}
+      data-export-attachment-id={file.id}
+      data-export-attachment-name={file.name}
+      data-export-attachment-mime={file.mimeType}
+      data-export-attachment-subtype={file.subtype}
       from="/workspace/$userId/$nodeId"
       to="modal/$modalNodeId"
       params={{ modalNodeId: id }}

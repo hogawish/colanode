@@ -37,18 +37,25 @@ silently dropping their contents.
 
 Choose **settings gear → Export page → Notion ZIP** and turn off
 **Include subpages & databases in Notion ZIP** to download one page's
-HTML and referenced original body images in a single ZIP. In Notion use
+HTML and referenced original body attachments in a single ZIP. This includes
+images, videos, audio, PDFs and other files, without transcoding. In Notion use
 **Settings → Import → ZIP** (Convert ZIP to pages), then select the downloaded
 ZIP without extracting it. The archive contains `notion-export/<title>.html`
-and `notion-export/assets/image-001.png` (or the image's matching extension).
-Image paths are relative, so images do not require a Colanode login after import.
-Repeated identical image content is bundled once. No account tokens, temporary
-image URLs, unreferenced attachments, or unrelated pages are included.
+and relative files under `notion-export/assets/`. Original bytes, display names
+and media types are retained. Repeated references to the same attachment are
+bundled once per page. No account tokens, temporary download URLs, unreferenced
+attachments, or unrelated pages are included. Failed file reads stop the export.
 
-This first step covers one page's body and images. Child pages remain original
+The one-page option covers the body and its attachments. Child pages remain original
 Colanode links; displayed tables are static HTML tables, not imported Notion
 databases. Notion may simplify colors, toggles, and layout. Import is a copy,
 not synchronization; permissions and edit history do not transfer.
+
+The ZIP contains video/audio HTML with relative sources and download links for
+all attachments. **Notion's standard HTML/ZIP importer may retain non-image
+media only as links, or omit unsupported embeds. Bundling the bytes does not
+guarantee native video/audio/PDF blocks in Notion.** Use the direct Notion copy
+for native media placement. Browser/Notion codec and account limits still apply.
 
 ## Hierarchy and databases
 
@@ -58,9 +65,9 @@ page, shared page, database, or record. This reads the **synced server version**
 so wait for edits to sync first. It fetches every readable descendant, including
 children present only in the sidebar, and all database rows through pagination.
 Current view filters and loaded-row limits do not restrict this export. A failed
-child/image read stops the download instead of producing a silently partial ZIP.
+child/file read stops the download instead of producing a silently partial ZIP.
 
-The ZIP uses nested directories for child pages, keeps body images alongside each
+The ZIP uses nested directories for child pages, keeps body attachments alongside each
 HTML page, and rewrites links between included pages to relative paths. Same-name
 pages get distinct numbered filenames without exposing IDs as page titles. It does not follow arbitrary body links
 or linked databases outside the selected subtree. Direct image references are
@@ -112,20 +119,25 @@ responses are retried with a bounded delay.
 The transfer reads the synced, authorized hierarchy. It creates fresh native
 pages and databases, places an owned inline database between the preceding and
 following body blocks, creates its native row pages, and copies row bodies and
-original body images. Database properties become text. Tables, lists, headings,
+original body attachments. Images, videos, audio and PDFs become their native
+Notion media blocks; other files become native file attachments. Database properties become text. Tables, lists, headings,
 basic marks, background colors and toggles have native mappings. Nested page/DB
 placements move to the containing page with a warning. References outside the
-hierarchy, unsupported blocks and non-image attachments are reported. Custom
+hierarchy and unsupported blocks are reported. Custom
 views, relations, formulas, permissions and history are not reconstructed.
 
-Limits: 200 pages/rows, 3,000 blocks, and 20 MB per body image. A failure leaves
+Limits: 200 pages/rows, 3,000 blocks, and 256 MiB per attachment. Files larger
+than 20 MiB use ordered multipart uploads, completed before block insertion.
+The destination Notion account may impose a lower file limit. A failure leaves
 the partial destination and its link for inspection; it does not delete pages
 or automatically start a second copy. Wait for completion before closing the
 tab. Normal HTML/PDF/ZIP exports need no Notion connection.
 
 The native inline creation mechanism was checked with a synthetic private
 Notion test page. Automated tests verify the application's API payload, ordering,
-row/image transfer contract and failure handling. A full live application
+row/media transfer contract and failure handling. A synthetic private Notion page
+also accepted native image/video/audio/PDF/file blocks, and all five downloaded
+originals matched the uploaded bytes. A full live application
 transfer requires the user's dedicated Notion connection and remains a separate
 acceptance check; the connector test is not that end-to-end check.
 
@@ -136,18 +148,24 @@ References: [Create a database](https://developers.notion.com/reference/create-a
 
 From Notion, export **HTML** or **Markdown & CSV**, including subpages. In
 Colanode use **page settings gear → Import from Notion**, or a Space's sidebar
-menu → **Import from Notion**. Select the ZIP, inspect the page/DB/row/image counts
+menu → **Import from Notion**. Select the ZIP, inspect the page/DB/row/image/file counts
 and warnings, then click **Import as new pages**. The import creates a fresh
 **Notion import** page under the selected destination; it never overwrites an
 existing page. New content uses normal Colanode nodes, files, documents and
 permission checks, saved locally and synchronized by the normal client.
 
-Page hierarchy, basic formatting, lists, toggles, tables and local body images
-are imported. CSV columns become editable text properties. Matching row-body
+Page hierarchy, basic formatting, lists, toggles, tables and local body attachments
+are imported. Local image/video/audio/PDF and ordinary file links become native
+Colanode File blocks in body order, with their original bytes and names. Video
+`source` elements and PDF `object`/`embed` references are read inertly; their HTML
+is never executed. A media element and its duplicate download link import once.
+Explicit file downloads of CSV/Markdown are attachments; ordinary CSV/Markdown
+page links can instead represent databases/pages. CSV columns become editable text properties. Matching row-body
 HTML/Markdown becomes the corresponding record's native body. Unmatched or
 ambiguous row bodies are retained as separate pages with a warning. Internal
-archive links are rewritten to new Colanode IDs. Remote/missing/unsupported
-images remain text links; inspection never downloads them. Permissions, views,
+archive links are rewritten to new Colanode IDs. Remote/missing
+attachments remain text links; inspection never downloads them. Unreferenced
+ZIP files are not uploaded. Permissions, views,
 relations, formulas and history are not imported. This is migration, not sync.
 
 ZIP inspection is inert: scripts/embeds are not executed or mounted, and paths,

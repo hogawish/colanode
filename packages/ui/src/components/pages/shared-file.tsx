@@ -68,6 +68,10 @@ export const SharedFileBlock = ({ file }: { file: SharedFile }) => {
       className="my-1 w-full"
       data-export-image-id={isImage ? file.id : undefined}
       data-export-image-name={isImage ? file.name : undefined}
+      data-export-attachment-id={file.id}
+      data-export-attachment-name={file.name}
+      data-export-attachment-mime={file.mimeType}
+      data-export-attachment-subtype={file.subtype}
     >
       {(isImage || (isPlayable && playableRequested)) && (
         <div className="flex h-72 max-w-lg items-center justify-center overflow-hidden rounded-md p-2">

@@ -37,6 +37,7 @@ export const NotionImportDialog = ({
       }}
     >
       <DialogContent
+        className="max-h-[90vh] overflow-y-auto"
         onEscapeKeyDown={(event) => {
           if (busy) event.preventDefault();
         }}
@@ -88,7 +89,38 @@ export const NotionImportDialog = ({
               databases ·{' '}
               {plan.items.filter((item) => item.kind === 'record').length} rows
               · {plan.images.length} images
+              {plan.attachments.some((file) => file.subtype !== 'image') && (
+                <>
+                  {' '}
+                  ·{' '}
+                  {
+                    plan.attachments.filter((file) => file.subtype !== 'image')
+                      .length
+                  }{' '}
+                  attachments
+                </>
+              )}
             </p>
+            {plan.attachments.length > 0 && (
+              <details>
+                <summary className="cursor-pointer">
+                  Included files ({plan.attachments.length})
+                </summary>
+                <ul className="max-h-40 overflow-auto list-disc pl-5">
+                  {plan.attachments.map((file) => (
+                    <li key={file.path}>
+                      {file.name} · {file.subtype} ·{' '}
+                      {(
+                        (plan.files[file.path]?.length ?? 0) /
+                        1024 /
+                        1024
+                      ).toFixed(2)}{' '}
+                      MB
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
             <ul className="max-h-40 overflow-auto list-disc pl-5">
               {plan.items.slice(0, 50).map((item) => (
                 <li key={item.path}>

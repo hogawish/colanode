@@ -31,9 +31,9 @@ export const NotionTransfer = ({
       </summary>
       <p className="text-muted-foreground">
         Creates a new copy, including readable subpages, databases and body
-        images. Add your Notion connection to the destination page first, with
-        read, insert and update access. ZIP import does not preserve native
-        inline views.
+        attachments (images, videos, audio, PDFs and files). Add your Notion
+        connection to the destination page first, with read, insert and update
+        access. ZIP import does not preserve native inline views.
       </p>
       <label className="block space-y-1">
         Destination Notion page
@@ -58,7 +58,8 @@ export const NotionTransfer = ({
       <p className="text-muted-foreground">
         The token is used for this transfer only and is not saved. Properties
         are copied as text; views, relations, permissions and history are not
-        copied. Images up to 20 MB each.
+        copied. Files up to 256 MB each; files over 20 MB use multipart upload.
+        Notion workspace limits also apply.
       </p>
       <Button
         variant="outline"

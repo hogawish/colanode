@@ -141,7 +141,7 @@ it('exports the real hierarchy, all paginated database records, body images and 
     'text/html'
   );
   expect(grandchildHtml.querySelector('img')?.getAttribute('src')).toBe(
-    'assets/grandchild-001.png'
+    'assets/grandchild-file-001-image.png'
   );
   expect(names.every((name) => !name.split('/').includes('..'))).toBe(true);
 }, 20000);

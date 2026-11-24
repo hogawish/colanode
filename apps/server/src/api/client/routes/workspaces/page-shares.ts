@@ -361,12 +361,10 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
         0
       );
       if (!root)
-        return reply
-          .code(404)
-          .send({
-            code: ApiErrorCode.NotFound,
-            message: 'Export content is unavailable.',
-          });
+        return reply.code(404).send({
+          code: ApiErrorCode.NotFound,
+          message: 'Export content is unavailable.',
+        });
       try {
         return await transferToNotion({
           token: request.body.token,
@@ -386,7 +384,7 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
               node.workspace_id !== request.workspace.id ||
               !node.parent_id
             )
-              throw new Error('A body image is unavailable.');
+              throw new Error('A body attachment is unavailable.');
             const parent = await readPageExport(
               request.workspace.id,
               request.workspace.user.id,
@@ -394,14 +392,14 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
               0
             );
             if (!parent?.files.some((entry) => entry.id === file.id))
-              throw new Error('A body image is unavailable.');
+              throw new Error('A body attachment is unavailable.');
             const upload = await database
               .selectFrom('uploads')
               .selectAll()
               .where('file_id', '=', file.id)
               .executeTakeFirst();
             if (!upload?.uploaded_at)
-              throw new Error('A body image is not ready.');
+              throw new Error('A body attachment is not ready.');
             const { stream, contentType } = await storage.download(upload.path);
             const chunks: Buffer[] = [];
             let size = 0;
@@ -411,9 +409,9 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
                   ? chunk
                   : Buffer.from(chunk);
                 size += bytes.length;
-                if (size > 20 * 1024 * 1024)
+                if (size > 256 * 1024 * 1024)
                   throw new Error(
-                    'A body image exceeds Notion’s 20 MB single-upload limit.'
+                    'A body attachment exceeds the current 256 MB transfer limit.'
                   );
                 chunks.push(bytes);
               }
@@ -435,18 +433,16 @@ export const pageSharesRoutes: FastifyPluginCallbackZod = (
                       ? contentType
                       : file.mimeType;
             return new Blob([new Uint8Array(bytes)], {
-              type: mime || 'image/png',
+              type: mime || 'application/octet-stream',
             });
           },
         });
       } catch {
-        return reply
-          .code(400)
-          .send({
-            code: ApiErrorCode.BadRequest,
-            message:
-              'Could not prepare the Notion transfer. Check the destination page ID, source access and export size.',
-          });
+        return reply.code(400).send({
+          code: ApiErrorCode.BadRequest,
+          message:
+            'Could not prepare the Notion transfer. Check the destination page ID, source access and export size.',
+        });
       }
     }
   );

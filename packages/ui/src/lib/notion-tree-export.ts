@@ -5,10 +5,8 @@ import {
   exportBodyText,
   renderNotionExportDocument,
 } from '@colanode/ui/lib/notion-export-document';
-import {
-  exportFilename,
-  packageNotionHtml,
-} from '@colanode/ui/lib/notion-page-export';
+import { packageNotionMediaHtml } from '@colanode/ui/lib/notion-media-export';
+import { exportFilename } from '@colanode/ui/lib/notion-page-export';
 import { buildPageExport } from '@colanode/ui/lib/page-export';
 
 const dirname = (path: string) => path.slice(0, path.lastIndexOf('/') + 1);
@@ -62,6 +60,7 @@ export const buildNotionTreeZip = async (
   options: {
     read: (id: string, offset: number) => Promise<PageExportSnapshot>;
     resolveImage: (id: string) => Promise<Blob>;
+    resolveFile?: (id: string) => Promise<Blob>;
     sourceUrl: (id: string) => string;
     onProgress?: (count: number) => void;
   }
@@ -190,7 +189,10 @@ export const buildNotionTreeZip = async (
       }
       source.prepend(properties);
     }
-    const html = await buildPageExport(source, item.name, { resolveImage });
+    const html = await buildPageExport(source, item.name, {
+      resolveImage,
+      includeAttachments: true,
+    });
     const parsed = new DOMParser().parseFromString(html, 'text/html');
     for (const link of Array.from(parsed.querySelectorAll('a[href]'))) {
       const href = link.getAttribute('href')!;
@@ -205,9 +207,13 @@ export const buildNotionTreeZip = async (
         );
       }
     }
-    const packed = packageNotionHtml(
+    const packed = await packageNotionMediaHtml(
       '<!doctype html>\n' + parsed.documentElement.outerHTML,
-      id.replace(/[^a-zA-Z0-9-]/g, '_')
+      {
+        prefix: id.replace(/[^a-zA-Z0-9-]/g, '_'),
+        resolveFile: options.resolveFile ?? resolveImage,
+        cache: images,
+      }
     );
     files[path] = strToU8(packed.html);
     for (const [asset, data] of Object.entries(packed.files))

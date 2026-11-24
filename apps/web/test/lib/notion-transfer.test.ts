@@ -135,6 +135,90 @@ it('makes no outbound request for inaccessible descendants or invalid destinatio
   expect(api).not.toHaveBeenCalled();
   expect(() => notionParentId('https://evil.test/no-id')).toThrow('page URL');
 });
+
+it('transfers video/audio/PDF/files as native blocks and completes multipart uploads over 20 MiB in order', async () => {
+  const root = item('root');
+  const types = ['video', 'audio', 'pdf', 'other'] as const;
+  root.files = types.map((subtype, index) => ({
+    id: 'f' + index,
+    name: ['clip.mp4', 'voice.wav', 'brief.pdf', 'notes.txt'][index]!,
+    subtype,
+    mimeType: ['video/mp4', 'audio/wav', 'application/pdf', 'text/plain'][
+      index
+    ]!,
+  }));
+  root.content = {
+    type: 'rich_text',
+    blocks: Object.fromEntries(
+      root.files.map((file, index) => [
+        file.id,
+        { id: file.id, type: 'file', parentId: 'root', index: 'a' + index },
+      ])
+    ),
+  };
+  const calls: { path: string; body: Record<string, unknown> | FormData }[] =
+    [];
+  let n = 0;
+  const fetcher = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+    const body =
+      init?.body instanceof FormData
+        ? init.body
+        : JSON.parse(String(init?.body));
+    const path = String(url).replace('https://api.notion.com/v1/', '');
+    calls.push({ path, body });
+    return new Response(
+      JSON.stringify({
+        id: 'n' + ++n,
+        url: 'https://www.notion.so/test',
+        status:
+          body instanceof FormData && body.has('part_number')
+            ? 'pending'
+            : 'uploaded',
+        results: [{ id: 'b' + n }],
+      })
+    );
+  });
+  const large = new Blob([new Uint8Array(20 * 1024 * 1024 + 7).fill(93)], {
+    type: 'video/mp4',
+  });
+  const result = await transferToNotion({
+    token: 'test',
+    parent: '0123456789abcdef0123456789abcdef',
+    rootId: 'root',
+    read: async () => root,
+    image: async (file) =>
+      file.subtype === 'video'
+        ? large
+        : new Blob(['data'], { type: file.mimeType }),
+    fetch: fetcher,
+    sleep: async () => {},
+  });
+  expect(result.complete).toBe(true);
+  const multipart = calls.find((call) => call.path === 'file_uploads')!;
+  expect(multipart.body).toMatchObject({
+    mode: 'multi_part',
+    number_of_parts: 2,
+    filename: 'clip.mp4',
+  });
+  const parts = calls
+    .filter(
+      (call) => call.body instanceof FormData && call.body.has('part_number')
+    )
+    .map((call) => call.body as FormData);
+  expect(parts.map((part) => part.get('part_number'))).toEqual(['1', '2']);
+  expect((parts[0]!.get('file') as Blob).size).toBe(20 * 1024 * 1024);
+  expect((parts[1]!.get('file') as Blob).size).toBe(7);
+  expect(
+    calls.findIndex((call) => call.path.endsWith('/complete'))
+  ).toBeGreaterThan(calls.findIndex((call) => call.body === parts[1]));
+  const blocks = calls
+    .filter((call) => call.path.includes('/children'))
+    .map(
+      (call) =>
+        (call.body as { children: { type: string }[] }).children[0]!.type
+    );
+  expect(blocks).toEqual(['video', 'audio', 'pdf', 'file']);
+});
 it('returns the partial destination and never automatically retries ambiguous writes or exposes upstream error content', async () => {
   const api = vi
     .fn()

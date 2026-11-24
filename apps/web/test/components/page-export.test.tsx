@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { strFromU8, unzipSync } from 'fflate';
 import { expect, it, vi } from 'vitest';
 
 import {
@@ -152,7 +153,7 @@ it('shows permission failures without downloading a partially collected hierarch
 
 it('uses one ZIP action and can switch to this page only without reading descendants', async () => {
   const download = vi
-    .spyOn(notionExports, 'downloadNotionPageZip')
+    .spyOn(notionExports, 'downloadNotionZip')
     .mockImplementation(() => {});
   const executeMutation = vi.fn();
   Object.assign(window, { colanode: { executeMutation } });
@@ -174,20 +175,18 @@ it('uses one ZIP action and can switch to this page only without reading descend
 });
 
 it('sends a connection token only on an explicit transfer click and clears it after the result', async () => {
-  const executeMutation = vi
-    .fn()
-    .mockResolvedValue({
-      success: true,
-      output: {
-        action: 'transfer-notion',
-        result: {
-          url: 'https://www.notion.so/copied',
-          complete: true,
-          pages: 2,
-          warnings: [],
-        },
+  const executeMutation = vi.fn().mockResolvedValue({
+    success: true,
+    output: {
+      action: 'transfer-notion',
+      result: {
+        url: 'https://www.notion.so/copied',
+        complete: true,
+        pages: 2,
+        warnings: [],
       },
-    });
+    },
+  });
   Object.assign(window, { colanode: { executeMutation } });
   renderExport(
     <PageExport title="Source" nodeId="root">
@@ -291,7 +290,7 @@ it('opens the record export without opening or exporting the database behind it'
 
 it('offers Notion ZIP inside the gear export dialog, including an offscreen authorized body image', async () => {
   const download = vi
-    .spyOn(notionExports, 'downloadNotionPageZip')
+    .spyOn(notionExports, 'downloadNotionZip')
     .mockImplementation(() => {});
   const executeQuery = vi.fn().mockResolvedValue({
     url: 'http://localhost/notion-original',
@@ -318,8 +317,13 @@ it('offers Notion ZIP inside the gear export dialog, including an offscreen auth
   fireEvent.click(screen.getByRole('button', { name: 'Notion ZIP' }));
   await waitFor(() => expect(download).toHaveBeenCalledOnce());
   expect(download.mock.calls[0]![1]).toBe('ナギ');
-  expect(download.mock.calls[0]![0]).toContain('data:image/png;base64,');
-  expect(download.mock.calls[0]![0]).not.toContain('synthetic-notion-token');
+  const archive = unzipSync(download.mock.calls[0]![0]);
+  expect(
+    Object.values(archive).some((bytes) => strFromU8(bytes) === 'original')
+  ).toBe(true);
+  expect(strFromU8(archive['notion-export/ナギ.html']!)).not.toContain(
+    'synthetic-notion-token'
+  );
   expect(executeQuery).toHaveBeenCalledExactlyOnceWith({
     type: 'file.download.request.get',
     id: 'photo',

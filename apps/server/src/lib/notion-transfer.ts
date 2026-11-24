@@ -254,33 +254,56 @@ export const transferToNotion = async (options: {
         if (block.type === 'file') {
           const file = snapshot.files.find((file) => file.id === block.id);
           if (!file) throw new Error('A referenced file is unavailable.');
-          if (file.subtype !== 'image') {
-            warnings.add(
-              'Only body images are transferred; other attachments remain in Colanode.'
-            );
-            continue;
-          }
           const blob = await options.image(file);
-          if (blob.size > 20 * 1024 * 1024)
-            throw new Error(
-              'A body image exceeds Notion’s 20 MB single-upload limit.'
-            );
+          const partSize = 20 * 1024 * 1024;
+          const parts = Math.ceil(blob.size / partSize) || 1;
           const upload = await request('file_uploads', {
-            mode: 'single_part',
+            mode: parts > 1 ? 'multi_part' : 'single_part',
+            ...(parts > 1 ? { number_of_parts: parts } : {}),
             filename: file.name,
-            content_type: blob.type || file.mimeType || 'image/png',
+            content_type:
+              blob.type || file.mimeType || 'application/octet-stream',
           });
-          const form = new FormData();
-          form.set('file', blob, file.name);
-          const sent = await request(
-            `file_uploads/${encodeURIComponent(upload.id)}/send`,
-            form
-          );
-          if (sent.status && sent.status !== 'uploaded')
-            throw new Error('Notion did not finish the image upload.');
-          await append(target, 'image', {
+          let sent: Result | undefined;
+          for (let part = 0; part < parts; part++) {
+            const form = new FormData();
+            form.set(
+              'file',
+              parts > 1
+                ? blob.slice(
+                    part * partSize,
+                    Math.min(blob.size, (part + 1) * partSize),
+                    blob.type
+                  )
+                : blob,
+              file.name
+            );
+            if (parts > 1) form.set('part_number', String(part + 1));
+            sent = await request(
+              `file_uploads/${encodeURIComponent(upload.id)}/send`,
+              form
+            );
+          }
+          if (parts > 1)
+            sent = await request(
+              `file_uploads/${encodeURIComponent(upload.id)}/complete`,
+              {}
+            );
+          if (sent?.status && sent.status !== 'uploaded')
+            throw new Error('Notion did not finish the file upload.');
+          const mediaType = (
+            {
+              image: 'image',
+              video: 'video',
+              audio: 'audio',
+              pdf: 'pdf',
+              other: 'file',
+            } as const
+          )[file.subtype];
+          await append(target, mediaType, {
             type: 'file_upload',
             file_upload: { id: upload.id },
+            ...(mediaType === 'file' ? { name: file.name } : {}),
           });
           continue;
         }

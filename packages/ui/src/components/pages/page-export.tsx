@@ -24,10 +24,8 @@ import {
   DropdownMenuTrigger,
 } from '@colanode/ui/components/ui/dropdown-menu';
 import { useWorkspace } from '@colanode/ui/contexts/workspace';
-import {
-  downloadNotionPageZip,
-  downloadNotionZip,
-} from '@colanode/ui/lib/notion-page-export';
+import { buildNotionMediaPageZip } from '@colanode/ui/lib/notion-media-export';
+import { downloadNotionZip } from '@colanode/ui/lib/notion-page-export';
 import { buildNotionTreeZip } from '@colanode/ui/lib/notion-tree-export';
 import {
   buildPageExport,
@@ -106,16 +104,16 @@ export const PageExport = ({
     });
     if (!request)
       throw new Error(
-        'A page image is unavailable. Please check its access and try again.'
+        'A page file is unavailable. Please check its access and try again.'
       );
     const response = await fetch(request.url, {
       headers: request.headers,
       cache: 'no-store',
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(300000),
     });
     if (!response.ok)
       throw new Error(
-        'Could not load a page image. Please check its access and try again.'
+        'Could not load a page file. Please check its access and try again.'
       );
     return response.blob();
   };
@@ -174,9 +172,14 @@ export const PageExport = ({
     try {
       const result = await buildPageExport(body.current, title, {
         resolveImage,
+        includeAttachments: format === 'notion',
       });
       if (format === 'html') downloadPageHtml(result, title);
-      else if (format === 'notion') downloadNotionPageZip(result, title);
+      else if (format === 'notion')
+        downloadNotionZip(
+          await buildNotionMediaPageZip(result, title, resolveImage),
+          title
+        );
       else setHtml(result);
     } catch (cause) {
       setError(
@@ -215,7 +218,9 @@ export const PageExport = ({
             <DialogDescription>
               HTML / PDF include this page and its images. Import the Notion ZIP
               via Notion’s Import → ZIP. Database views, relations, permissions
-              and history are not preserved in ZIP.
+              and history are not preserved in ZIP. ZIP includes original body
+              attachments. Notion may import video, audio and PDFs as links; use
+              direct transfer for native media blocks.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-wrap gap-2">
@@ -263,8 +268,8 @@ export const PageExport = ({
               </label>
               <p className="text-muted-foreground">
                 {includeChildren
-                  ? 'Uses synced content and all readable descendant rows. Wait for edits to sync first. Databases are CSV with linked row bodies and images.'
-                  : 'This page and its images only. Child pages remain links; embedded databases include displayed rows.'}
+                  ? 'Uses synced content and all readable descendant rows. Wait for edits to sync first. Databases are CSV with linked row bodies and attachments.'
+                  : 'This page and its body attachments. Child pages remain links; embedded databases include displayed rows.'}
               </p>
             </div>
           )}

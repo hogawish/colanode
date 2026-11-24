@@ -147,6 +147,7 @@ export const buildPageExport = async (
   title: string,
   options?: {
     resolveImage: (id: string) => Promise<Blob>;
+    includeAttachments?: boolean;
   }
 ) => {
   await waitForFiles(source);
@@ -180,6 +181,18 @@ export const buildPageExport = async (
     )
       return null;
     const imageId = node.dataset.exportImageId;
+    if (options?.includeAttachments && node.dataset.exportAttachmentId) {
+      const element = output.createElement('a');
+      for (const key of [
+        'exportAttachmentId',
+        'exportAttachmentName',
+        'exportAttachmentMime',
+        'exportAttachmentSubtype',
+      ])
+        if (node.dataset[key]) element.dataset[key] = node.dataset[key];
+      element.textContent = node.dataset.exportAttachmentName || 'Attachment';
+      return element;
+    }
     if (imageId) {
       const key = `file:${imageId}`;
       if (!cache.has(key)) {

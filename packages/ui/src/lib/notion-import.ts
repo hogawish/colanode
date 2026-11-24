@@ -9,8 +9,13 @@ import {
   IdType,
   richTextContentSchema,
   type NodeAttributes,
+  type FileSubtype,
 } from '@colanode/core';
 import { encodeState, YDoc } from '@colanode/crdt';
+import {
+  attachmentMime,
+  attachmentSubtype,
+} from '@colanode/ui/lib/notion-attachments';
 
 export type NotionImportItem = {
   path: string;
@@ -25,6 +30,12 @@ export type NotionImportPlan = {
   items: NotionImportItem[];
   files: Record<string, Uint8Array>;
   images: string[];
+  attachments: {
+    path: string;
+    name: string;
+    mimeType: string;
+    subtype: FileSubtype;
+  }[];
   warnings: string[];
 };
 const LIMIT = 256 * 1024 * 1024;
@@ -36,16 +47,6 @@ const cleanName = (path: string) =>
     .replace(/ [a-f\d]{32}$/i, '') || 'Untitled';
 const stem = (path: string) => path.replace(/\.(html?|md|csv)$/i, '');
 const dir = (path: string) => path.slice(0, path.lastIndexOf('/') + 1);
-const imageType = (path: string) =>
-  ({
-    png: 'image/png',
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    gif: 'image/gif',
-    webp: 'image/webp',
-    avif: 'image/avif',
-    bmp: 'image/bmp',
-  })[path.split('.').at(-1)!.toLowerCase()];
 
 // Archive paths never become filesystem paths. Reject aliases before unzip so
 // traversal, duplicate names and oversized entries cannot bypass the preview.
@@ -140,7 +141,7 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
       );
     },
   });
-  const normalized: Record<string, Uint8Array> = {};
+  const normalized: Record<string, Uint8Array> = Object.create(null);
   for (const [path, value] of Object.entries(files))
     normalized[archivePath(path)] = value;
   const warnings = new Set<string>([
@@ -149,7 +150,34 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
   const items: NotionImportItem[] = [];
   const bodies = new Map<string, DocumentFragment>();
   const csvs = new Map<string, string[][]>();
+  const explicitAttachments = new Set<string>();
+  // Download links and media sources disambiguate attachments named *.md or
+  // *.csv from actual pages/databases. Merely being in the archive grants no
+  // attachment placement; only references from document bodies are imported.
   for (const [path, value] of Object.entries(normalized)) {
+    if (!/\.(html?|md)$/i.test(path)) continue;
+    const template = document.createElement('template');
+    template.innerHTML = /\.md$/i.test(path)
+      ? marked.parse(strFromU8(value), { async: false })
+      : strFromU8(value);
+    for (const node of Array.from(
+      template.content.querySelectorAll(
+        'img,video,audio,source,object,embed,a[download],figure.file a[href]'
+      )
+    )) {
+      const target = localPath(
+        path,
+        node.getAttribute('src') ??
+          node.getAttribute('data') ??
+          node.getAttribute('href') ??
+          ''
+      );
+      if (target && Object.hasOwn(normalized, target))
+        explicitAttachments.add(target);
+    }
+  }
+  for (const [path, value] of Object.entries(normalized)) {
+    if (explicitAttachments.has(path)) continue;
     if (/\.csv$/i.test(path)) {
       csvs.set(path, parseNotionCsv(strFromU8(value)));
       continue;
@@ -163,7 +191,7 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
       ? marked.parse(text, { async: false })
       : text;
     template.content
-      .querySelectorAll('script,style,iframe,object,embed,link,meta,nav')
+      .querySelectorAll('script,style,iframe,link,meta,nav')
       .forEach((node) => node.remove());
     const title =
       template.content
@@ -314,6 +342,26 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
     if (paired) byPath.set(path, paired);
   }
   const references = new Set<string>();
+  const attachments = new Map<
+    string,
+    { path: string; name: string; mimeType: string; subtype: FileSubtype }
+  >();
+  const fileBlock = (path: string, node: Element): JSONContent[] => {
+    const figure = node.closest('figure');
+    const name =
+      figure?.getAttribute('data-attachment-name') ||
+      node.getAttribute('download') ||
+      node.getAttribute('title') ||
+      path.split('/').at(-1)!;
+    const declared = figure?.getAttribute('data-attachment-mime') || '';
+    const mimeType = /^[a-z\d.+-]+\/[a-z\d.+-]+$/i.test(declared)
+      ? declared
+      : attachmentMime(path);
+    const subtype = attachmentSubtype(mimeType);
+    attachments.set(path, { path, name, mimeType, subtype });
+    if (subtype === 'image') references.add(path);
+    return [{ type: 'file', attrs: { importAttachmentPath: path } }];
+  };
   const inline = (
     nodes: NodeListOf<ChildNode> | ChildNode[],
     base: string,
@@ -388,7 +436,11 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
       const isReference =
         node instanceof Element &&
         node.tagName === 'A' &&
-        byPath.has(localPath(base, node.getAttribute('href') ?? '') ?? '');
+        (byPath.has(localPath(base, node.getAttribute('href') ?? '') ?? '') ||
+          Object.hasOwn(
+            normalized,
+            localPath(base, node.getAttribute('href') ?? '') ?? ''
+          ));
       if (
         node.nodeType === 3 ||
         (node instanceof Element &&
@@ -413,7 +465,35 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
             ]
           : [];
       if (!(node instanceof Element)) return [];
-      if (node.matches('script,style,iframe,object,embed,link,meta')) return [];
+      if (node.matches('script,style,iframe,link,meta')) return [];
+      if (
+        node.matches('figure') &&
+        node.querySelector('img,video,audio,object,embed')
+      ) {
+        const sources = new Set(
+          Array.from(
+            node.querySelectorAll('img,video,audio,source,object,embed')
+          )
+            .map((media) =>
+              localPath(
+                base,
+                media.getAttribute('src') ?? media.getAttribute('data') ?? ''
+              )
+            )
+            .filter(Boolean)
+        );
+        const children = Array.from(node.childNodes).flatMap((child) => {
+          if (!(child instanceof Element) || child.tagName !== 'FIGCAPTION')
+            return [child];
+          const caption = child.cloneNode(true) as Element;
+          caption.querySelectorAll('a[href]').forEach((a) => {
+            if (sources.has(localPath(base, a.getAttribute('href') ?? '')))
+              a.remove();
+          });
+          return caption.textContent?.trim() ? [caption as ChildNode] : [];
+        });
+        return blocks(children, base, depth + 1);
+      }
       const inlineDatabase = node.getAttribute('data-notion-import-database');
       if (inlineDatabase && byPath.get(inlineDatabase)?.kind === 'database')
         return [
@@ -422,34 +502,37 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
             attrs: { importTarget: inlineDatabase, inline: true },
           },
         ];
-      if (node.tagName === 'IMG') {
-        const path = localPath(base, node.getAttribute('src') ?? '');
-        if (path && normalized[path] && imageType(path)) {
-          references.add(path);
-          return [{ type: 'file', attrs: { importImagePath: path } }];
-        }
+      if (node.matches('img,video,audio,object,embed')) {
+        const source =
+          node.getAttribute('src') ??
+          node.getAttribute('data') ??
+          node.querySelector('source')?.getAttribute('src') ??
+          '';
+        const path = localPath(base, source);
+        if (path && Object.hasOwn(normalized, path))
+          return fileBlock(path, node);
         warnings.add(
-          'An external, missing or unsupported image was kept as a text link; it was not downloaded.'
+          'An external or missing media file was kept as a text link; it was not downloaded.'
         );
-        const href = safeLink(node.getAttribute('src') ?? '');
+        const href = safeLink(source);
         return [
           {
             type: 'paragraph',
             content: [
               {
                 type: 'text',
-                text: node.getAttribute('alt') || href || '[Image unavailable]',
+                text: node.getAttribute('alt') || href || '[Media unavailable]',
                 ...(href ? { marks: [{ type: 'link', attrs: { href } }] } : {}),
               },
             ],
           },
         ];
       }
-      if (node.matches('figure') && node.querySelector('img'))
-        return blocks(node.childNodes, base, depth + 1);
       if (node.tagName === 'A') {
         const target = localPath(base, node.getAttribute('href') ?? '');
         const item = target ? byPath.get(target) : null;
+        if (target && !item && Object.hasOwn(normalized, target))
+          return fileBlock(target, node);
         if (item)
           return [
             {
@@ -486,7 +569,16 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
       }
       if (node.matches('h1,h2,h3,p,pre,hr')) {
         // Image-only paragraphs must remain image blocks.
-        if (node.querySelector('img'))
+        if (
+          node.querySelector('img,video,audio,object,embed') ||
+          (node.tagName === 'P' &&
+            Array.from(node.querySelectorAll('a[href]')).some((a) =>
+              Object.hasOwn(
+                normalized,
+                localPath(base, a.getAttribute('href') ?? '') ?? ''
+              )
+            ))
+        )
           return blocks(node.childNodes, base, depth + 1);
         const only = node.children.length === 1 ? node.children[0] : null;
         if (
@@ -592,6 +684,7 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
     items,
     files: normalized,
     images: [...references],
+    attachments: [...attachments.values()],
     warnings: [...warnings],
   };
 };
@@ -704,15 +797,18 @@ export const importNotionPlan = async (
       const nodeId = ids.get(item.path)!;
       const convert = async (source: JSONContent): Promise<JSONContent> => {
         const node: JSONContent = structuredClone(source);
-        if (node.attrs?.importImagePath) {
-          const path = String(node.attrs.importImagePath);
+        if (node.attrs?.importAttachmentPath || node.attrs?.importImagePath) {
+          const path = String(
+            node.attrs.importAttachmentPath ?? node.attrs.importImagePath
+          );
+          const metadata = plan.attachments.find((file) => file.path === path);
           let id: string;
           {
             const bytes = plan.files[path]!;
             const file = new File(
               [new Uint8Array(bytes)],
-              path.split('/').at(-1)!,
-              { type: imageType(path) }
+              metadata?.name ?? path.split('/').at(-1)!,
+              { type: metadata?.mimeType ?? attachmentMime(path) }
             );
             const temp = await window.colanode.saveTempFile(file);
             const result = await window.colanode.executeMutation({
@@ -723,7 +819,7 @@ export const importNotionPlan = async (
             });
             if (!result.success) throw new Error(result.error.message);
             if (!result.output.id)
-              throw new Error('An image could not be created.');
+              throw new Error('An attachment could not be created.');
             id = result.output.id;
           }
           node.attrs = { id };
