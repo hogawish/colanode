@@ -1,9 +1,10 @@
 # Notion migration and sharing: release readiness
 
 Proposed release: **fork-0.2.0-alpha.1**, an alpha source preview for the Web app
-and self-hosted API. Updated 2026-11-24. **Not published.** Isolated installation,
-upgrade/restore, and normal-HTTP import/export acceptance pass. Source publication
-is the remaining decision.
+and self-hosted API. Updated 2026-11-24. **Publication approved.** Isolated
+installation, upgrade/restore, and normal-HTTP import/export acceptance pass.
+The [GitHub prerelease](https://github.com/hogawish/colanode/releases/tag/fork-0.2.0-alpha.1)
+records publication status and the tagged source.
 
 ## Scope
 
@@ -113,9 +114,10 @@ volumes, access rules and CORS remain unchanged.
 
 ## Publication boundary
 
-The remaining operational step is approval for the source tag and GitHub alpha
-prerelease. Native installers,
-published container images and public hosted deployment are outside this step.
+The Human approved source publication, the tag and GitHub alpha prerelease on
+2026-11-24 after reviewing these results and limits. The release covers Web/API
+source for local builds. Native installers, published container images and public
+hosted deployment are outside this release.
 
 A candidate delivered by synthetic CDP response interception hit Chrome's local
 network address-space checks; it is not accepted as normal HTTP browser evidence.

@@ -18,7 +18,7 @@ snapshots for local builds.
 
 ## Source preview `fork-0.2.0-alpha.1`
 
-This candidate adds sharing an original page with view or edit access, invitations,
+This preview adds sharing an original page with view or edit access, invitations,
 inherited access to descendants, and a Shared with me sidebar. Page access can be
 managed from the page or the Workspace member list. Space references open the
 same original page from another Space.

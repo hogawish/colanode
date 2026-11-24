@@ -1,10 +1,11 @@
 # fork-0.2.0-alpha.1
 
-Release candidate for the browser and a self-hosted Colanode server, based on
+Alpha source preview for the browser and a self-hosted Colanode server, based on
 upstream v0.4.7. The previous source snapshot is fork-0.1.0-alpha.1.
 
-**Not published.** Candidate validation and publication status are recorded in
-[release readiness](../release-readiness.md).
+Release date: **2026-11-24**. See the
+[GitHub prerelease](https://github.com/hogawish/colanode/releases/tag/fork-0.2.0-alpha.1)
+and [validation record](../release-readiness.md).
 
 ## Changes
 
@@ -60,7 +61,7 @@ permission/history backup. Inspect the destination before removing source data.
 
 ## Local installation
 
-After the candidate tag is published:
+Build from the source tag:
 
 ```sh
 git clone --branch fork-0.2.0-alpha.1 https://github.com/hogawish/colanode.git
