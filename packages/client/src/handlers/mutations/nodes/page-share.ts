@@ -1,5 +1,6 @@
 import { WorkspaceMutationHandlerBase } from '@colanode/client/handlers/mutations/workspace-mutation-handler-base';
 import { parseApiError } from '@colanode/client/lib/ky';
+import { readExportWithBackoff } from '@colanode/client/lib/read-export';
 import type { MutationHandler } from '@colanode/client/lib/types';
 import { MutationError, MutationErrorCode } from '@colanode/client/mutations';
 import type {
@@ -59,11 +60,14 @@ export class PageShareMutationHandler
         case 'read-export':
           return {
             action: 'read-export',
-            snapshot: await client
-              .get(`${path}/export`, {
-                searchParams: { offset: input.offset ?? 0 },
-              })
-              .json<PageExportSnapshot>(),
+            snapshot: await readExportWithBackoff(() =>
+              client
+                .get(`${path}/export`, {
+                  searchParams: { offset: input.offset ?? 0 },
+                  retry: 0,
+                })
+                .json<PageExportSnapshot>()
+            ),
           };
         case 'read':
           return {

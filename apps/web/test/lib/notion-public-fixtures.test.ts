@@ -46,6 +46,22 @@ it.runIf(!!directory).each(['Notion.Test.Export.zip', 'notion-testspace.zip'])(
       path.join(directory!, name + '.result.json'),
       JSON.stringify(result, null, 2)
     );
+    if (name === 'Notion.Test.Export.zip') {
+      const database = plan.items.find((item) => item.kind === 'database')!;
+      writeFileSync(
+        path.join(directory!, 'public-database-expected.json'),
+        JSON.stringify(
+          {
+            columns: database.columns,
+            records: plan.items
+              .filter((item) => item.kind === 'record')
+              .map((item) => ({ name: item.name, values: item.values })),
+          },
+          null,
+          2
+        )
+      );
+    }
     expect(result.referencedFilesPresent).toBe(true);
   }
 );
