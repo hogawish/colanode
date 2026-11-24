@@ -62,6 +62,28 @@ it('imports files wrapped in inline spans without repeatedly rewrapping the para
   expect(JSON.stringify(plan.items[0]?.body)).toContain('Before');
   expect(JSON.stringify(plan.items[0]?.body)).toContain('After');
 });
+
+it('keeps self/backlinks and repeated page references as links, placing only owned children once', () => {
+  const plan = previewNotionZip(
+    archive({
+      'Page.html':
+        '<a href="Page.html#block">Self</a><p>Before <span><a href="Page.html">Inline</a></span> After</p><a href="Page/Child.html">Child</a><a href="Page/Child.html">Again</a>',
+      'Page/Child.html': '<a href="../Page.html">Parent</a><p>Child body</p>',
+    })
+  );
+  expect(plan.items[0]!.body.map((node) => node.type)).toEqual([
+    'paragraph',
+    'paragraph',
+    'page',
+    'paragraph',
+  ]);
+  expect(plan.items[1]!.body.map((node) => node.type)).toEqual([
+    'paragraph',
+    'paragraph',
+  ]);
+  expect(JSON.stringify(plan.items[0]!.body[1])).toContain('Before');
+  expect(JSON.stringify(plan.items[0]!.body[1])).toContain('import:Page.html');
+});
 afterEach(() => vi.unstubAllGlobals());
 it('previews hierarchy, quoted multiline CSV, record bodies and exact local images without remote requests', () => {
   const network = vi.fn();

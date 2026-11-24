@@ -368,6 +368,7 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
     if (paired) byPath.set(path, paired);
   }
   const references = new Set<string>();
+  const placements = new Map<string, Set<string>>();
   const attachments = new Map<
     string,
     { path: string; name: string; mimeType: string; subtype: FileSubtype }
@@ -467,7 +468,10 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
           ).some((link) => {
             const target =
               localPath(base, link.getAttribute('href') ?? '') ?? '';
-            return byPath.has(target) || Object.hasOwn(normalized, target);
+            return (
+              (node.tagName === 'A' && byPath.has(target)) ||
+              (!byPath.has(target) && Object.hasOwn(normalized, target))
+            );
           }));
       if (
         node.nodeType === 3 ||
@@ -561,7 +565,13 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
         const item = target ? byPath.get(target) : null;
         if (target && !item && Object.hasOwn(normalized, target))
           return fileBlock(target, node);
-        if (item)
+        if (
+          item &&
+          item.parent === base &&
+          !placements.get(base)?.has(item.path)
+        ) {
+          if (!placements.has(base)) placements.set(base, new Set());
+          placements.get(base)!.add(item.path);
           return [
             {
               type: item.kind === 'database' ? 'database' : 'page',
@@ -571,6 +581,8 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
               },
             },
           ];
+        }
+        if (item) return [{ type: 'paragraph', content: inline([node], base) }];
       }
       if (node.tagName === 'DETAILS') {
         const summary = Array.from(node.children).find(
@@ -600,12 +612,11 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
         if (
           node.querySelector('img,video,audio,object,embed') ||
           (node.tagName === 'P' &&
-            Array.from(node.querySelectorAll('a[href]')).some((a) =>
-              Object.hasOwn(
-                normalized,
-                localPath(base, a.getAttribute('href') ?? '') ?? ''
-              )
-            ))
+            Array.from(node.querySelectorAll('a[href]')).some((a) => {
+              const target =
+                localPath(base, a.getAttribute('href') ?? '') ?? '';
+              return !byPath.has(target) && Object.hasOwn(normalized, target);
+            }))
         )
           return blocks(node.childNodes, base, depth + 1);
         const only = node.children.length === 1 ? node.children[0] : null;
@@ -693,6 +704,10 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
           'A row body could not be matched uniquely to CSV data and is retained as a separate page.'
         );
     }
+  }
+  // Resolve every structural parent before interpreting page links. Backlinks,
+  // self-links and repeated links must not become cyclic/duplicate native nodes.
+  for (const item of items) {
     const body = bodies.get(item.path);
     if (body && item.kind !== 'database')
       item.body = blocks(body.childNodes, item.path);

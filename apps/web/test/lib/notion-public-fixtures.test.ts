@@ -1,9 +1,14 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
+import { richTextContentSchema, extractDocumentText } from '@colanode/core';
+import { YDoc } from '@colanode/crdt';
 
-import { previewNotionZip } from '@colanode/ui/lib/notion-import';
+import {
+  previewNotionZip,
+  importNotionPlan,
+} from '@colanode/ui/lib/notion-import';
 
 // Optional release check against externally supplied, pinned real Notion exports.
 // The upstream archives are test data, never executed or redistributed here.
@@ -42,5 +47,58 @@ it.runIf(!!directory).each(['Notion.Test.Export.zip', 'notion-testspace.zip'])(
       JSON.stringify(result, null, 2)
     );
     expect(result.referencedFilesPresent).toBe(true);
+  }
+);
+
+it.runIf(!!directory)(
+  'writes real Notion formatting and attachment pages without cyclic document references',
+  async () => {
+    const plan = previewNotionZip(
+      new Uint8Array(
+        readFileSync(path.join(directory!, 'notion-testspace.zip'))
+      )
+    );
+    const names = new Map<string, string>();
+    let files = 0,
+      documents = 0;
+    Object.defineProperty(window, 'colanode', {
+      configurable: true,
+      value: {
+        saveTempFile: vi.fn(async () => ({ id: 'temp' })),
+        executeMutation: vi.fn(async (input: Record<string, unknown>) => {
+          if (input.type === 'node.create')
+            names.set(
+              input.nodeId as string,
+              (input.attributes as { name: string }).name
+            );
+          if (input.type === 'file.create')
+            return { success: true, output: { id: 'fixture-file-' + ++files } };
+          if (input.type === 'document.update') {
+            const content = richTextContentSchema.parse(
+              new YDoc(input.update as string).getObject()
+            );
+            expect(
+              Object.values(content.blocks).some(
+                (block) =>
+                  block.id === input.documentId || block.id === block.parentId
+              ),
+              names.get(input.documentId as string)
+            ).toBe(false);
+            expect(() =>
+              extractDocumentText(input.documentId as string, content)
+            ).not.toThrow();
+            documents++;
+          }
+          return { success: true, output: {} };
+        }),
+      },
+    });
+    await importNotionPlan(plan, {
+      userId: 'synthetic',
+      workspaceId: 'synthetic',
+      parentId: 'synthetic',
+    });
+    expect(documents).toBe(5);
+    expect(files).toBeGreaterThanOrEqual(5);
   }
 );
