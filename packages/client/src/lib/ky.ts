@@ -5,6 +5,27 @@ import { ApiErrorCode, ApiErrorOutput } from '@colanode/core';
 export const parseApiError = async (
   error: unknown
 ): Promise<ApiErrorOutput> => {
+  if (error instanceof Error) {
+    if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+      return {
+        code: ApiErrorCode.Unknown,
+        message:
+          'The server response was interrupted or timed out. Check the current state before retrying.',
+      };
+    }
+    if (
+      error instanceof TypeError &&
+      /failed to fetch|networkerror|load failed|fetch failed/i.test(
+        error.message
+      )
+    ) {
+      return {
+        code: ApiErrorCode.Unknown,
+        message:
+          'Could not reach the server. Check your connection and browser network permissions, and check the current state before retrying.',
+      };
+    }
+  }
   if (error instanceof HTTPError) {
     try {
       const errorData = await error.response.json();
