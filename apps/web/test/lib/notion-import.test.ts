@@ -1,4 +1,5 @@
 import { strToU8, zipSync } from 'fflate';
+import { marked } from 'marked';
 import { afterEach, expect, it, vi } from 'vitest';
 
 import { buildEditorContent } from '@colanode/client/lib';
@@ -83,6 +84,37 @@ it('keeps self/backlinks and repeated page references as links, placing only own
   ]);
   expect(JSON.stringify(plan.items[0]!.body[1])).toContain('Before');
   expect(JSON.stringify(plan.items[0]!.body[1])).toContain('import:Page.html');
+});
+
+it('isolates migration Markdown from editor plugins installed on the global marked parser', () => {
+  const previous = { ...marked.defaults };
+  marked.use({
+    extensions: [
+      {
+        name: 'taskList',
+        level: 'block',
+        start: (source) => source.indexOf('QA_TASK'),
+        tokenizer: (source) =>
+          source.startsWith('QA_TASK')
+            ? {
+                type: 'taskList',
+                raw: 'QA_TASK',
+                text: 'Editor-specific token',
+              }
+            : undefined,
+      },
+    ],
+  });
+  try {
+    expect(() => marked.parse('QA_TASK')).toThrow('taskList');
+    const plan = previewNotionZip(
+      archive({ 'Page.md': 'QA_TASK\n\n- [x] Imported task' })
+    );
+    expect(JSON.stringify(plan.items[0]?.body)).toContain('QA_TASK');
+    expect(JSON.stringify(plan.items[0]?.body)).toContain('Imported task');
+  } finally {
+    marked.setOptions(previous);
+  }
 });
 afterEach(() => vi.unstubAllGlobals());
 it('previews hierarchy, quoted multiline CSV, record bodies and exact local images without remote requests', () => {

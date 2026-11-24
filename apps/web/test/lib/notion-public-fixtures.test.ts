@@ -50,13 +50,11 @@ it.runIf(!!directory).each(['Notion.Test.Export.zip', 'notion-testspace.zip'])(
   }
 );
 
-it.runIf(!!directory)(
-  'writes real Notion formatting and attachment pages without cyclic document references',
-  async () => {
+it.runIf(!!directory).each(['notion-testspace.zip', 'Notion.Test.Export.zip'])(
+  'writes real Notion pages and records without cyclic document references: %s',
+  async (fixture) => {
     const plan = previewNotionZip(
-      new Uint8Array(
-        readFileSync(path.join(directory!, 'notion-testspace.zip'))
-      )
+      new Uint8Array(readFileSync(path.join(directory!, fixture)))
     );
     const names = new Map<string, string>();
     let files = 0,
@@ -98,7 +96,9 @@ it.runIf(!!directory)(
       workspaceId: 'synthetic',
       parentId: 'synthetic',
     });
-    expect(documents).toBe(5);
-    expect(files).toBeGreaterThanOrEqual(5);
+    expect(documents).toBe(
+      plan.items.filter((item) => item.kind !== 'database').length
+    );
+    expect(files).toBeGreaterThanOrEqual(plan.attachments.length);
   }
 );

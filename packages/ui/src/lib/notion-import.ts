@@ -1,6 +1,6 @@
 import type { JSONContent } from '@tiptap/core';
 import { strFromU8, unzipSync } from 'fflate';
-import { marked } from 'marked';
+import { Marked } from 'marked';
 
 import { mapContentsToBlocks } from '@colanode/client/lib';
 import {
@@ -39,6 +39,8 @@ export type NotionImportPlan = {
   warnings: string[];
 };
 const LIMIT = 256 * 1024 * 1024;
+// Editor Markdown extensions must not change the migration file parser.
+const notionMarkdown = new Marked();
 const cleanName = (path: string) =>
   path
     .split('/')
@@ -184,7 +186,7 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
     if (!/\.(html?|md)$/i.test(path)) continue;
     const template = document.createElement('template');
     template.innerHTML = /\.md$/i.test(path)
-      ? marked.parse(strFromU8(value), { async: false })
+      ? notionMarkdown.parse(strFromU8(value), { async: false })
       : strFromU8(value);
     for (const node of Array.from(
       template.content.querySelectorAll(
@@ -214,7 +216,7 @@ export const previewNotionZip = (bytes: Uint8Array): NotionImportPlan => {
     const template = document.createElement('template');
     const text = strFromU8(value);
     template.innerHTML = /\.md$/i.test(path)
-      ? marked.parse(text, { async: false })
+      ? notionMarkdown.parse(text, { async: false })
       : text;
     template.content
       .querySelectorAll('script,style,iframe,link,meta,nav')
