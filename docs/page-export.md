@@ -6,7 +6,7 @@ Choose **Download HTML** for a standalone HTML file. For PDF, choose **PDF previ
 then **Print / Save as PDF**, and select the browser's Save as PDF destination.
 The export preview contains the document, without the app sidebar or editing controls.
 
-The first version exports the current page's displayed content. Child pages remain
+HTML and PDF export the current page's displayed content. Child pages remain
 links. Database exports contain the rows currently displayed by the selected view,
 not all records or every view. Open/load the desired database rows before export. Body images are included even
 when their previews have not been loaded or are outside the viewport.
@@ -185,3 +185,7 @@ Their ZIP envelopes exercise HTML/images and Markdown/database CSV input. They
 are downloaded only for optional release tests, not redistributed in this fork.
 A user additionally confirmed a Colanode video ZIP imported into Notion. This
 does not establish every codec/size or live direct-transfer multipart behavior.
+
+Large hierarchy ZIP exports may pause when the server's normal request quota is
+reached, then resume reading the same hierarchy. Keep the tab open until the
+download completes. Export does not increase that quota or retry write requests.

@@ -1,79 +1,132 @@
-# Sharing and Space views: release readiness
+# Notion migration and sharing: release readiness
 
 Proposed release: **fork-0.2.0-alpha.1**, an alpha source preview for the Web app
-and a self-hosted API. Status on 2026-11-18: **prepared, not approved for publication**.
-No tag, GitHub Release, or hosted-service deployment has been made for this candidate.
+and self-hosted API. Updated 2026-11-24. **Not published.** Isolated installation,
+upgrade/restore, and normal-HTTP import/export acceptance pass. Source publication
+is the remaining decision.
 
-## Included scope
+## Scope
 
-[Release notes](releases/fork-0.2.0-alpha.1.md) cover page sharing and invitations,
-permission management, original-page references, Space search/tags/member filters,
-saved view links, personal Hide/pins, any/all quick filters, and grouped AND/OR filters.
-[Usage](sharing-and-space-views.md) records the limits and access semantics.
-The candidate also preserves deployed startup, cache, cold-load, and toggle fixes.
-Page/record/database/shared-page HTML and browser PDF exports are included;
-[export scope](page-export.md) documents the visible-row snapshot limits. Modal
-block actions were compared in isolated Chrome: the original handle could not
-open its menu, while the fix applied a background and copied the block link.
-Locale-specific JST display changes are excluded; existing locale behavior remains.
+The preview includes page sharing/invitations and Space saved views/filters,
+plus Notion ZIP import/export of page trees, database CSVs, row bodies and
+original image/video/audio/PDF/file attachments. Direct Notion copy adds native
+media and owned inline databases using a request-only connection token.
+See [release notes](releases/fork-0.2.0-alpha.1.md),
+[sharing semantics](sharing-and-space-views.md), and [migration scope](page-export.md).
 
-## Completed validation
+## Completed candidate checks
 
-- Clean Node 22.23.5 dependency installation, TypeScript checks for shared packages
-  and the server, and production Web/API builds.
-- Web suite: **224 passing tests in 36 files**. Related record activity: **2 passing tests**.
-- API suite: **21 passing tests in 10 files**, using fresh isolated PostgreSQL/Redis.
-  These include viewer/editor inheritance, revocation, blocked sibling/foreign-workspace
-  access, linked-database source checks, unused-file download denial, invitation
-  identity/expiry/reuse checks, and stale-save rejection.
-- Public Dockerfiles both build from a tracked-source archive. The API serves
-  /config and / with HTTP 200; the Nginx image returns the app on a deep page URL.
-  These are startup checks, not a replacement for interactive browser acceptance.
-- All 32 migrations present in fork-0.1.0-alpha.1 are byte-identical. A synthetic
-  initial-schema fixture includes account/workspace/user, Space, parent/child pages,
-  document/CRDT state, database/record, and an uploaded file. Applying 00033/00034
-  preserves every existing row and the file SHA. Restoring a PostgreSQL custom dump
-  and matching upload archive into a separate empty database restores the same
-  rows and bytes at schema 32. This verifies schema/data migration and backup
-  restoration; it does not boot the old release or test a live installation.
-- Changed-file scan of 143 paths found no private-key blocks, GitHub/API token
-  patterns, or machine-specific user/project paths. This is a limited pattern scan.
+- Web: **281 passing tests in 46 files**, including two optional real Notion
+  export fixtures; related record-activity checks: **2 passing tests**.
+- Shared package TypeScript checks, server compile, changed TypeScript ESLint,
+  and Web/API production builds pass. Local checks used Windows Node 24; the
+  public Dockerfiles use Node 22 and are checked independently.
+- Actual Notion export fixtures from the official Obsidian Importer repository
+  are pinned to commit 4020f2c1b4eaac7e3dfd4a1632fa4e919e29f916 and verified by
+  Git blob SHA. One exercises 279 pages and 269 records/database parsing; another
+  exercises five HTML pages and five local images. Missing/ambiguous row bodies
+  produce warnings and are preserved separately. These archives are not
+  redistributed. The checks found and fixed outer ZIP envelope handling and
+  recursion around inline-wrapped media links. Native write/readback acceptance
+  also found self-page hyperlinks becoming cyclic page nodes; self/backlinks and
+  repeated references now stay ordinary links, and only owned children get native
+  placement. Markdown import uses its own parser to avoid the editor's global
+  task-list extension changing import token types.
+- On a separate candidate Web/API served over ordinary HTTP, real Notion HTML
+  export imports five pages and five byte-identical JPEG attachments. A real
+  Markdown/CSV export imports 550 nodes including its wrapper, 269 records and
+  one database. Authenticated server readback verifies 548 document bodies and
+  every CSV property value. Ambiguous row bodies stay separate with warnings.
+- On that same isolated candidate, UI Import → ZIP export → reimport preserves
+  five original file types, names, subtypes, body order and exact bytes, including
+  a valid MP4 padded with an ISO free box to **21 MiB**. No human workspace is used.
+- Read-only hierarchy export respects the existing device request quota.
+  Explicit HTTP 429 responses wait for Retry-After, or 60 seconds without it,
+  and retry up to three times per read. Other failures and writes are not retried.
+  The actual settings-menu/worker export of the imported large fixture finishes
+  in about six minutes: 549 HTML pages plus a CSV database with all 269 row values
+  matching. It uses the unchanged normal API quota and has no browser exceptions.
+- The user confirmed a video exported in ZIP successfully imported into Notion.
+  Size and codec were not recorded; this does not establish live multipart or
+  the application's dedicated-token transfer route.
+- Existing live 18400 synthetic five-type Import → ZIP export → reimport checks
+  preserve original bytes, names, subtypes and body order; video/audio metadata
+  and image loading pass. These checks precede dependency remediation.
+- Ordered multipart upload above 20 MiB is contract-tested. Timeout/503 during
+  a part retain the partial destination, never complete/insert a partial file,
+  and do not automatically retry ambiguous writes. Transport errors now explain
+  connection/permission checks and checking current state before retrying.
+- A pattern scan of changed tracked files found no private keys, common
+  token forms or machine-specific paths; no changed binary files were present.
+  This is a limited pattern scan, not a guarantee of absence of every secret.
+  Upstream LICENSE remains unchanged; fork attribution is retained.
 
-## Required before publication
+## Dependency remediation
 
-1. **Remediate and reassess runtime dependencies.** npm audit --omit=dev on the
-   actual API distribution reports 28 affected package entries: 1 critical,
-   16 high, 9 moderate, 2 low. Advisory/package counts are not counts of proven
-   exploitable application paths. No automatic dependency upgrade was applied.
-2. After those changes, repeat the affected tests and build/startup checks on the
-   fixed source. Review remaining advisory reachability for the shipped Web/API;
-   the whole monorepo report also contains mobile and build-tool dependencies.
-3. Perform one acceptance pass of the final candidate: invite a guest, read/edit
-   a shared child, revoke access, open a Space page reference, save/open a grouped
-   filter link as another member, and confirm personal Hide stays personal.
-4. Obtain the Human's final approval for the source tag and GitHub prerelease.
-   Public binaries/images, normal-service deployment, and internet exposure are
-   separate from this proposed source preview.
+The API production-workspace audit changed from **27 affected package entries**
+(1 critical, 14 high, 10 moderate, 2 low) to **0** on 2026-11-24. This is an npm
+advisory result for the selected production dependency graph, not proof that the
+application or operating-system images have no vulnerabilities.
 
-### Dependency findings requiring follow-up
+Patched libraries include Handlebars 4.7.10, sharp 0.35.5, Nodemailer 10.6.1,
+Fastify 5.12.8 and Zod 4.6.7. Tiptap dependencies are aligned to 3.35.x. A scoped
+teeny-request override uses uuid 11.1.1; its v4 multipart-boundary call is covered
+by a real local HTTP save using the Google Cloud SDK. No cloud account is used.
+PNG-to-JPEG resize and authenticated local SMTP verification/delivery with
+escaped Handlebars content also pass. These are compatibility checks, not full
+cloud-provider or production SMTP acceptance.
 
-| Component                                                    | Observation                                                                                                                                  | Follow-up                                                                                            |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Handlebars                                                   | Critical advisory affects installed 4.7.9; application compiles bundled template files, not a user-supplied template in the paths inspected. | Update to patched release and verify templates. Reachable code execution has not been established.   |
-| sharp/libvips                                                | Image upload and Google-avatar conversion pass external bytes to sharp.                                                                      | Update the native image stack and verify Node/runtime compatibility and image processing.            |
-| Nodemailer                                                   | Runtime SMTP client; disabled in the local test configuration.                                                                               | Update and verify configured SMTP behavior; disabling test email does not assess deployed SMTP risk. |
-| Fastify, router, Zod, Kysely, XML and WebSocket dependencies | High-severity entries remain in the distribution.                                                                                            | Update within supported ranges where possible and check each advisory's actual use.                  |
-| Scripts workspace dependencies                               | Icon/emoji tooling is included by the current image workspace installation.                                                                  | Separate build-time tools from runtime and reassess the resulting image.                             |
+Developer icon/emoji/seed tooling is dev-only and removed by production pruning.
+Docker contexts exclude local environment secrets, Git data, node_modules and
+build outputs. Web runtime follows stable Alpine Nginx. Base-image tags remain
+mutable; source tagging alone does not pin their digests.
+
+The selected Web dependency audit reports one **moderate minimatch advisory in
+build tooling** through vite-plugin-pwa/workbox/glob. The public Web runtime is
+static Nginx, not a shipped Node install; this tooling is not runtime code. The
+whole monorepo also contains mobile/development graphs outside this preview. Additional compatible lock-only patches removed the remaining critical entries there; 15 affected entries remain (2 high in mobile image-size/PostCSS paths, 13 moderate). These are not shipped in the Web/API runtime, and mobile/desktop are not release targets. The selected Web/API production dependency trees are byte-for-byte equivalent as version graphs before/after that extra lock update.
+The actual production API image also reports zero npm audit findings. Both
+selected production version graphs were compared independently with the earlier
+audited candidate and are unchanged by the extra lockfile patches.
 
 Sources: [Handlebars advisory](https://github.com/advisories/GHSA-p8wg-vrv2-v86f),
-[sharp/libvips advisory](https://github.com/advisories/GHSA-f88m-g3jw-g9cj),
-[Nodemailer advisory](https://github.com/advisories/GHSA-6vj9-mwq6-2f5v).
-The complete machine-readable audit was retained with the local preparation evidence.
+[Zod advisory](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5),
+[uuid advisory](https://github.com/advisories/GHSA-w5hq-g745-h8pq).
 
-## Human decision
+## Installation, upgrade and restore
 
-Recommended publication format: **GitHub prerelease, source only, fork-0.2.0-alpha.1**,
-with sharing and Space views as its focus. This keeps the current alpha distribution
-model; native installers and published container images are outside this release.
-Do not publish the present candidate while dependency remediation remains open.
-Technical dependency choices do not require the Human to accept known vulnerabilities.
+An independent deployment owner built the tracked-source public Dockerfiles and
+started fresh API/Web images: schema34, config and deep URLs return successfully;
+the image's sharp PNG-to-JPEG conversion passes. The isolated API suite passes
+**23 tests in 11 files**, covering access, revocation, invitations and referenced
+files. Web runtime contains static assets rather than a Node dependency install.
+
+The actual previous published source, fork-0.1.0-alpha.1 / afeedaec, was built and
+started at schema32. Synthetic pages, child hierarchy, an inline database/record
+body, and a 39-byte HTTP TUS upload were created there. All old rows across ten
+tables and the original attachment hash survive upgrade to schema34. Restoring
+the matched schema32 database/upload pair into a separate empty database and
+upgrading, and restoring the schema34 pair, also preserve those rows and bytes.
+
+Only task-owned isolated resources were used. The existing 18400 trial services,
+volumes, access rules and CORS remain unchanged.
+
+## Publication boundary
+
+The remaining operational step is approval for the source tag and GitHub alpha
+prerelease. Native installers,
+published container images and public hosted deployment are outside this step.
+
+A candidate delivered by synthetic CDP response interception hit Chrome's local
+network address-space checks; it is not accepted as normal HTTP browser evidence.
+No live 18400 CORS or service configuration was changed to work around that test.
+
+## Explicit preview limits
+
+This is migration, not synchronization or complete Notion interchange. CSV
+properties become text; views, relations, formulas, permissions and history are
+not reconstructed. Standard Notion ZIP import may place media as links. Direct
+token transfer and live multipart into Notion remain experimental until tested
+with a dedicated user connection; unit payload tests and native connector-file
+checks are not that end-to-end evidence. Desktop/mobile and real provider account
+behavior remain outside the Web source preview.

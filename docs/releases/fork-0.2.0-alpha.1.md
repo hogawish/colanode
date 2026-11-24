@@ -3,7 +3,7 @@
 Release candidate for the browser and a self-hosted Colanode server, based on
 upstream v0.4.7. The previous source snapshot is fork-0.1.0-alpha.1.
 
-**Not published.** Final distribution and upgrade acceptance are in progress; see
+**Not published.** Candidate validation and publication status are recorded in
 [release readiness](../release-readiness.md).
 
 ## Changes
@@ -35,6 +35,9 @@ permissions, shared editor limitations, file visibility, and view links.
   creates a fresh subtree and does not overwrite the destination page.
 - Read Notion's outer ZIP envelopes and distinct ZIP parts within shared size,
   entry-count and nesting limits. Inline-wrapped file links no longer recurse.
+- Preserve self/backlinks as links, avoid cyclic page nodes, and isolate the
+  Markdown parser from editor extensions. Large hierarchy exports wait for the
+  existing request quota and resume the authorized read without retrying writes.
 - Copy directly to Notion using native media blocks and owned inline databases;
   uploads above 20 MiB use multipart. Connection tokens are request-only.
 - Update vulnerable Web/API dependencies, align Tiptap packages, remove developer
@@ -42,6 +45,18 @@ permissions, shared editor limitations, file visibility, and view links.
   output from Docker contexts. The Web runtime follows stable Alpine Nginx.
 
 [Export scope and usage](../page-export.md) describe the snapshot limitations.
+
+## Notion migration preview
+
+| Direction                                 | Included                                                                                     | Limitations                                                                                                    |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Colanode → Notion ZIP                     | Page trees, database CSVs, linked row bodies, original image/video/audio/PDF/file bytes      | Notion controls native media/inline placement. CSV row-body attachment and property types may need adjustment. |
+| Notion HTML/Markdown & CSV ZIP → Colanode | Fresh native pages, hierarchy, basic formatting, row bodies and referenced local attachments | Missing or ambiguous row bodies are retained separately with warnings. External files are not fetched.         |
+| Direct copy to Notion (experimental)      | Native media and owned inline databases using a user connection; multipart above 20 MiB      | Live application-token and large multipart acceptance are not complete.                                        |
+
+Import creates a new subtree after a preview; it does not overwrite the original
+destination page. This is a migration tool, not a synchronization service or a
+permission/history backup. Inspect the destination before removing source data.
 
 ## Local installation
 
@@ -126,6 +141,13 @@ access, removal of access, source checks for linked databases, referenced-file
 downloads, invitation identity checks and one-use tokens, and stale-save rejection.
 Browser component tests cover filtering, saved-view links, any/all compatibility,
 grouped filters, and personal Hide across users.
+
+Optional real Notion export tests use `Notion.Test.Export.zip` and
+`notion-testspace.zip` from the pinned public fixture source linked in
+[export/import scope](../page-export.md). Place them in a writable directory and
+set `NOTION_REAL_FIXTURE_DIR` to that absolute directory before running the Web
+suite. The tests write result summaries beside the fixtures. They do not download
+archives automatically; these four checks are skipped without the variable.
 
 ## Known limits
 

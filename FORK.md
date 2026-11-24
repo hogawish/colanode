@@ -119,7 +119,7 @@ validated for this public candidate.
 
 ## Reproduce checks
 
-Use Node.js 22.13 or later in the supported Node 22 line and the unchanged upstream
+Use Node.js 22.13 or later in the supported Node 22 line and this fork's committed
 lockfile. The regression tests use `node:sqlite`, available without its experimental
 flag starting with Node.js 22.13.
 
