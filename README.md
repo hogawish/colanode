@@ -17,9 +17,9 @@ who can work with it.
 > or service. We retain the upstream Apache 2.0 license and attribution.
 > See [FORK.md](FORK.md) for the development history and changes.
 
-[Latest source preview](https://github.com/hogawish/colanode/releases/tag/fork-0.2.0-alpha.1)
-· [Roadmap and discussion](https://github.com/hogawish/colanode/issues/1)
-· [Report a problem](https://github.com/hogawish/colanode/issues)
+[Latest source preview](https://github.com/hogawish/tsuzunowa/releases/tag/fork-0.2.0-alpha.1)
+· [Roadmap and discussion](https://github.com/hogawish/tsuzunowa/issues/1)
+· [Report a problem](https://github.com/hogawish/tsuzunowa/issues)
 · [Apache 2.0](LICENSE)
 
 ## What you can do
@@ -66,7 +66,7 @@ do not include these fork-specific features.
 With Git, Docker, and Docker Compose installed:
 
 ```sh
-git clone --branch fork-0.2.0-alpha.1 https://github.com/hogawish/colanode.git tsuzunowa
+git clone --branch fork-0.2.0-alpha.1 https://github.com/hogawish/tsuzunowa.git tsuzunowa
 cd tsuzunowa
 docker compose -p colanode-fork-preview -f hosting/docker/fork-preview.yaml up -d --build
 ```
@@ -91,8 +91,8 @@ For upgrades and recovery, follow the
 [release notes](docs/releases/fork-0.2.0-alpha.1.md), including backing up both
 the database and uploaded files. Deploy matching Web and API versions.
 
-The repository URL and some application, package, and configuration names still
-use `colanode` while the Tsuzunowa naming transition is in progress.
+Some application, package, and configuration names still use `colanode` while
+the Tsuzunowa naming transition is in progress.
 
 ## Import and export
 
@@ -122,7 +122,7 @@ Use Node.js 22.13 or later in the supported Node 22 line, the committed lockfile
 and Docker for the supporting services and server tests.
 
 ```sh
-git clone https://github.com/hogawish/colanode.git tsuzunowa
+git clone https://github.com/hogawish/tsuzunowa.git tsuzunowa
 cd tsuzunowa
 npm ci
 ```
@@ -145,7 +145,7 @@ See [repository guidelines](AGENTS.md), the
 [server guide](apps/server/README.md), and
 [reproducible checks](FORK.md#reproduce-checks) for setup and validation.
 Please report Tsuzunowa-specific issues in
-[this repository](https://github.com/hogawish/colanode/issues).
+[this repository](https://github.com/hogawish/tsuzunowa/issues).
 
 ## Origins and license
 

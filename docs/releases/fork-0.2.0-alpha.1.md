@@ -1,10 +1,12 @@
+<!-- Modified by hogawish: update repository links and clone directory after the Tsuzunowa rename. -->
+
 # fork-0.2.0-alpha.1
 
 Alpha source preview for the browser and a self-hosted Colanode server, based on
 upstream v0.4.7. The previous source snapshot is fork-0.1.0-alpha.1.
 
 Release date: **2026-11-24**. See the
-[GitHub prerelease](https://github.com/hogawish/colanode/releases/tag/fork-0.2.0-alpha.1)
+[GitHub prerelease](https://github.com/hogawish/tsuzunowa/releases/tag/fork-0.2.0-alpha.1)
 and [validation record](../release-readiness.md).
 
 ## Changes
@@ -64,8 +66,8 @@ permission/history backup. Inspect the destination before removing source data.
 Build from the source tag:
 
 ```sh
-git clone --branch fork-0.2.0-alpha.1 https://github.com/hogawish/colanode.git
-cd colanode
+git clone --branch fork-0.2.0-alpha.1 https://github.com/hogawish/tsuzunowa.git
+cd tsuzunowa
 docker compose -p colanode-fork-preview -f hosting/docker/fork-preview.yaml up -d --build
 ```
 

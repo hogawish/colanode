@@ -1,9 +1,11 @@
+<!-- Modified by hogawish: update the published repository link after the Tsuzunowa rename. -->
+
 # Notion migration and sharing: release readiness
 
 Proposed release: **fork-0.2.0-alpha.1**, an alpha source preview for the Web app
 and self-hosted API. Updated 2026-11-24. **Publication approved.** Isolated
 installation, upgrade/restore, and normal-HTTP import/export acceptance pass.
-The [GitHub prerelease](https://github.com/hogawish/colanode/releases/tag/fork-0.2.0-alpha.1)
+The [GitHub prerelease](https://github.com/hogawish/tsuzunowa/releases/tag/fork-0.2.0-alpha.1)
 records publication status and the tagged source.
 
 ## Scope

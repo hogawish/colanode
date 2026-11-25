@@ -17,7 +17,7 @@ upstream copyright and attribution notices remain in effect.
 
 Report fork-specific problems to this repository's Issues. These changes are not
 included in the official app, cloud service, or released desktop binaries.
-Follow the [fork roadmap](https://github.com/hogawish/colanode/issues/1) for
+Follow the [fork roadmap](https://github.com/hogawish/tsuzunowa/issues/1) for
 page-sharing development and discussion. Fork preview tags identify source
 snapshots for local builds.
 
@@ -61,8 +61,8 @@ The preview targets the browser and a local self-hosted server.
 With Docker and Docker Compose available, clone the tag and start the preview:
 
 ```sh
-git clone --branch fork-0.2.0-alpha.1 https://github.com/hogawish/colanode.git
-cd colanode
+git clone --branch fork-0.2.0-alpha.1 https://github.com/hogawish/tsuzunowa.git
+cd tsuzunowa
 docker compose -p colanode-fork-preview -f hosting/docker/fork-preview.yaml up -d --build
 ```
 
