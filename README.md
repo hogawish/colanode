@@ -1,167 +1,160 @@
-<!-- Modified: identify this unofficial feature fork and its change notes. -->
+<!-- Modified by hogawish: introduce Tsuzunowa, its source preview, and Colanode origins. -->
 
-> **Unofficial feature fork.** This repository is not affiliated with or endorsed by
-> Colanode. The official project is [colanode/colanode](https://github.com/colanode/colanode).
-> See [FORK.md](FORK.md) for this fork's changes, license, checks, and limitations.
-> **Current development focus: page sharing and Notion migration.** Follow the [fork roadmap](https://github.com/hogawish/colanode/issues/1) for progress and discussion. See [Notion import/export](docs/page-export.md) for supported content and migration limits.
+# Tsuzunowa（つづのわ）
 
-<div align="center">
-<img alt="Colanode cover" src="assets/images/colanode-github-cover.jpg">
-<p></p>
-<a target="_blank" href="https://opensource.org/licenses/Apache-2.0" style="background:none">
-    <img src="https://img.shields.io/badge/Licene-Apache_2.0-blue" style="height: 22px;" />
-</a>
-<a target="_blank" href="https://discord.gg/ZsnDwW3289" style="background:none">
-    <img alt="" src="https://img.shields.io/badge/Discord-Colanode-%235865F2" style="height: 22px;" />
-</a>
-<a href="https://x.com/colanode" target="_blank">
-  <img alt="" src="https://img.shields.io/twitter/follow/colanode.svg?style=social&label=Follow" style="height: 22px;" />
-</a>
-</div>
+**One original. Many ways to work together.**
 
-# Colanode
+Tsuzunowa is an open-source, local-first collaboration workspace for pages,
+databases, and files. Keep a page in one place, share it with the people who need
+it, and open that same original from different Spaces.
 
-### Open-source & local-first collaboration workspace that you can self-host
+The name combines **綴る (tsuzuru, to write or bind together)** and
+**輪 (wa, a circle)**: bring your work together and extend the circle of people
+who can work with it.
 
-Colanode is an all-in-one platform for easy collaboration, built to prioritize your data privacy and control. Designed with a **local-first** approach, it helps teams communicate, organize, and manage projects—whether online or offline. With Colanode, you get the flexibility of modern collaboration tools, plus the peace of mind that comes from owning your data.
+> **Built on Colanode.** Tsuzunowa is an independently maintained fork of
+> [Colanode](https://github.com/colanode/colanode), not an official Colanode release
+> or service. We retain the upstream Apache 2.0 license and attribution.
+> See [FORK.md](FORK.md) for the development history and changes.
 
-### What can you do with Colanode?
+[Latest source preview](https://github.com/hogawish/colanode/releases/tag/fork-0.2.0-alpha.1)
+· [Roadmap and discussion](https://github.com/hogawish/colanode/issues/1)
+· [Report a problem](https://github.com/hogawish/colanode/issues)
+· [Apache 2.0](LICENSE)
 
-- **Real-Time Chat:** Stay connected with instant messaging for teams and individuals.
-- **Rich Text Pages:** Create documents, wikis, and notes using an intuitive editor, similar to Notion.
-- **Customizable Databases:** Organize information with structured data, custom fields and dynamic views (table, kanban, calendar).
-- **File Management:** Store, share, and manage files effortlessly within secure workspaces.
+## What you can do
 
-Built for both individuals and teams, Colanode adapts to your needs, whether you're running a small project, managing a team, or collaborating across an entire organization. With its self-hosted model, you retain full control over your data while enjoying a polished, feature-rich experience.
+- **Write and organize together.** Use rich-text pages, images, videos, files,
+  structured databases, table and board views, and real-time editing.
+- **Share the original page.** Invite people with view or edit access. Shared
+  pages appear in **Shared with me**, with inherited access to child pages.
+  Add a reference in another Space's sidebar to open the same original.
+- **Find your Spaces.** Search names, filter by members and tags, combine AND/OR
+  groups, and save named views as links. Personal pins, sorting, and Hide help
+  keep your own sidebar useful.
+- **Work directly with blocks and records.** Copy block links, change block
+  formatting and background colors, select rows for bulk actions, and drag
+  records in a saved manual order or move cards on a board.
+- **Move content between tools.** Export HTML or PDF, or use Notion ZIP to carry
+  page hierarchies, database CSVs, and original body attachments. Import Notion
+  HTML/Markdown and CSV exports into new pages and databases.
 
-![Colanode preview](assets/images/colanode-desktop-preview.gif)
+**Current development focus: sharing and Notion migration.** We want people to
+collaborate around one original and carry their content to other tools.
 
-## How it works
+## Sharing without duplicating pages
 
-Colanode includes a client app (web or desktop) and a self-hosted server. You can connect to multiple servers with a single app, each containing one or more **workspaces** for different teams or projects. After logging in, you pick a workspace to start collaborating—sending messages, editing pages, or updating database records.
+Workspaces contain Spaces; Spaces organize pages and databases. A page reference
+in another Space points to the original page, rather than creating a copy.
+The reader still needs access to the source page. References and saved-view
+links do not grant access by themselves.
 
-### Local-first workflow
+Page sharing works within one Workspace. Parent-page grants extend to descendant
+pages and owned databases; keep private internal notes outside a shared parent.
+Page editing, database operations, and access administration have distinct
+permission rules. See [sharing and Space views](docs/sharing-and-space-views.md)
+before setting up a shared project.
 
-All changes you make are saved to a local SQLite database first and then synced to the server. A background process handles this synchronization so you can keep working even if your computer or the server goes offline. Data reads also happen locally, ensuring immediate access to any content you have permissions to view.
+## Try the source preview
 
-### Concurrent edits
+**Tsuzunowa is in alpha.** The current public release is a source preview for
+the self-hosted Web client and API, published under its earlier tag
+`fork-0.2.0-alpha.1`. There are no Tsuzunowa-branded desktop installers or
+prebuilt container releases yet. The official Colanode apps and cloud service
+do not include these fork-specific features.
 
-Colanode relies on **Conflict-free Replicated Data Types (CRDTs)** - powered by [Yjs](https://docs.yjs.dev/) - to allow real-time collaboration on entries like pages or database records. This means multiple people can edit at the same time, and the system gracefully merges everyone's updates. Deletions are also tracked as specialized transactions. Messages and file operations don't support concurrent edits and use simpler database tables.
+With Git, Docker, and Docker Compose installed:
 
-## Get started for free
-
-The easiest way to start using Colanode is through our **web app**, accessible instantly at [app.colanode.com](https://app.colanode.com). Simply log in to get started immediately, without any installation. _Please note, the web app is currently in early preview and under testing; you may encounter bugs or compatibility issues in certain browsers._
-
-For optimal performance, you can install our **desktop app**, available from our [downloads page](https://colanode.com/downloads). Both the web and desktop apps allow you to connect to any of our free beta cloud servers:
-
-- **Colanode Cloud (EU)** – hosted in Europe.
-- **Colanode Cloud (US)** – hosted in the United States.
-
-Both cloud servers are currently available in beta and free to use; pricing details will be announced soon.
-
-### Self-host
-
-If you prefer to host your own Colanode server, check out the [`hosting/`](hosting/) folder which contains the Docker Compose file and deployment configurations. For Kubernetes deployments, see the [`hosting/kubernetes/`](hosting/kubernetes/) folder which includes Helm charts and additional documentation. Here's what you need to run Colanode yourself:
-
-- **Postgres** with the **pgvector** extension.
-- **Redis** (any Redis-compatible service will work, e.g., Valkey).
-- **Storage backend** for user files. Colanode defaults to local filesystem storage, but you can switch to **S3-compatible**, **Google Cloud Storage**, or **Azure Blob Storage** backends by setting `STORAGE_TYPE`.
-- **Colanode server API**, provided as a Docker image.
-
-#### Configuration model
-
-- The server image now ships with a full `config.json`, so most defaults are ready to go without touching env vars.
-- The config file is the single source of truth. Use `env://VAR_NAME` to pull sensitive values from env vars, or `file://path/to/secret.pem` to inline the contents of a mounted file (append `?` to make either optional). Only `POSTGRES_URL` and `REDIS_URL` are required out of the box.
-- To customize settings:
-  1. Copy `apps/server/config.json`, edit it, and mount/bind it when using Docker Compose (see `hosting/docker/docker-compose.yaml`).
-  2. For Helm, enable `colanode.configFile.enabled` and pass your file via `--set-file colanode.configFile.data=./config.json` (details in [`hosting/kubernetes/README.md`](hosting/kubernetes/README.md)).
-  3. Keep secrets as env vars so you don't have to bake them into JSON; the loader resolves `env://` pointers at runtime.
-
-Environment variables no longer override regular config fields—only values explicitly tagged with `env://` are read from the environment. Refer to [`hosting/docker/docker-compose.yaml`](hosting/docker/docker-compose.yaml) and [`hosting/kubernetes/README.md`](hosting/kubernetes/README.md) for mounting instructions and the handful of required secrets.
-
-### Running locally
-
-To run Colanode locally in development mode:
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/colanode/colanode.git
-   cd colanode
-   ```
-
-2. Install dependencies at the project root:
-
-   ```bash
-   npm install
-   ```
-
-3. Start the apps you want to run locally:
-
-   **Server**
-
-   ```bash
-   cd apps/server
-
-   # Copy the environment variable template and adjust values as needed
-   cp .env.example .env
-
-   npm run dev
-   ```
-
-   To spin up the local dependencies (Postgres, Redis, and Mail server) with Docker Compose—using filesystem storage
-   by default—run this from
-   the project root:
-
-   ```bash
-   docker compose -f hosting/docker/docker-compose.yaml up -d
-   ```
-
-   When you prefer an S3-compatible backend locally, enable the optional MinIO service with the `s3` profile:
-
-   ```bash
-   docker compose -f hosting/docker/docker-compose.yaml --profile s3 up -d
-   ```
-
-   The compose file includes a `server` service. When you want to run the API locally with `npm run dev`, comment
-   out (or override) that service so only the supporting services are started.
-
-   **Web**
-
-   ```bash
-   cd apps/web
-   npm run dev
-   ```
-
-   **Desktop**
-
-   ```bash
-   cd apps/desktop
-   npm run dev
-   ```
-
-## Testing
-
-Colanode includes tests for both server and web.
-
-### Server tests
-
-From `apps/server`:
-
-```bash
-npm run test
+```sh
+git clone --branch fork-0.2.0-alpha.1 https://github.com/hogawish/colanode.git tsuzunowa
+cd tsuzunowa
+docker compose -p colanode-fork-preview -f hosting/docker/fork-preview.yaml up -d --build
 ```
 
-Server tests use Testcontainers for Postgres and Redis, so Docker must be running. See [`apps/server/README.md`](apps/server/README.md) for details.
+1. Open the [local Web app](http://localhost:4000).
+2. In **Add a server**, enter `http://localhost:3000/config`.
+3. Create a local account and a Workspace.
 
-### Web tests
+The preview binds to loopback ports 3000 and 4000 and stores the database and
+uploaded files in named Docker volumes. The Compose project name remains
+`colanode-fork-preview` so existing preview users keep the same volumes.
+This configuration is for local evaluation; review the configuration before
+exposing a server to other people.
 
-From `apps/web`:
+To stop the preview and keep its data:
 
-```bash
-npm run test
+```sh
+docker compose -p colanode-fork-preview -f hosting/docker/fork-preview.yaml down
 ```
 
-## License
+For upgrades and recovery, follow the
+[release notes](docs/releases/fork-0.2.0-alpha.1.md), including backing up both
+the database and uploaded files. Deploy matching Web and API versions.
 
-Colanode is released under the [Apache 2.0 License](LICENSE).
+The repository URL and some application, package, and configuration names still
+use `colanode` while the Tsuzunowa naming transition is in progress.
+
+## Import and export
+
+Open **settings gear → Export page** to export a page, record, database view,
+or shared page. Notion ZIP can include subpages, databases, and referenced body
+attachments, including images, video, audio, PDFs, and other files without
+transcoding.
+
+This is content migration, not continuous synchronization or a complete backup:
+
+- Notion's ZIP importer may change formatting or retain some media as links.
+  File import does not reliably recreate native inline databases or attach
+  each exported row's HTML body to its corresponding CSV record.
+- Imported CSV properties start as text. Views, formulas, relations, permissions,
+  comments, and edit history are not recreated with full fidelity.
+- A separate **Copy directly to Notion** option can create native media and
+  inline database blocks using a user-supplied Notion connection. This route
+  remains experimental; real application-token transfer has not been verified
+  in the public release acceptance.
+
+See [the import/export guide](docs/page-export.md) for supported content,
+file limits, setup, and validation evidence.
+
+## Development
+
+Use Node.js 22.13 or later in the supported Node 22 line, the committed lockfile,
+and Docker for the supporting services and server tests.
+
+```sh
+git clone https://github.com/hogawish/colanode.git tsuzunowa
+cd tsuzunowa
+npm ci
+```
+
+The monorepo keeps apps under `apps/` and shared code under `packages/`.
+Internal workspace packages currently use `@colanode/*` names.
+
+- `apps/server`: Fastify API, Postgres, Redis-compatible service, and file storage.
+- `apps/web`: browser client.
+- `apps/desktop` and `apps/mobile`: inherited client sources; not part of this
+  preview's validated release targets.
+- `packages/core`, `client`, `crdt`, and `ui`: shared types, local data and sync,
+  Yjs documents, and interface components.
+
+The inherited client architecture caches data locally and uses Yjs CRDTs for
+collaborative editing. Individual sharing and migration operations also use
+authenticated server requests; do not assume every feature works offline.
+
+See [repository guidelines](AGENTS.md), the
+[server guide](apps/server/README.md), and
+[reproducible checks](FORK.md#reproduce-checks) for setup and validation.
+Please report Tsuzunowa-specific issues in
+[this repository](https://github.com/hogawish/colanode/issues).
+
+## Origins and license
+
+Tsuzunowa builds on the work of the
+[Colanode contributors](https://github.com/colanode/colanode). The upstream
+project supplies the foundation for local-first collaboration, rich-text
+editing, databases, messaging, and file storage.
+
+Tsuzunowa's modifications are Copyright 2026 hogawish and are provided under
+the [Apache License, Version 2.0](LICENSE). Existing upstream copyright and
+attribution notices remain in effect. No affiliation with or endorsement by
+the Colanode project is implied.

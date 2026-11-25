@@ -1,6 +1,11 @@
-# Unofficial Colanode feature fork
+<!-- Modified by hogawish: adopt the Tsuzunowa product name; retain fork history and license. -->
 
-This is an unofficial fork of [Colanode](https://github.com/colanode/colanode).
+# Tsuzunowa — Colanode origins and changes
+
+Tsuzunowa（つづのわ）is an independently maintained, unofficial fork of
+[Colanode](https://github.com/colanode/colanode). Its name combines 綴る
+(tsuzuru, to write or bind together) and 輪 (wa, a circle). See the
+[README](README.md) for the current product introduction and preview setup.
 It is based on public commit `d649523637f0f059c936418488165d4a689da27c`
 (the v0.4.7 release and upstream main at the time this candidate was prepared).
 The upstream LICENSE and existing attribution are retained. No official
