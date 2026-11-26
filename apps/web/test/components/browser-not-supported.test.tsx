@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { BrowserNotSupported } from '@colanode/web/components/browser-not-supported';
+
 import { customRender, screen } from '../test-utils';
 
 describe('components/BrowserNotSupported', () => {
@@ -13,19 +14,19 @@ describe('components/BrowserNotSupported', () => {
     expect(heading).toBeInTheDocument();
   });
 
-  it('displays a link to download the desktop app', () => {
+  it('links to the source preview setup guide', () => {
     customRender(<BrowserNotSupported />);
 
-    const desktopLink = screen.getByRole('link', {
-      name: /desktop app/i,
+    const setupLink = screen.getByRole('link', {
+      name: /setup guide/i,
     });
-    expect(desktopLink).toBeInTheDocument();
-    expect(desktopLink).toHaveAttribute(
+    expect(setupLink).toBeInTheDocument();
+    expect(setupLink).toHaveAttribute(
       'href',
-      'https://colanode.com/downloads'
+      'https://github.com/hogawish/tsuzunowa#try-the-source-preview'
     );
-    expect(desktopLink).toHaveAttribute('target', '_blank');
-    expect(desktopLink).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(setupLink).toHaveAttribute('target', '_blank');
+    expect(setupLink).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
   it('displays a link to GitHub', () => {
@@ -37,7 +38,7 @@ describe('components/BrowserNotSupported', () => {
     expect(githubLink).toBeInTheDocument();
     expect(githubLink).toHaveAttribute(
       'href',
-      'https://github.com/colanode/colanode'
+      'https://github.com/hogawish/tsuzunowa/issues'
     );
     expect(githubLink).toHaveAttribute('target', '_blank');
     expect(githubLink).toHaveAttribute('rel', 'noopener noreferrer');
