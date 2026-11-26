@@ -20,7 +20,10 @@ import { workspaceConfigSchema } from './workspace';
 const serverModeSchema = z.enum(['standalone', 'cluster']);
 
 const configSchema = z.object({
-  name: z.string().default('Colanode Server').transform(resolveConfigReference),
+  name: z
+    .string()
+    .default('Tsuzunowa Server')
+    .transform(resolveConfigReference),
   avatar: z.string().optional().transform(resolveOptionalConfigReference),
   web: z
     .object({

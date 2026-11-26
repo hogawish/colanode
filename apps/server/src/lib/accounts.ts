@@ -223,7 +223,7 @@ export const sendEmailVerifyEmail = async (otpId: string): Promise<void> => {
   });
 
   await emailService.sendEmail({
-    subject: 'Your Colanode email verification code',
+    subject: 'Your Tsuzunowa email verification code',
     to: email,
     html,
   });
@@ -257,7 +257,7 @@ export const sendEmailPasswordResetEmail = async (
   });
 
   await emailService.sendEmail({
-    subject: 'Your Colanode password reset code',
+    subject: 'Your Tsuzunowa password reset code',
     to: email,
     html,
   });
@@ -308,7 +308,7 @@ export const sendWorkspaceInvitationEmail = async (
   });
 
   await emailService.sendEmail({
-    subject: `${inviterAccount.name} invited you to ${workspace.name} on Colanode`,
+    subject: `${inviterAccount.name} invited you to ${workspace.name} on Tsuzunowa`,
     to: user.email,
     html,
   });

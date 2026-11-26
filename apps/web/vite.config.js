@@ -28,6 +28,9 @@ export default defineConfig({
     VitePWA({
       mode: 'development',
       base: '/',
+      // index.html uses public/manifest.json as the single install manifest.
+      // Do not inject a second manifest named after the internal npm package.
+      manifest: false,
       includeAssets: ['favicon.ico'],
       devOptions: {
         enabled: true,

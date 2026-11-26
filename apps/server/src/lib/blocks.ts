@@ -13,7 +13,7 @@ export const generateWelcomePageBlocks = (
     type: 'heading1',
     parentId: pageId,
     index: generateFractionalIndex(),
-    content: [{ type: 'text', text: 'Welcome to the Colanode!' }],
+    content: [{ type: 'text', text: 'Welcome to the Tsuzunowa!' }],
   };
 
   const colanodeParagraphBlock: Block = {
@@ -24,7 +24,7 @@ export const generateWelcomePageBlocks = (
     content: [
       {
         type: 'text',
-        text: 'Colanode is an open-source and local-first collaboration workspace.',
+        text: 'Tsuzunowa is an open-source and local-first collaboration workspace.',
       },
     ],
   };
@@ -198,7 +198,7 @@ export const generateWelcomePageBlocks = (
     index: generateFractionalIndex(databaseHeadingBlock.index),
     content: [
       {
-        text: 'A database in Colanode is like a powerful spreadsheet that combines tables with rich content. You can use databases to organize and view your information in multiple ways - as tables, kanban boards, calendars, or galleries. Each row in the database is a full page that can contain any type of content, and columns act as properties that help you organize and filter your information.',
+        text: 'A database in Tsuzunowa is like a powerful spreadsheet that combines tables with rich content. You can use databases to organize and view your information in multiple ways - as tables, kanban boards, calendars, or galleries. Each row in the database is a full page that can contain any type of content, and columns act as properties that help you organize and filter your information.',
         type: 'text',
       },
     ],

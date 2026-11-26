@@ -3,7 +3,7 @@ export const AppStartupError = () => (
     role="alert"
     className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center"
   >
-    <h1 className="text-xl font-semibold">Could not open Colanode</h1>
+    <h1 className="text-xl font-semibold">Could not open Tsuzunowa</h1>
     <p>Reload this page to try again. Your saved data has not been cleared.</p>
     <button
       type="button"

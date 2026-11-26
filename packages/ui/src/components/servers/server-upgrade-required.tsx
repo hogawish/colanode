@@ -11,7 +11,7 @@ export const ServerUpgradeRequired = () => {
         <CircleFadingArrowUp className="h-10 w-10 text-foreground" />
         <h2 className="text-4xl text-foreground">Server upgrade required</h2>
         <p className="text-sm text-muted-foreground">
-          The Colanode server{' '}
+          The Tsuzunowa server{' '}
           <span className="font-semibold">{server.name}</span> with domain{' '}
           <span className="font-semibold">{server.domain}</span> is running an
           outdated version and cannot serve this workspace. Please ask your

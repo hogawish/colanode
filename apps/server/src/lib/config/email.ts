@@ -45,7 +45,7 @@ export const emailConfigSchema = z
           .string({
             error: 'Email from name is required when email is enabled',
           })
-          .default('Colanode')
+          .default('Tsuzunowa')
           .transform(resolveConfigReference),
       }),
       provider: emailProviderConfigSchema,

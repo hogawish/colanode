@@ -3,7 +3,7 @@
   "name": "@colanode/mobile",
   "version": "1.0.0",
   "author": "Colanode",
-  "description": "Colanode mobile application",
+  "description": "Tsuzunowa mobile application",
   "main": "src/index.ts",
   "scripts": {
     "start": "expo start",

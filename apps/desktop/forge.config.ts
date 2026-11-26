@@ -10,8 +10,8 @@ import type { ForgeConfig } from '@electron-forge/shared-types';
 
 const config: ForgeConfig = {
   packagerConfig: {
-    name: 'Colanode',
-    executableName: process.platform === 'linux' ? 'colanode' : 'Colanode',
+    name: 'Tsuzunowa',
+    executableName: process.platform === 'linux' ? 'tsuzunowa' : 'Tsuzunowa',
     icon: 'assets/colanode-logo',
     appBundleId: 'com.colanode.desktop',
     ...(process.platform === 'win32' && {
@@ -70,7 +70,7 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [
     new MakerSquirrel({
-      name: 'Colanode',
+      name: 'Tsuzunowa',
       ...(process.platform === 'win32' && {
         certificateFile: process.env.CERTIFICATE_PATH,
         certificatePassword: process.env.CERTIFICATE_PASSWORD,
@@ -78,7 +78,7 @@ const config: ForgeConfig = {
     }),
     new MakerDMG({
       icon: 'assets/colanode-logo.png',
-      title: 'Colanode',
+      title: 'Tsuzunowa',
     }),
     {
       name: '@electron-forge/maker-zip',
@@ -91,8 +91,8 @@ const config: ForgeConfig = {
       name: '@electron-forge/publisher-github',
       config: {
         repository: {
-          owner: 'colanode',
-          name: 'colanode',
+          owner: 'hogawish',
+          name: 'tsuzunowa',
         },
         prerelease: false,
         draft: true,

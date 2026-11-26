@@ -1,8 +1,8 @@
 {
-  "_comment": "Colanode Server Configuration - Copy this file to config.local.json for local development or use it as a template for your self-hosted server",
+  "_comment": "Tsuzunowa Server Configuration - Copy this file to config.local.json for local development or use it as a template for your self-hosted server",
   "_docs": "https://colanode.com/docs/self-hosting/configuration/",
 
-  "name": "Colanode Local",
+  "name": "Tsuzunowa Local",
   "web": {
     "domain": "localhost:4000"
   },
@@ -57,7 +57,7 @@
     "enabled": false,
     "from": {
       "email": "colanode@example.com",
-      "name": "Colanode"
+      "name": "Tsuzunowa"
     },
     "provider": {
       "type": "smtp",

@@ -31,12 +31,15 @@ import { BootstrapService } from '@colanode/desktop/main/bootstrap';
 import { DesktopFileSystem } from '@colanode/desktop/main/file-system';
 import { DesktopKyselyService } from '@colanode/desktop/main/kysely-service';
 import { DesktopPathService } from '@colanode/desktop/main/path-service';
+import { preservePreviewProfile } from '@colanode/desktop/main/profile';
 import { handleLocalRequest } from '@colanode/desktop/main/protocols';
 
 const appMeta: AppMeta = {
   type: 'desktop',
   platform: process.platform,
 };
+
+preservePreviewProfile(electronApp);
 
 const fileSystem = new DesktopFileSystem();
 const pathService = new DesktopPathService();
@@ -48,7 +51,7 @@ let appBadge: AppBadge | null = null;
 
 const debug = createDebugger('desktop:main');
 
-electronApp.setName('Colanode');
+electronApp.setName('Tsuzunowa');
 electronApp.setAppUserModelId('com.colanode.desktop');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -59,7 +62,7 @@ if (started) {
 updateElectronApp({
   updateSource: {
     type: UpdateSourceType.ElectronPublicUpdateService,
-    repo: 'colanode/colanode',
+    repo: 'hogawish/tsuzunowa',
     host: 'https://update.electronjs.org',
   },
   updateInterval: '5 minutes',

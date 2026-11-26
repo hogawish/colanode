@@ -24,7 +24,9 @@ export const SidebarMobile = () => {
     <Sheet open={open} onOpenChange={setOpen}>
       <VisuallyHidden>
         <SheetTitle>Sidebar</SheetTitle>
-        <SheetDescription>Colanode sidebar for mobile devices</SheetDescription>
+        <SheetDescription>
+          Tsuzunowa sidebar for mobile devices
+        </SheetDescription>
       </VisuallyHidden>
       <SheetTrigger asChild>
         <button className="px-2 outline-none" aria-label="Open sidebar">

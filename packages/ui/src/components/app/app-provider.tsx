@@ -20,7 +20,7 @@ export const AppProvider = ({ type }: AppProviderProps) => {
   const [initOutput, setInitOutput] = useState<AppInitOutput | null>(null);
 
   useEffect(() => {
-    console.log(`Colanode | Version: ${build.version} | SHA: ${build.sha}`);
+    console.log(`Tsuzunowa | Version: ${build.version} | SHA: ${build.sha}`);
 
     let active = true;
     const timer = setTimeout(() => {
@@ -32,7 +32,7 @@ export const AppProvider = ({ type }: AppProviderProps) => {
         if (output === 'success') await collections.preload();
         if (active) setInitOutput(output);
       } catch (error) {
-        console.error('Colanode | Error opening workspace', error);
+        console.error('Tsuzunowa | Error opening workspace', error);
         if (active) setInitOutput('error');
       } finally {
         clearTimeout(timer);

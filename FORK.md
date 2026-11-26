@@ -77,6 +77,13 @@ docker compose -p colanode-fork-preview -f hosting/docker/fork-preview.yaml down
 
 ## Changes
 
+- Use Tsuzunowa for app titles, sign-in/recovery text, Web installation metadata,
+  desktop packaging labels, server defaults and emails, and new welcome/seed
+  content. Preserve the desktop preview's existing local profile directory.
+  The Web build now uses one install manifest instead of injecting a second
+  manifest carrying an internal package name. Logo and app-icon redesign is
+  still under review. See [branding scope and validation](docs/branding.md).
+
 - Derive record activity from the later of node-attribute and body-document
   metadata, including query filtering/sorting and reactive document events.
   Creation metadata is unchanged; this is a read projection, not a timestamp write.

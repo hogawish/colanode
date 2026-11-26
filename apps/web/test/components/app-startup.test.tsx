@@ -40,7 +40,7 @@ it('shows recovery when initialization returns an error instead of an empty page
   state.init.mockResolvedValue('error');
   render(<AppProvider type="web" />);
   expect(await screen.findByRole('alert')).toHaveTextContent(
-    'Could not open Colanode'
+    'Could not open Tsuzunowa'
   );
   expect(screen.getByRole('button', { name: 'Reload page' })).toBeVisible();
 });
@@ -49,7 +49,7 @@ it('shows recovery when collection preload rejects', async () => {
   state.preload.mockRejectedValue(new Error('Collection unavailable'));
   render(<AppProvider type="web" />);
   expect(await screen.findByRole('alert')).toHaveTextContent(
-    'Could not open Colanode'
+    'Could not open Tsuzunowa'
   );
 });
 
@@ -74,7 +74,7 @@ it('turns a stalled startup into a visible retry and can still finish later', as
     await vi.advanceTimersByTimeAsync(20_000);
   });
   expect(screen.getByRole('alert')).toHaveTextContent(
-    'Could not open Colanode'
+    'Could not open Tsuzunowa'
   );
   await act(async () => {
     complete('success');
