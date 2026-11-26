@@ -8,23 +8,29 @@
       "type": "image/x-icon"
     },
     {
-      "src": "assets/colanode-logo-192.jpg",
-      "type": "image/jpeg",
+      "src": "assets/tsuzunowa-logo-192.png",
+      "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "assets/colanode-logo-512.jpg",
-      "type": "image/jpeg",
+      "src": "assets/tsuzunowa-logo-512.png",
+      "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "assets/tsuzunowa-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "theme_color": "#000000",
-  "background_color": "#ffffff",
+  "background_color": "#FBF7F1",
   "orientation": "any",
   "description": "Tsuzunowa Web Application",
   "prefer_related_applications": false

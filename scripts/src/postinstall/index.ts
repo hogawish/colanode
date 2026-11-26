@@ -77,34 +77,53 @@ const execute = () => {
   ]);
 
   copyFile(
-    path.resolve(IMAGES_DIR, 'colanode-logo.ico'),
+    path.resolve(IMAGES_DIR, 'tsuzunowa-logo.ico'),
     path.resolve(WEB_PUBLIC_DIR, 'favicon.ico')
   );
 
   copyFile(
-    path.resolve(IMAGES_DIR, 'colanode-logo-192.jpg'),
-    path.resolve(WEB_ASSETS_DIR, 'colanode-logo-192.jpg')
+    path.resolve(IMAGES_DIR, 'tsuzunowa-logo-192.png'),
+    path.resolve(WEB_ASSETS_DIR, 'tsuzunowa-logo-192.png')
   );
 
   copyFile(
-    path.resolve(IMAGES_DIR, 'colanode-logo-512.jpg'),
-    path.resolve(WEB_ASSETS_DIR, 'colanode-logo-512.jpg')
+    path.resolve(IMAGES_DIR, 'tsuzunowa-logo-512.png'),
+    path.resolve(WEB_ASSETS_DIR, 'tsuzunowa-logo-512.png')
   );
 
   copyFile(
-    path.resolve(IMAGES_DIR, 'colanode-logo.png'),
-    path.resolve(DESKTOP_ASSETS_DIR, 'colanode-logo.png')
+    path.resolve(IMAGES_DIR, 'tsuzunowa-logo.png'),
+    path.resolve(DESKTOP_ASSETS_DIR, 'tsuzunowa-logo.png')
   );
 
   copyFile(
-    path.resolve(IMAGES_DIR, 'colanode-logo.ico'),
-    path.resolve(DESKTOP_ASSETS_DIR, 'colanode-logo.ico')
+    path.resolve(IMAGES_DIR, 'tsuzunowa-logo.ico'),
+    path.resolve(DESKTOP_ASSETS_DIR, 'tsuzunowa-logo.ico')
   );
 
   copyFile(
-    path.resolve(IMAGES_DIR, 'colanode-logo.icns'),
-    path.resolve(DESKTOP_ASSETS_DIR, 'colanode-logo.icns')
+    path.resolve(IMAGES_DIR, 'tsuzunowa-logo.icns'),
+    path.resolve(DESKTOP_ASSETS_DIR, 'tsuzunowa-logo.icns')
   );
+  copyFile(
+    path.resolve(IMAGES_DIR, 'tsuzunowa-maskable-512.png'),
+    path.resolve(WEB_ASSETS_DIR, 'tsuzunowa-maskable-512.png')
+  );
+  copyFile(
+    path.resolve(ASSETS_DIR, 'branding', 'tsuzunowa-symbol.svg'),
+    path.resolve(WEB_PUBLIC_DIR, 'favicon.svg')
+  );
+
+  // Remove only obsolete generated brand files, not user or application data.
+  for (const filename of [
+    path.resolve(WEB_ASSETS_DIR, 'colanode-logo-192.jpg'),
+    path.resolve(WEB_ASSETS_DIR, 'colanode-logo-512.jpg'),
+    ...['png', 'ico', 'icns'].map((extension) =>
+      path.resolve(DESKTOP_ASSETS_DIR, 'colanode-logo.' + extension)
+    ),
+  ]) {
+    fs.rmSync(filename, { force: true });
+  }
 };
 
 execute();

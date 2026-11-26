@@ -2,6 +2,8 @@
 
 # Tsuzunowa（つづのわ）
 
+<img src="assets/images/tsuzunowa-lockup.png" alt="Tsuzunowa: two notebooks bound by a circular ring and the Fraunces wordmark" width="520" />
+
 **One original. Many ways to work together.**
 
 Tsuzunowa is an open-source, local-first collaboration workspace for pages,

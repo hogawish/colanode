@@ -37,10 +37,23 @@ See [origins and changes](../FORK.md) and the [license](../LICENSE).
 
 ## Logo and app icons
 
-The new logo and app icon are being designed together. Early generated concepts
-are drafts for review and have not replaced the inherited logo, favicon,
-or platform icon assets. The selected design will need a clear small-size
-symbol, a wordmark, light/dark presentation, and the platform icon formats.
+The owner selected the two-notebook and circular-ring mark on 2026-11-27.
+The approved [source SVG](../assets/branding/tsuzunowa-symbol.svg) drives the
+shared sign-in mark, Web favicon and PWA icons, desktop icon containers, and
+mobile icon/splash assets. The exposed rear ring is slightly lighter than the
+front ring as an optical correction. The mark uses its approved paper backdrop;
+it is not recolored by the page theme or the inherited Colanode drawing animation.
+
+The full mark is retained at small sizes. Maskable/adaptive versions apply a
+uniform safe-area inset. The owner selected the E2 wordmark on the same date:
+Fraunces 500, optical size 72, softness 100, wonk 1 and -0.015em tracking.
+The [wordmark SVG](../assets/branding/tsuzunowa-wordmark.svg) contains outlines,
+so it does not depend on installed fonts or a network font service. Shared
+sign-in screens use those outlines; ordinary application text keeps its existing
+typeface. See the
+[asset generation guide](../assets/branding/README.md) for source, regeneration,
+and platform formats. Generated copies are refreshed by postinstall so a fresh
+installation cannot restore the old mark.
 
 ## Validation scope
 
@@ -50,3 +63,10 @@ built Web app in a fresh headless browser profile. Browser checks cover the
 tab title, sign-in heading, and single installation manifest in light and dark
 themes. They do not cover a native desktop/mobile installer, existing OS
 shortcuts, or an already installed PWA's metadata refresh.
+
+The approved mark was checked with shared-UI and Web production builds, lint
+for the changed TypeScript files, SVG-to-raster equality, ICO/ICNS frame decoding,
+and adaptive-icon safe-area bounds. The built Web app was also checked for
+actual navy and orange pixels in both light and dark themes, using an isolated
+browser profile. These checks do not validate native installation or OS icon
+selection. The selected E2 wordmark is included in the shared sign-in screen.

@@ -82,7 +82,7 @@ const createWindow = async () => {
     fullscreenable: true,
     minWidth: 800,
     minHeight: 600,
-    icon: path.join(pathService.assets, 'colanode-logo.png'),
+    icon: path.join(pathService.assets, 'tsuzunowa-logo.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },

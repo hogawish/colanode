@@ -12,7 +12,7 @@ const config: ForgeConfig = {
   packagerConfig: {
     name: 'Tsuzunowa',
     executableName: process.platform === 'linux' ? 'tsuzunowa' : 'Tsuzunowa',
-    icon: 'assets/colanode-logo',
+    icon: 'assets/tsuzunowa-logo',
     appBundleId: 'com.colanode.desktop',
     ...(process.platform === 'win32' && {
       certificateFile: process.env.CERTIFICATE_PATH,
@@ -77,7 +77,7 @@ const config: ForgeConfig = {
       }),
     }),
     new MakerDMG({
-      icon: 'assets/colanode-logo.png',
+      icon: 'assets/tsuzunowa-logo.png',
       title: 'Tsuzunowa',
     }),
     {

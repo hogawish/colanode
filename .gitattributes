@@ -1,0 +1,4 @@
+# Preserve approved artwork bytes and their recorded hashes across platforms.
+assets/branding/*.svg text eol=lf
+assets/branding/*.json text eol=lf
+assets/branding/fonts/*.ttf -text

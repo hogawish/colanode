@@ -1,6 +1,6 @@
-# Colanode postinstall script
+# Tsuzunowa postinstall script
 
-This directory contains the **postinstall script** that automatically copies and distributes emoji and icon assets to the appropriate **Colanode** applications after each dependency installation. It ensures that the latest emojis, icons, fonts, and images are always present in both the desktop and web applications without requiring manual intervention.
+This directory contains the **postinstall script** that automatically copies and distributes emoji, font and brand assets to the Tsuzunowa applications after dependency installation. Brand source assets are generated from the approved SVG; see [the branding guide](../../../assets/branding/README.md).
 
 ## What It Does
 

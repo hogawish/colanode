@@ -1,0 +1,24 @@
+{
+  "approved": "2026-11-27",
+  "selection": "E2",
+  "text": "Tsuzunowa",
+  "family": "Fraunces",
+  "weight": 500,
+  "axes": {
+    "opsz": 72,
+    "SOFT": 100,
+    "WONK": 1
+  },
+  "letterSpacingEm": -0.015,
+  "fontFile": "fonts/fraunces-tsuzunowa-e2.ttf",
+  "fontSha256": "8eba682956ad74423ff61a2e7fe3bc1013fb85d718d2cb3d7ccdde1dc81f0918",
+  "license": "fonts/OFL.txt",
+  "svg": "tsuzunowa-wordmark.svg",
+  "svgSha256": "2d41874494cac93f8b247b5802e0d4237f7402530ad521cc1641e43491b6f8ac",
+  "outlineTool": "fontkit 2.0.4 (authoring only)",
+  "lineBox": {
+    "width": 347.62500000000006,
+    "height": 70,
+    "baseline": 60.30500000000001
+  }
+}

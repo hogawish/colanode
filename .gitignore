@@ -166,6 +166,9 @@ apps/desktop/assets/fonts/antonio.ttf
 apps/desktop/assets/colanode-logo.png
 apps/desktop/assets/colanode-logo.ico
 apps/desktop/assets/colanode-logo.icns
+apps/desktop/assets/tsuzunowa-logo.png
+apps/desktop/assets/tsuzunowa-logo.ico
+apps/desktop/assets/tsuzunowa-logo.icns
 
 # Ignore web assets
 apps/web/public/assets/emojis.db
@@ -177,6 +180,9 @@ apps/web/public/assets/fonts/satoshi-variable-italic.woff2
 apps/web/public/assets/fonts/antonio.ttf
 apps/web/public/assets/colanode-logo-192.jpg
 apps/web/public/assets/colanode-logo-512.jpg
+apps/web/public/assets/tsuzunowa-logo-192.png
+apps/web/public/assets/tsuzunowa-logo-512.png
+apps/web/public/assets/tsuzunowa-maskable-512.png
 
 # Ignore mobile assets
 apps/mobile/assets/ui/index.html

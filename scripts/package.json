@@ -5,6 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "generate:branding": "tsx src/branding/generate.ts",
     "generate:emojis": "tsx src/emojis/index.ts",
     "generate:icons": "tsx src/icons/index.ts",
     "seed": "tsx src/seed/index.ts"

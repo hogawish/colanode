@@ -1,0 +1,18 @@
+{
+  "source": "tsuzunowa-symbol.svg",
+  "sha256": "23b33af62ed7f9ba36b82f4edc86d91197889a3a146d6895464a14e74ba4a711",
+  "approved": "2026-11-27",
+  "artwork": "Two notebooks bound by one circular ring; editorial t on front cover",
+  "ring": {
+    "frontWidth": 48,
+    "exposedRearWidth": 45
+  },
+  "wordmark": {
+    "source": "tsuzunowa-wordmark.svg",
+    "selection": "E2",
+    "family": "Fraunces",
+    "weight": 500,
+    "sha256": "2d41874494cac93f8b247b5802e0d4237f7402530ad521cc1641e43491b6f8ac"
+  },
+  "note": "Source geometry preserved. Maskable/adaptive exports use uniform .88 inset. No small-size redesign."
+}
