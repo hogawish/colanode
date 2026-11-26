@@ -21,7 +21,17 @@ Follow the [fork roadmap](https://github.com/hogawish/tsuzunowa/issues/1) for
 page-sharing development and discussion. Fork preview tags identify source
 snapshots for local builds.
 
-## Source preview `fork-0.2.0-alpha.1`
+## Source preview `v0.2.0-alpha.2`
+
+The first Tsuzunowa-named source tag adds the approved two-notebook/circular-ring
+icon and Fraunces E2 wordmark, together with Tsuzunowa display names throughout
+the app builds. It retains the sharing and Notion migration features of
+`fork-0.2.0-alpha.1`. Internal package names, storage keys, preview volumes and
+the desktop preview profile remain compatible. No new database migration or
+native installer is included. See the [release notes](docs/releases/v0.2.0-alpha.2.md)
+and [branding sources](assets/branding/README.md). Earlier fork tags remain valid.
+
+## Previous source preview `fork-0.2.0-alpha.1`
 
 This preview adds sharing an original page with view or edit access, invitations,
 inherited access to descendants, and a Shared with me sidebar. Page access can be
@@ -81,8 +91,8 @@ docker compose -p colanode-fork-preview -f hosting/docker/fork-preview.yaml down
   desktop packaging labels, server defaults and emails, and new welcome/seed
   content. Preserve the desktop preview's existing local profile directory.
   The Web build now uses one install manifest instead of injecting a second
-  manifest carrying an internal package name. Logo and app-icon redesign is
-  still under review. See [branding scope and validation](docs/branding.md).
+  manifest carrying an internal package name. Adopt the owner-selected two-book
+  icon and outlined E2 wordmark. See [branding scope and validation](docs/branding.md).
 
 - Derive record activity from the later of node-attribute and body-document
   metadata, including query filtering/sorting and reactive document events.

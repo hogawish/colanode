@@ -19,7 +19,7 @@ who can work with it.
 > or service. We retain the upstream Apache 2.0 license and attribution.
 > See [FORK.md](FORK.md) for the development history and changes.
 
-[Latest source preview](https://github.com/hogawish/tsuzunowa/releases/tag/fork-0.2.0-alpha.1)
+[Latest source preview](https://github.com/hogawish/tsuzunowa/releases/tag/v0.2.0-alpha.2)
 · [Roadmap and discussion](https://github.com/hogawish/tsuzunowa/issues/1)
 · [Report a problem](https://github.com/hogawish/tsuzunowa/issues)
 · [Apache 2.0](LICENSE)
@@ -60,15 +60,15 @@ before setting up a shared project.
 ## Try the source preview
 
 **Tsuzunowa is in alpha.** The current public release is a source preview for
-the self-hosted Web client and API, published under its earlier tag
-`fork-0.2.0-alpha.1`. There are no Tsuzunowa-branded desktop installers or
+the self-hosted Web client and API, tagged `v0.2.0-alpha.2`. The earlier
+`fork-0.2.0-alpha.1` tag remains available. There are no Tsuzunowa-branded desktop installers or
 prebuilt container releases yet. The official Colanode apps and cloud service
 do not include these fork-specific features.
 
 With Git, Docker, and Docker Compose installed:
 
 ```sh
-git clone --branch fork-0.2.0-alpha.1 https://github.com/hogawish/tsuzunowa.git tsuzunowa
+git clone --branch v0.2.0-alpha.2 https://github.com/hogawish/tsuzunowa.git tsuzunowa
 cd tsuzunowa
 docker compose -p colanode-fork-preview -f hosting/docker/fork-preview.yaml up -d --build
 ```
@@ -90,7 +90,7 @@ docker compose -p colanode-fork-preview -f hosting/docker/fork-preview.yaml down
 ```
 
 For upgrades and recovery, follow the
-[release notes](docs/releases/fork-0.2.0-alpha.1.md), including backing up both
+[release notes](docs/releases/v0.2.0-alpha.2.md), including backing up both
 the database and uploaded files. Deploy matching Web and API versions.
 
 Some application, package, and configuration names still use `colanode` while
